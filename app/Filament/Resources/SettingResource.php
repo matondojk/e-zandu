@@ -179,6 +179,6 @@ class SettingResource extends Resource
     public static function getRecord(): ?\Illuminate\Database\Eloquent\Model
     {
          // Tenta encontrar o registro de configuração (assumindo ID=1)
-         return static::getModel()::find(1);
+         return static::getModel()::first();
     }
 }

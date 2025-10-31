@@ -3,7 +3,7 @@
 use App\Http\Controllers\Api\WhatsAppWebhookController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-
+use App\Http\Controllers\Api\SubscriptionWebhookController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -17,3 +17,5 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('whatsapp-webhook', [WhatsAppWebhookController::class, 'verify']);
 Route::post('whatsapp-webhook', [WhatsAppWebhookController::class, 'handle']);
+Route::post('subscription/webhook', [SubscriptionWebhookController::class, 'handle']);
+

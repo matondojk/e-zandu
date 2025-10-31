@@ -9,6 +9,9 @@ use App\Models\Stock;
 use App\Observers\StockObserver; 
 use App\Models\ProductImage; 
 use App\Observers\ProductImageObserver; 
+use Filament\Facades\Filament;
+use App\Http\Responses\LoginResponse;
+use Filament\Http\Responses\Auth\Contracts\LoginResponse as LoginResponseContract; 
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -19,7 +22,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        //
+        $this->app->bind(LoginResponseContract::class, LoginResponse::class);
     }
 
     /**
