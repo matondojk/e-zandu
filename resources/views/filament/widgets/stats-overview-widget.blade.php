@@ -1,7 +1,5 @@
-<div class="grid grid-cols-4 gap-6 w-full">
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
     @foreach ($stats as $stat)
-        <div class="text-center">
-            {{ $stat }}
-        </div>
+        {{ $stat }}
     @endforeach
 </div>
