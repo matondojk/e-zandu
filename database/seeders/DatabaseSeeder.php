@@ -21,7 +21,7 @@ class DatabaseSeeder extends Seeder
         DB::table('cart_items')->truncate();
         DB::table('carts')->truncate();
         DB::table('stock_alerts')->truncate(); 
-        DB::table('customers')->truncate(); // ✅ AGORA LIMPO ANTES DE SER REFERENCIADO
+        DB::table('users')->truncate(); // ✅ AGORA LIMPO ANTES DE SER REFERENCIADO
         
         // --- LIMPEZA DE ESTOQUE/COMPRAS/PRODUTOS ---
         DB::table('stock_movements')->truncate();

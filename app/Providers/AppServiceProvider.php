@@ -12,6 +12,7 @@ use App\Observers\ProductImageObserver;
 use Filament\Facades\Filament;
 use App\Http\Responses\LoginResponse;
 use Filament\Http\Responses\Auth\Contracts\LoginResponse as LoginResponseContract; 
+use Livewire\Livewire;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -22,7 +23,6 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        $this->app->bind(LoginResponseContract::class, LoginResponse::class);
     }
 
     /**
@@ -35,5 +35,11 @@ class AppServiceProvider extends ServiceProvider
         Cart::observe(CartObserver::class);
         Stock::observe(StockObserver::class);
         ProductImage::observe(ProductImageObserver::class);
+
+        Livewire::component('sales-stats-overview-widget', \App\Livewire\SalesStatsOverviewWidget::class);
+        Livewire::component('sales-chart-widget', \App\Filament\Widgets\SalesChartWidget::class);
+        Livewire::component('latest-orders-table-widget', \App\Filament\Widgets\LatestOrdersTableWidget::class);
+        Livewire::component('low-stock-table-widget', \App\Filament\Widgets\LowStockTableWidget::class);
+        Livewire::component('purchases-chart-widget', \App\Filament\Widgets\PurchasesChartWidget::class);
     }
 }

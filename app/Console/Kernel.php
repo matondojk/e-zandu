@@ -44,6 +44,17 @@ class Kernel extends ConsoleKernel
         $schedule->command('ai:generate-reports')
             ->daily()
             ->at('06:00');
+
+        $schedule->command('stock:send-alerts')
+            ->dailyAt('08:00');
+
+        $schedule->command('backup:run')
+            ->daily()
+            ->at('01:00'); 
+
+        $schedule->command('backup:clean')
+            ->daily()
+            ->at('02:00'); 
     }
 
     /**

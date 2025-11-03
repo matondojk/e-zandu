@@ -16,6 +16,8 @@ class Setting extends Model
     protected $fillable = [
         'id',
         'store_name',
+        'minimum_stock',
+        'stock_alert_emails',
         'admin_phone',
         'support_email',
         'iban',

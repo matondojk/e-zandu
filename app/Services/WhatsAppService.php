@@ -135,8 +135,8 @@ class WhatsAppService
     ) {
         // --- 1. Enviar Notificação WhatsApp (Como antes) ---
         $adminPhone = Cache::remember('shop_settings', 60*5, function () {
-            // Assegura que Setting::find(1) não é nulo antes de aceder a admin_phone
-            return Setting::find(1); 
+            // Assegura que Setting::first() não é nulo antes de aceder a admin_phone
+            return Setting::first(); 
         })->admin_phone ?? null; // Usa ?? null para segurança
 
         if (empty($adminPhone)) {

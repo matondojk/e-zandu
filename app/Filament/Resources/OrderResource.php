@@ -5,7 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\OrderResource\Pages;
 use App\Filament\Resources\OrderResource\RelationManagers;
 use App\Models\Cart;
-use App\Models\Setting; 
+use App\Models\Setting;
 use App\Services\InvoiceService;
 use App\Services\WhatsAppService;
 use Exception;
@@ -24,7 +24,7 @@ use Illuminate\Support\HtmlString;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 // use Illuminate\Support\Number; // Removido pois não está sendo usado
-use Illuminate\Support\Facades\Cache; 
+use Illuminate\Support\Facades\Cache;
 use Filament\Tables\Filters; // ✅ ADICIONADO: Para o filtro de datas
 
 class OrderResource extends Resource
@@ -38,10 +38,10 @@ class OrderResource extends Resource
     protected static ?string $pluralModelLabel = 'Vendas';
     protected static ?int $navigationSort = 2;
     protected static ?string $recordTitleAttribute = 'id';
-    
+
     // ✅ Pedido 1: Título do grupo mudado
-    protected static ?string $navigationGroup = 'Vendas & Clientes';
-    
+    protected static ?string $navigationGroup = 'Loja & Vendas';
+
     // ✅ Pedido 2: Badge para pedidos "active"
     public static function getNavigationBadge(): ?string
     {
@@ -66,13 +66,13 @@ class OrderResource extends Resource
         return $table
             ->columns([
                 // ✅ Pedido 3: Coluna ID Removida
-                
-                Tables\Columns\TextColumn::make('customer.name')
+
+                Tables\Columns\TextColumn::make('user.name')
                     ->label('Cliente')
                     ->searchable()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('customer.phone')
+                Tables\Columns\TextColumn::make('user.phone')
                     ->label('WhatsApp')
                     ->searchable()
                     ->copyable()
@@ -131,28 +131,27 @@ class OrderResource extends Resource
                         return $query
                             ->when(
                                 $data['created_from'],
-                                fn (Builder $query, $date): Builder => $query->whereDate('created_at', '>=', $date),
+                                fn(Builder $query, $date): Builder => $query->whereDate('created_at', '>=', $date),
                             )
                             ->when(
                                 $data['created_until'],
-                                fn (Builder $query, $date): Builder => $query->whereDate('created_at', '<=', $date),
+                                fn(Builder $query, $date): Builder => $query->whereDate('created_at', '<=', $date),
                             );
                     }),
             ])
             ->actions([
-                // ✅ Pedido 5: Ação como ícone
                 Tables\Actions\Action::make('contact_whatsapp')
                     ->label('Falar no WhatsApp')
                     ->icon('heroicon-o-envelope')
                     ->color('info')
-                    ->url(fn(Cart $record): string => "https://wa.me/{$record->customer->phone}?text=" . urlencode("Olá! Sou da TangaWA Shop, sobre o seu pedido #{$record->id}."), true)
+                    ->url(fn(Cart $record): string => "https://wa.me/{$record->user->phone}?text=" . urlencode("Olá! Sou da TangaWA Shop, sobre o seu pedido #{$record->id}."), true)
                     ->openUrlInNewTab()
                     ->tooltip('Abrir conversa no WhatsApp Web')
-                    ->iconButton(), // <-- Adicionado
+                    ->iconButton()
+                    ->visible(fn(Cart $record): bool => !empty($record->user?->phone)), // ✅ Só mostra se o cliente tiver telefone
 
-                // ✅ Pedido 5: Ação como ícone
                 Tables\Actions\ViewAction::make()
-                    ->iconButton(), // <-- Adicionado
+                    ->iconButton(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -173,14 +172,14 @@ class OrderResource extends Resource
 
         return $infolist
             ->schema([
-                Infolists\Components\Section::make('Detalhes do Cliente') 
+                Infolists\Components\Section::make('Detalhes do Cliente')
                     ->columns(3)
                     ->schema([
-                        Infolists\Components\TextEntry::make('customer.name')->label('Cliente')->icon('heroicon-o-user'),
-                        Infolists\Components\TextEntry::make('customer.phone')
+                        Infolists\Components\TextEntry::make('user.name')->label('Cliente')->icon('heroicon-o-user'),
+                        Infolists\Components\TextEntry::make('user.phone')
                             ->label('WhatsApp')
                             ->copyable(),
-                        Infolists\Components\TextEntry::make('customer.delivery_address')
+                        Infolists\Components\TextEntry::make('user.delivery_address')
                             ->label('Endereço de Entrega')
                             ->default('Não fornecido')
                             ->columnSpanFull(),
@@ -203,12 +202,12 @@ class OrderResource extends Resource
                             ->label('Subtotal (Produtos)')
                             // ✅ Formato corrigido
                             ->formatStateUsing(fn($state): string => number_format($state, 2, ',', '.') . ' Kz'),
-                        
+
                         Infolists\Components\TextEntry::make('shipping_rate_display')
                             ->label('Taxa de Frete')
                             // ✅ Formato corrigido
-                            ->state(fn(Cart $record) => number_format($shippingRate, 2, ',', '.') . ' Kz'), 
-                        
+                            ->state(fn(Cart $record) => number_format($shippingRate, 2, ',', '.') . ' Kz'),
+
                         Infolists\Components\TextEntry::make('grand_total')
                             ->label('TOTAL GERAL (Pago pelo Cliente)')
                             // ✅ Formato corrigido
@@ -216,7 +215,7 @@ class OrderResource extends Resource
                             ->size(Infolists\Components\TextEntry\TextEntrySize::Large)
                             ->color('success')
                             ->weight('bold'),
-                            
+
                         Infolists\Components\TextEntry::make('created_at')
                             ->label('Data do Pedido')
                             ->dateTime('d/m/Y H:i'),
@@ -258,7 +257,6 @@ class OrderResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()->with(['items.product', 'customer']);
+        return parent::getEloquentQuery()->with(['items.product', 'user']);
     }
 }
-

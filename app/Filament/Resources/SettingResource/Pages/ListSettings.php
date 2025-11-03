@@ -3,52 +3,34 @@
 namespace App\Filament\Resources\SettingResource\Pages;
 
 use App\Filament\Resources\SettingResource;
-use Filament\Actions;
 use Filament\Resources\Pages\ListRecords;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Redirect; // Já não é estritamente necessário
+use App\Models\Setting; // ✅ Importar o Model
 
 class ListSettings extends ListRecords
 {
     protected static string $resource = SettingResource::class;
 
-    protected function getHeaderActions(): array
-    {
-        // Usa o método estático getRecord() do Resource para decidir se deve mostrar o botão "Criar"
-        return [
-            Actions\CreateAction::make()
-                ->label('Criar Configuração')
-                ->visible(fn () => !SettingResource::getRecord()),
-        ];
-    }
-    
-    // MÉTODO DE REDIRECIONAMENTO CRUCIAL
-    protected function getRedirectUrl(): string
-    {
-        // Tenta encontrar o registro de configuração (assumindo ID=1)
-        $record = SettingResource::getRecord();
-        
-        if ($record) {
-             // Redireciona para a página de edição do registro existente
-             return SettingResource::getUrl('edit', ['record' => $record]);
-        }
-        
-        // Se não houver registro (ID 1), redireciona para criar um novo
-        return SettingResource::getUrl('create');
-    }
-
+    /**
+     * Esta função é o nosso "gatilho".
+     * É executada antes de a página de lista ser renderizada.
+     */
     public function mount(): void
     {
-        // Chamar o mount da classe pai (ListRecords) não é necessário aqui
-        // parent::mount(); 
-
-        $url = $this->getRedirectUrl();
+        // Tenta encontrar o primeiro registo. Se não existir, cria um VAZIO.
+        // Isto garante que temos sempre um registo com um UUID para editar.
+        $setting = Setting::firstOrCreate([], []); 
         
-        // Se a URL de redirecionamento for diferente da URL de índice atual, redireciona
-        if ($url !== $this->getResource()::getUrl('index')) {
-            // CORREÇÃO CRÍTICA: Use a função global redirect() para ser compatível com Livewire
-            redirect($url);
-            // O Livewire trata o redirecionamento sem a necessidade do ->send() explícito
+        // Se o 'store_name' (um campo obrigatório do setup) estiver vazio,
+        // significa que o setup nunca foi corrido.
+        if (empty($setting->store_name)) {
+            
+            // ❌ Redireciona para a nossa rota de setup (fora do Filament)
+            $this->redirect(route('setup.index'));
+
+        } else {
+            
+            // ✅ Se já está configurado, redireciona para a página de edição normal
+            $this->redirect(SettingResource::getUrl('edit', ['record' => $setting->id]));
         }
     }
 }

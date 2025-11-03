@@ -33,7 +33,7 @@ class PaymentController extends Controller
 
         // Puxar os dados de pagamento dinamicamente (com cache)
         $settings = Cache::remember('shop_settings', 60 * 5, function () {
-            return Setting::find(1);
+            return Setting::first();
         });
 
         if (!$settings) {
@@ -94,7 +94,7 @@ class PaymentController extends Controller
 
         // 4. Notifica o Admin
         $settings = Cache::remember('shop_settings', 60 * 5, function () {
-            return Setting::find(1);
+            return Setting::first();
         });
 
         $adminMsg = "🔔 Novo Comprovativo Submetido! 🔔\n\n";

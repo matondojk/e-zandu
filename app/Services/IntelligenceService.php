@@ -515,7 +515,7 @@ PROMPT;
     public function getAdminRecipients(): array
     {
         $settings = Cache::remember('shop_settings', now()->addMinutes(60), function () {
-            return Setting::find(1);
+            return Setting::first();
         });
 
         if (!$settings || empty($settings->support_email)) {

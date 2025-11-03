@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable,HasUuids;
+    use HasApiTokens, HasFactory, Notifiable, HasUuids;
 
     /**
      * The attributes that are mass assignable.
@@ -20,9 +20,31 @@ class User extends Authenticatable
      */
     protected $fillable = [
         'name',
+        'avatar',
         'email',
+        'phone',
+        'delivery_address',
         'password',
+        'role',
     ];
+
+    public function canAccessPanel(\Filament\Panel $panel): bool
+    {
+        if ($panel->getId() === 'admin') {
+            return $this->role === 'admin';
+        }
+
+        return false;
+    }
+
+    public function getFilamentAvatarUrl(): ?string
+    {
+        if ($this->avatar) {
+            return Storage::disk('public')->url($this->avatar);
+        }
+ 
+        return 'https://ui-avatars.com/api/?name=' . urlencode($this->name) . '&color=FFFFFF&background=f97316';
+    }
 
     /**
      * The attributes that should be hidden for serialization.
@@ -42,4 +64,14 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
     ];
+
+    public function reviews()
+    {
+        return $this->hasMany(ProductReview::class);
+    }
+
+    public function wishlist()
+    {
+        return $this->hasMany(Wishlist::class);
+    }
 }

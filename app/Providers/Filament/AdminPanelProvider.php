@@ -2,6 +2,7 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Pages\Auth\EditProfile;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -23,6 +24,9 @@ use App\Filament\Widgets\LatestPendingOrders;
 use App\Filament\Pages\IntelligentAnalysis;
 use Filament\Support\Assets\Js;
 use Filament\Support\Facades\FilamentAsset;
+use App\Models\User;
+use App\Http\Middleware\CheckSubscriptionStatus;
+use App\Filament\Pages\AnalyticsDashboard;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -33,9 +37,12 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
+            ->passwordReset()
+            ->emailVerification()
             ->colors([
                 'primary' => Color::Orange,
             ])
+            ->profile(EditProfile::class)
             // ->brandLogo('https://matondojoao.com/wp-content/uploads/2025/10/tanga-wa-icon-2.png')
             ->databaseNotifications()
             ->databaseNotificationsPolling('30s')
@@ -43,15 +50,14 @@ class AdminPanelProvider extends PanelProvider
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([
-                Pages\Dashboard::class,
-                IntelligentAnalysis::class,
+                // Pages\Dashboard::class,
+                AnalyticsDashboard::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([
-                StatsOverviewWidget::class,
-                OrdersChart::class,
-                LatestPendingOrders::class,
+                
             ])
+            
             ->middleware([
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,
@@ -62,6 +68,7 @@ class AdminPanelProvider extends PanelProvider
                 SubstituteBindings::class,
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
+                CheckSubscriptionStatus::class,
             ])
             ->authMiddleware([
                 Authenticate::class,

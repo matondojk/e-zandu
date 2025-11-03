@@ -71,14 +71,14 @@ class ViewOrder extends ViewRecord
                         // 4. Enviar Fatura ao Cliente
                         $whatsAppService->sendDocumentMessage(
                             $pdfUrl,
-                            $record->customer->phone,
+                            $record->user->phone,
                             "Fatura-Pedido-{$record->id}.pdf"
                         );
 
                         // 5. Mensagem de Confirmação Atualizada
                         $whatsAppService->sendTextMessage(
                             "Pagamento confirmado para o Pedido #{$record->id}! ✅\nObrigado pela sua compra. O seu produto *já será preparado para envio*.",
-                            $record->customer->phone
+                            $record->user->phone
                         );
 
                         // 6. Notificação de Sucesso
@@ -116,7 +116,7 @@ class ViewOrder extends ViewRecord
 
                         $whatsAppService->sendTextMessage(
                             "O seu Pedido #{$record->id} foi marcado como *entregue*! 🚚✅\n\nEsperamos que goste dos seus produtos. Obrigado por comprar na TangaWA Shop!",
-                            $record->customer->phone
+                            $record->user->phone
                         );
 
                         Notification::make()->title('Pedido Marcado como Entregue!')->success()->send();
@@ -155,7 +155,7 @@ class ViewOrder extends ViewRecord
                         $message .= "Motivo: *{$reason}*\n\n";
                         $message .= "Por favor, submeta um novo comprovativo no link de pagamento que recebeu.";
 
-                        $whatsAppService->sendTextMessage($message, $record->customer->phone);
+                        $whatsAppService->sendTextMessage($message, $record->user->phone);
 
                         Notification::make()->title('Pagamento Rejeitado')->body('O cliente foi notificado.')->warning()->send();
                         $this->refreshFormData(['payment_proof_path']);
@@ -191,9 +191,9 @@ class ViewOrder extends ViewRecord
                 Infolists\Components\Section::make('Detalhes do Cliente')
                     ->columns(3)
                     ->schema([
-                        Infolists\Components\TextEntry::make('customer.name')->label('Cliente')->icon('heroicon-o-user'),
-                        Infolists\Components\TextEntry::make('customer.phone')->label('WhatsApp')->copyable(),
-                        Infolists\Components\TextEntry::make('customer.delivery_address')->label('Endereço de Entrega')->default('Não fornecido')->columnSpanFull(),
+                        Infolists\Components\TextEntry::make('user.name')->label('Cliente')->icon('heroicon-o-user'),
+                        Infolists\Components\TextEntry::make('user.phone')->label('WhatsApp')->copyable(),
+                        Infolists\Components\TextEntry::make('user.delivery_address')->label('Endereço de Entrega')->default('Não fornecido')->columnSpanFull(),
                     ]),
 
                 // --- Secção Status ---

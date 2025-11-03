@@ -2,16 +2,16 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Str; // Importar Str
-use Spatie\Sluggable\HasSlug;
-use Spatie\Sluggable\SlugOptions;
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
 
 class Subscription extends Model
 {
-    use HasFactory;
+    use HasFactory, HasUuids;
+
+    protected $keyType = 'string';
+    public $incrementing = false;
 
     protected $fillable = [
         'status',
@@ -30,4 +30,12 @@ class Subscription extends Model
         'paused_at' => 'datetime',
         'canceled_at' => 'datetime',
     ];
+    
+    /**
+     * Verifica se a assinatura está ativa (não 'paused' nem 'canceled').
+     */
+    public function isActive(): bool
+    {
+        return !in_array($this->status, ['paused', 'canceled']);
+    }
 }

@@ -89,5 +89,19 @@ class Product extends Model
 
         return max(0, $totalStock);
     }
-}
 
+    public function reviews()
+    {
+        return $this->hasMany(ProductReview::class);
+    }
+
+    public function approvedReviews()
+    {
+        return $this->reviews()->where('status', 'approved');
+    }
+
+    public function wishlistItems()
+    {
+        return $this->hasMany(Wishlist::class);
+    }
+}

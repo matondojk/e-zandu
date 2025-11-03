@@ -5,7 +5,10 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use App\Models\Product;
 use App\Models\Category;
+use App\Models\ProductReview; // ✅ NOVO: Importar o Model de Review
+use App\Models\User;         // ✅ NOVO: Importar o Model de User
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class ProductSeeder extends Seeder
 {
@@ -13,12 +16,24 @@ class ProductSeeder extends Seeder
     {
         // --- LIMPEZA DE TABELAS ---
         DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        DB::table('product_reviews')->truncate(); // ✅ NOVO: Limpar reviews
         DB::table('product_cross_sell')->truncate();
         DB::table('products')->truncate();
         DB::table('category_product')->truncate();
         DB::table('categories')->truncate();
         DB::statement('SET FOREIGN_KEY_CHECKS=1;');
         // --- FIM DA LIMPEZA ---
+
+        // 1. Encontrar um User ID (Cliente ou Admin) para atribuir as reviews
+        // Tentamos encontrar um cliente, senão usamos o primeiro utilizador
+        $userForReview = User::where('role', 'customer')->first() ?? User::first();
+        $userId = $userForReview?->id;
+        
+        // Se não houver utilizadores, paramos o seeder para evitar erros
+        if (!$userId) {
+            echo "Aviso: Não foi possível encontrar um utilizador para atribuir reviews. Certifique-se de que a tabela 'users' não está vazia.\n";
+            return; 
+        }
 
         $categoriesData = [
             'Calçados' => ['icon' => 'heroicon-o-shoe-print'],
@@ -113,6 +128,9 @@ class ProductSeeder extends Seeder
                 'categories' => ['Eletrónicos', 'Áudio', 'Acessórios']
             ]
         ];
+        
+        // Array para guardar os produtos criados para as reviews
+        $createdProducts = [];
 
         // 3. Criar Produtos e Associar Categorias
         foreach ($productsData as $data) {
@@ -122,18 +140,64 @@ class ProductSeeder extends Seeder
             $sizes = $data['sizes'] ?? null;
             $colors = $data['colors'] ?? null;
 
+            // Garante que o slug é criado se não estiver presente nos dados
+            $data['slug'] = $data['slug'] ?? Str::slug($data['name']);
+
             unset($data['categories'], $data['sizes'], $data['colors']);
 
             $product = Product::create(array_merge($data, [
                 'sizes' => $sizes,
                 'colors' => $colors,
             ]));
+            
+            $createdProducts[] = $product; // Adicionar à lista
 
             $ids = collect($categoriesToAttach)->map(function ($categoryName) use ($categoryIds) {
                 return $categoryIds[$categoryName] ?? null;
             })->filter()->all();
 
             $product->categories()->attach($ids);
+        }
+        
+        // 4. ✅ NOVO: Criar Reviews para os Produtos
+        $comments = [
+            'approved' => [
+                "Excelente produto! Chegou antes do prazo e a qualidade é fantástica.",
+                "Adorei! Cinco estrelas merecidas, recomendo a todos.",
+                "Muito satisfeito com a compra. O desempenho é impecável.",
+                "Melhor que o esperado. É exatamente o que eu procurava.",
+                "Produto de alta qualidade e o atendimento da loja foi ótimo.",
+            ],
+            'pending' => [
+                "Ainda estou a testar, mas a primeira impressão é boa. A entrega demorou um pouco.",
+                "Recebi ontem. O design é bonito, mas a embalagem podia ser melhor.",
+                "Bom custo-benefício, mas gostaria que tivessem mais opções de cor.",
+            ],
+            'rejected' => [
+                "Este produto é péssimo, não vale o preço. Exijo o meu dinheiro de volta.",
+                "Recebi um item com defeito e o suporte não responde.",
+            ],
+        ];
+
+        foreach ($createdProducts as $product) {
+            // Criar 2 a 3 reviews por produto
+            $numberOfReviews = rand(2, 3);
+
+            for ($i = 0; $i < $numberOfReviews; $i++) {
+                // Alternar entre status 'approved', 'pending' e, ocasionalmente, 'rejected'
+                $statusOptions = ['approved', 'approved', 'pending', 'rejected'];
+                $status = $statusOptions[array_rand($statusOptions)];
+                
+                $commentArray = $comments[$status];
+                
+                ProductReview::create([
+                    'product_id' => $product->id,
+                    'user_id' => $userId, 
+                    'rating' => rand(3, 5), // Reviews positivas (3, 4 ou 5)
+                    'comment' => $commentArray[array_rand($commentArray)],
+                    'status' => $status,
+                ]);
+            }
         }
     }
 }

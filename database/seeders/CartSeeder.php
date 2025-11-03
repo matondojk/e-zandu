@@ -31,7 +31,7 @@ class CartSeeder extends Seeder
             $status = $faker->randomElement($statuses);
             
             $cart = Cart::create([
-                'customer_id' => $customer->id, // Assumindo foreign key customer_id
+                'user_id' => $customer->id, // Assumindo foreign key customer_id
                 'status' => $status,
                 'uuid' => (string) \Illuminate\Support\Str::uuid(),
             ]);

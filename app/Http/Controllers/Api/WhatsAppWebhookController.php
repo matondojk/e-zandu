@@ -196,7 +196,7 @@ class WhatsAppWebhookController extends Controller
                     $this->sendProductCardMessage($customer, $product);
                 }
             } else {
-                $setting = Setting::find(1);
+                $setting = Setting::first();
                 $types = $setting->product_types ? implode(', ', $setting->product_types) : 'diversos itens';
                 $message = "Desculpe, não encontrei produtos que correspondam a essa descrição.\n\n";
                 $message .= "Talvez queira pesquisar por algo nos nossos tipos de produtos mais populares: *{$types}*.";
@@ -555,7 +555,7 @@ class WhatsAppWebhookController extends Controller
     private function buildOpenAISystemPrompt(): string
     {
         $settings = Cache::remember('shop_settings', 60 * 5, function () {
-            return Setting::find(1);
+            return Setting::first();
         });
         $categories = Cache::remember('all_categories', 60 * 5, function () {
             return Category::all(['name', 'slug']);

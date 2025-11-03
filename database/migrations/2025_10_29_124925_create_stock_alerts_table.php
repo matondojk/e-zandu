@@ -10,12 +10,12 @@ return new class extends Migration
     {
         Schema::create('stock_alerts', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->foreignUuid('customer_id')->constrained('customers')->onDelete('cascade');
+            $table->foreignUuid('user_id')->constrained('users')->onDelete('cascade');
             $table->foreignUuid('product_id')->constrained('products')->onDelete('cascade');
             $table->string('destination'); 
             $table->boolean('is_notified')->default(false);
             $table->timestamps();
-            $table->unique(['customer_id', 'product_id']);
+            $table->unique(['user_id', 'product_id']);
         });
     }
 

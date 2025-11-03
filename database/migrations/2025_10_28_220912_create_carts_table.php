@@ -15,9 +15,9 @@ return new class extends Migration
     {
         Schema::create('carts', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->foreignUuid('customer_id')
+            $table->foreignUuid('user_id')
                 ->nullable()
-                ->constrained('customers')
+                ->constrained('users')
                 ->onDelete('cascade')
                 ->after('id');
             $table->string('status')->default('active');

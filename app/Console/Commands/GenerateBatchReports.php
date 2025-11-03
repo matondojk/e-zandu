@@ -10,24 +10,24 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\File;
-use Illuminate\Support\Str; // Necessário para Str::slug
-use App\Mail\AutomatedInsightMail; // ✅ Importar o Mailable
-use Illuminate\Support\Facades\Mail; // ✅ Importar a Fachada Mail
+use Illuminate\Support\Str;
+use App\Mail\AutomatedInsightMail; // ✅ Importar Mailable
+use Illuminate\Support\Facades\Mail; // ✅ Importar Mail
+use ZipArchive; // ✅ Importar ZipArchive
 
 class GenerateBatchReports extends Command
 {
     protected $signature = 'ai:generate-reports {--days=7 : Número de dias para a janela de análise, se aplicável.}';
-    protected $description = 'Gera todos os relatórios guardados em PDF e salva no disco (storage/app/reports/batch).';
+    protected $description = 'Gera todos os relatórios guardados em PDF, compacta-os e envia por e-mail.';
 
     public function handle(IntelligenceService $ai, ReportService $reporter)
     {
         $days = $this->option('days');
         $this->info("Iniciando a geração de relatórios em lote (Últimos {$days} dias)...");
         
-        $reports = SavedReport::all(); // Pega todos os relatórios guardados
+        $reports = SavedReport::all();
         $batchDir = storage_path('app/reports/batch');
         
-        // 1. Cria o diretório de batch
         if (!File::exists($batchDir)) {
             File::makeDirectory($batchDir, 0755, true);
         }
@@ -38,12 +38,11 @@ class GenerateBatchReports extends Command
         }
         
         $successfulCount = 0;
-        $failedReports = []; // Para registar falhas
+        $failedReports = [];
+        $generatedPdfs = []; // ✅ Armazena os caminhos dos PDFs gerados
 
         foreach ($reports as $report) {
             $this->info("  -> Processando: {$report->name}...");
-            
-            // Variável para armazenar o caminho temporário do PDF (antes de ser movido)
             $tempPath = null; 
             
             try {
@@ -70,19 +69,21 @@ class GenerateBatchReports extends Command
                 $columns = array_keys($data[0]);
                 
                 // 4. Gerar PDF e salvar no diretório batch
-                $filename = Str::slug($report->name) . '-' . Carbon::now()->format('YmdHis') . '.pdf'; // Adiciona H:i:s para unicidade
+                $filename = Str::slug($report->name) . '-' . Carbon::now()->format('YmdHis') . '.pdf';
                 
                 // Reutiliza a função de gerar PDF, que cria um ficheiro temporário
                 $tempPath = $reporter->generatePdf($data, $columns, $report->name); 
                 
                 // Move o ficheiro para a pasta batch e renomeia
-                File::move($tempPath, $batchDir . '/' . $filename);
+                $finalPdfPath = $batchDir . '/' . $filename;
+                File::move($tempPath, $finalPdfPath);
                 
                 $this->info("     -> PDF salvo em: reports/batch/{$filename}");
                 $successfulCount++;
+                $generatedPdfs[] = $finalPdfPath; // ✅ Adiciona ao array para zippar
 
             } catch (\Exception $e) {
-                // Se houver um ficheiro temporário criado, certifique-se de que é apagado
+                // Limpa o ficheiro temporário se a geração/movimentação falhar
                 if ($tempPath && File::exists($tempPath)) {
                     File::delete($tempPath);
                 }
@@ -92,29 +93,52 @@ class GenerateBatchReports extends Command
             }
         }
 
-        // --- 5. Envio de Notificação de Sucesso (O Novo Recurso) ---
-        $this->info("Finalizando e enviando notificação...");
+        // --- 5. Compactação (ZIP) e Envio de E-mail ---
+        $this->info("Finalizando e preparando e-mail...");
         $recipients = $ai->getAdminRecipients();
-        
+        $zipPath = null; // Caminho para o .zip
+
+        if ($successfulCount > 0) {
+            // Se houver PDFs, cria o ZIP
+            $zip = new ZipArchive;
+            $zipFileName = 'Relatorios-Lote-' . Carbon::now()->format('YmdHis') . '.zip';
+            $zipPath = $batchDir . '/' . $zipFileName; // Salva o zip na mesma pasta batch
+
+            if ($zip->open($zipPath, ZipArchive::CREATE) === TRUE) {
+                foreach ($generatedPdfs as $pdfPath) {
+                    $zip->addFile($pdfPath, basename($pdfPath)); // Adiciona o ficheiro ao zip
+                }
+                $zip->close();
+                $this->info(" -> Arquivo ZIP criado: {$zipFileName}");
+            } else {
+                $this->error(" -> Falha ao criar arquivo ZIP.");
+                $zipPath = null; // Garante que não tentamos anexar um zip falhado
+            }
+        }
+
+        // Envia o e-mail de notificação (com ou sem anexo)
         if (!empty($recipients)) {
-            $subject = "Relatórios em Lote Gerados ({$successfulCount} de {$reports->count()})";
+            $subject = "✅ Relatórios em Lote Gerados ({$successfulCount} de {$reports->count()})";
             $emailBody = "
-            Prezado(a) Administrador(a),
-            
-            A rotina automática de geração de relatórios em lote foi concluída.
-            
-            **Detalhes:**
-            * **Total de Relatórios Processados:** {$reports->count()}
-            * **Relatórios Gerados com Sucesso (PDF):** {$successfulCount}
-            * **Localização no Servidor:** `storage/app/reports/batch/`
-            
-            " . (empty($failedReports) ? 
-            "Todos os relatórios foram gerados com sucesso." : 
-            "**Relatórios que Falharam:**\n" . implode("\n", $failedReports));
+Prezado(a) Administrador(a),
+
+A rotina automática de geração de relatórios em lote foi concluída.
+
+" . ($zipPath ? "Em anexo segue um arquivo .zip contendo os {$successfulCount} relatórios gerados com sucesso." : "Não foi gerado nenhum PDF para anexar.") . "
+
+**Detalhes:**
+* **Total de Relatórios Processados:** {$reports->count()}
+* **Relatórios Gerados com Sucesso (PDF):** {$successfulCount}
+* **Localização no Servidor:** `storage/app/reports/batch/`
+
+" . (empty($failedReports) ? 
+"Todos os relatórios foram gerados com sucesso." : 
+"**⚠️ Relatórios que Falharam:**\n" . implode("\n", $failedReports));
 
             try {
+                // ✅ Passa o $zipPath (que é null se falhar) para o Mailable
                 Mail::to($recipients)
-                    ->send(new AutomatedInsightMail($subject, $emailBody));
+                    ->send(new AutomatedInsightMail($subject, $emailBody, $zipPath));
                 
                 $this->info("Notificação enviada para: " . implode(', ', $recipients));
 
@@ -125,6 +149,16 @@ class GenerateBatchReports extends Command
         } else {
             $this->warn("Nenhum destinatário encontrado para notificação.");
         }
+
+        // --- 6. Limpeza ---
+        $this->info("Limpando arquivos temporários...");
+        foreach ($generatedPdfs as $pdfPath) {
+            File::delete($pdfPath); // Apaga os PDFs individuais
+        }
+        if ($zipPath && File::exists($zipPath)) {
+            File::delete($zipPath); // Apaga o ZIP após o envio
+        }
+        $this->info("Limpeza concluída.");
 
         $this->info("Processo de geração em lote concluído. {$successfulCount} relatórios gerados.");
         return 0;

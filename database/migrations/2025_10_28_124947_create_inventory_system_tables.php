@@ -1,86 +1,102 @@
 <?php
 
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
+namespace App\Livewire;
 
-return new class extends Migration
+use App\Models\Cart;
+use App\Models\Product;
+use App\Models\StockMovement; // ✅ Adicionar Import
+use App\Models\Setting;
+use Filament\Widgets\StatsOverviewWidget\Stat;
+use Illuminate\Support\Carbon;
+use Livewire\Component;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Database\Eloquent\Builder; // Adicionar Import
+
+class SalesStatsOverviewWidget extends Component
 {
-    public function up(): void
+    public ?string $startDate = null;
+    public ?string $endDate = null;
+
+    protected $listeners = [
+        'dateRangeUpdated' => 'updateDateRange',
+    ];
+
+    public function mount(?string $startDate = null, ?string $endDate = null): void
     {
-        Schema::create('suppliers', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->string('name')->unique();
-            $table->string('contact_name')->nullable();
-            $table->string('phone')->nullable();
-            $table->string('email')->nullable();
-            $table->string('nif')->nullable();
-            $table->text('address')->nullable();
-            $table->timestamps();
+        $this->startDate = $startDate ?? Carbon::now()->subDays(30)->toDateString();
+        $this->endDate = $endDate ?? Carbon::now()->toDateString();
+    }
+
+    public function updateDateRange($data): void
+    {
+        $this->startDate = $data['startDate'];
+        $this->endDate = $data['endDate'];
+        $this->dispatch('$refresh');
+    }
+    
+    protected function getStats(): array
+    {
+        $start = Carbon::parse($this->startDate)->startOfDay();
+        $end = Carbon::parse($this->endDate)->endOfDay();
+
+        // Base Query para Vendas Concluídas
+        $salesQuery = Cart::whereIn('status', ['completed', 'paid'])
+            ->whereBetween('updated_at', [$start, $end]);
+
+        // 1. Receita Total
+        $totalRevenue = $salesQuery->sum('total_price');
+
+        // 2. Número de Pedidos
+        $totalOrders = $salesQuery->count();
+
+        // 3. Produtos em Estoque Baixo (Lógica CORRIGIDA COM SUBQUERY)
+        $minimumStock = Cache::remember('min_stock', 60 * 60, function () {
+            return Setting::first()?->minimum_stock ?? 10;
         });
+        
+        // Subquery para calcular o estoque atual (usada para contar)
+        $currentStockSubquery = StockMovement::selectRaw('SUM(quantity)')
+            ->whereColumn('product_id', 'products.id')
+            ->limit(1);
 
-        Schema::create('stocks', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->string('name')->unique();
-            $table->text('location')->nullable();
-            $table->boolean('is_default')->default(false);
-            $table->timestamps();
-        });
+        // O 'lowStock' agora calcula o saldo e filtra o resultado
+        $lowStock = Product::query()
+            ->addSelect(['current_stock_balance' => $currentStockSubquery])
+            ->having('current_stock_balance', '<=', $minimumStock)
+            ->having('current_stock_balance', '>', 0)
+            ->count(); 
+        
+        // 4. Média do Ticket
+        $avgTicket = $totalOrders > 0 ? $totalRevenue / $totalOrders : 0;
 
-        Schema::create('purchases', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->foreignUuid('supplier_id')->constrained('suppliers')->onDelete('restrict');
-            $table->foreignUuid('stock_id')->constrained('stocks')->onDelete('restrict');
-            $table->string('document_number')->nullable()->comment('Nº da Fatura/Nota de Compra');
-            $table->date('document_date')->comment('Data de Emissão do Documento');
-            $table->boolean('is_delivered')->default(false)->comment('Material já foi entregue?');
-            $table->decimal('discount_total', 10, 2)->default(0);
-            $table->decimal('total_amount', 10, 2)->default(0);
-            // ✅ Campos que faltavam (do Seeder) adicionados
-            $table->string('status')->default('pending');
-            $table->timestamps();
-        });
-
-        Schema::create('purchase_items', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-
-            // ✅ CORRIGIDO (estava comentado/errado)
-            $table->foreignUuid('purchase_id')->constrained('purchases')->onDelete('cascade');
-            $table->foreignUuid('product_id')->constrained('products')->onDelete('restrict');
-
-            $table->decimal('quantity', 8, 2);
-            $table->decimal('unit_cost', 10, 2)->comment('Custo por unidade');
-            $table->decimal('discount', 8, 2)->default(0)->nullable();
-            $table->string('color')->nullable();
-            $table->string('size')->nullable();
-            $table->string('unit')->nullable();
-            $table->text('notes')->nullable();
-            $table->timestamps();
-        });
-
-        Schema::create('stock_movements', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->foreignUuid('stock_id')->constrained('stocks')->onDelete('restrict');
-            $table->foreignUuid('product_id')->constrained('products')->onDelete('restrict');
-            $table->string('type')->comment('in_purchase, out_sale, adjustment');
-            $table->decimal('quantity', 8, 2);
-            $table->decimal('unit_cost', 10, 2)->nullable();
+        return [
+            Stat::make('Receita Total', number_format($totalRevenue, 0, ',', '.') . ' Kz')
+                ->description('Vendas completas no período')
+                ->descriptionIcon('heroicon-m-currency-dollar')
+                ->color('success'),
             
-            // ✅ CORRIGIDO (usava BigInteger)
-            $table->uuidMorphs('reference'); 
+            Stat::make('Total de Pedidos', number_format($totalOrders, 0, ',', '.'))
+                ->description('Pedidos concluídos')
+                ->descriptionIcon('heroicon-m-shopping-cart')
+                ->color('info'),
+                
+            Stat::make('Ticket Médio', number_format($avgTicket, 0, ',', '.') . ' Kz')
+                ->description('Valor médio por pedido')
+                ->descriptionIcon('heroicon-m-credit-card')
+                ->color('primary'),
 
-            $table->text('notes')->nullable();
-            $table->timestamps();
-        });
+            Stat::make('Estoque Baixo', number_format($lowStock, 0, ',', '.'))
+                ->description('Produtos abaixo do limite de alerta')
+                ->descriptionIcon('heroicon-m-archive-box-x-mark')
+                ->color('danger'),
+        ];
     }
-
-    public function down(): void
+    
+    // View customizada para renderizar os cards
+    public function render()
     {
-        Schema::dropIfExists('stock_movements');
-        Schema::dropIfExists('purchase_items');
-        Schema::dropIfExists('purchases');
-        Schema::dropIfExists('stocks');
-        Schema::dropIfExists('suppliers');
+        return view('filament-widgets.stats-overview-widget', [
+            'stats' => $this->getStats(),
+        ]);
     }
-};
-
+}

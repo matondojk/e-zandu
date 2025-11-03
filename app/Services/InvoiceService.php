@@ -24,7 +24,7 @@ class InvoiceService
         $cart->load('items.product', 'customer');
         
         $settings = Cache::remember('shop_settings', 60 * 5, function () {
-            return Setting::find(1) ?? new Setting(); 
+            return Setting::first() ?? new Setting(); 
         });
 
         // 2. Calcular totais
