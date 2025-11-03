@@ -50,6 +50,12 @@ class OrderResource extends Resource
         return $count > 0 ? $count : null;
     }
 
+    public static function getNavigationBadgeTooltip(): ?string
+    {
+        return 'Total de pendentes';
+    }
+
+
     // Desabilitar formulários de "Criar" e "Editar"
     public static function form(Form $form): Form
     {

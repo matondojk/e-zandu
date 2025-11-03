@@ -7,6 +7,7 @@
     "require": {
         "php": "^8.0.2",
         "barryvdh/laravel-dompdf": "^3.1",
+        "charrafimed/global-search-modal": "^3.7",
         "filament/filament": "^3.2",
         "filament/spatie-laravel-settings-plugin": "^3.2",
         "flowframe/laravel-trend": "^0.4.0",

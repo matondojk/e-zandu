@@ -35,6 +35,8 @@ class AdminPanelProvider extends PanelProvider
         return $panel
             ->default()
             ->id('admin')
+            ->spa()
+            ->unsavedChangesAlerts()
             ->path('admin')
             ->login()
             ->passwordReset()
@@ -54,10 +56,8 @@ class AdminPanelProvider extends PanelProvider
                 AnalyticsDashboard::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
-            ->widgets([
-                
-            ])
-            
+            ->widgets([])
+
             ->middleware([
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,
@@ -72,6 +72,8 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->authMiddleware([
                 Authenticate::class,
+            ])->plugins([
+                \CharrafiMed\GlobalSearchModal\GlobalSearchModalPlugin::make(),
             ]);
     }
 
