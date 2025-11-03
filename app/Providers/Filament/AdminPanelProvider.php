@@ -27,6 +27,8 @@ use Filament\Support\Facades\FilamentAsset;
 use App\Models\User;
 use App\Http\Middleware\CheckSubscriptionStatus;
 use App\Filament\Pages\AnalyticsDashboard;
+use AchyutN\FilamentLogViewer\FilamentLogViewer;
+use CWSPS154\UsersRolesPermissions\UsersRolesPermissionsPlugin;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -74,6 +76,8 @@ class AdminPanelProvider extends PanelProvider
                 Authenticate::class,
             ])->plugins([
                 \CharrafiMed\GlobalSearchModal\GlobalSearchModalPlugin::make(),
+                FilamentLogViewer::make(),
+                
             ]);
     }
 

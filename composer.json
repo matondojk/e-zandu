@@ -6,6 +6,7 @@
     "license": "MIT",
     "require": {
         "php": "^8.0.2",
+        "achyutn/filament-log-viewer": "^0.6.0",
         "barryvdh/laravel-dompdf": "^3.1",
         "charrafimed/global-search-modal": "^3.7",
         "filament/filament": "^3.2",
