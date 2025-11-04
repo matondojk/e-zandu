@@ -31,6 +31,9 @@ class IntelligentAnalysis extends Page implements HasForms
     protected static ?string $title = 'Módulo de Análise Inteligente';
     protected static ?int $navigationSort = -1;
     public ?string $chartDisplayLabel = null;
+
+    protected static ?string $slug = 'analise-inteligente';
+
     // --- ✅ NOVAS PROPRIEDADES ---
     public bool $isGenerating = false; // Propriedade que faltava para o loading
     public ?string $chartLabelColumn = null; // A coluna de texto (ex: 'name')

@@ -13,7 +13,7 @@ return new class extends Migration
         DB::unprepared('DROP TRIGGER IF EXISTS trg_after_purchase_item_delete');
         DB::unprepared('DROP PROCEDURE IF EXISTS sp_update_purchase_data');
 
-        // 2. Criar a NOVA Stored Procedure com CHAR(36) para UUIDs
+        // 2. Criar a NOVA Stored Procedure
         DB::unprepared("
             CREATE PROCEDURE sp_update_purchase_data(IN p_purchase_id CHAR(36))
             BEGIN
@@ -23,67 +23,69 @@ return new class extends Migration
                 DECLARE v_freight DECIMAL(10, 2);
                 DECLARE v_total_payable DECIMAL(10, 2);
                 
-                -- ✅ CORRIGIDO: v_stock_id também é um UUID
                 DECLARE v_stock_id CHAR(36); 
                 DECLARE v_is_delivered BOOLEAN;
 
                 -- 1. Calcular Totais dos Itens
+                -- ✅ LÓGICA CORRIGIDA:
+                -- v_subtotal é o subtotal BRUTO (SUM(qty * cost))
+                -- v_discount é o desconto total (SUM(discount))
                 SELECT
-                    SUM((quantity * unit_cost) - discount), 
-                    SUM(discount),
-                    SUM(iva_amount)
+                    SUM(quantity * unit_cost), 
+                    SUM(discount)
                 INTO
                     v_subtotal,
-                    v_discount,
-                    v_iva_items
+                    v_discount
                 FROM purchase_items
-                WHERE purchase_id = p_purchase_id; -- Comparação CHAR(36) vs CHAR(36)
+                WHERE purchase_id = p_purchase_id;
                 
                 SET v_subtotal = COALESCE(v_subtotal, 0);
                 SET v_discount = COALESCE(v_discount, 0);
-                SET v_iva_items = COALESCE(v_iva_items, 0);
 
                 -- 2. Obter o Frete
                 SELECT freight_cost
                 INTO v_freight
                 FROM purchases
-                WHERE id = p_purchase_id; -- Comparação CHAR(36) vs CHAR(36)
+                WHERE id = p_purchase_id;
                 
                 SET v_freight = COALESCE(v_freight, 0);
 
-                -- 3. Calcular Total Final
-                SET v_total_payable = v_subtotal + v_freight + v_iva_items;
+                -- 3. Calcular IVA (SOBRE O TOTAL LÍQUIDO)
+                -- ✅ LÓGICA CORRIGIDA: IVA é (Subtotal - Desconto) * 0.14
+                -- Usamos ROUND() para garantir 2 casas decimais.
+                SET v_iva_items = ROUND((v_subtotal - v_discount) * 0.14, 2);
 
-                -- 4. Atualizar a tabela 'purchases'
+                -- 4. Calcular Total Final
+                -- ✅ LÓGICA CORRIGIDA: (Subtotal - Desconto) + Frete + IVA
+                SET v_total_payable = (v_subtotal - v_discount) + v_freight + v_iva_items;
+
+                -- 5. Atualizar a tabela 'purchases'
                 UPDATE purchases
                 SET
-                    total_amount = v_subtotal,
-                    discount_total = v_discount,
+                    total_amount = v_subtotal,      -- total_amount agora é o subtotal BRUTO
+                    discount_total = v_discount,    -- discount_total é o desconto
                     freight_cost = v_freight,
-                    iva_amount = v_iva_items,
-                    total_payable = v_total_payable
+                    iva_amount = v_iva_items,       -- iva_amount é o valor calculado
+                    total_payable = v_total_payable -- total_payable é o valor final
                 WHERE
-                    id = p_purchase_id; -- Comparação CHAR(36) vs CHAR(36)
+                    id = p_purchase_id;
 
-                -- 5. Lógica de Estoque
+                -- 6. Lógica de Estoque (permanece igual)
                 SELECT stock_id, is_delivered
                 INTO v_stock_id, v_is_delivered
                 FROM purchases
-                WHERE id = p_purchase_id; -- Comparação CHAR(36) vs CHAR(36)
+                WHERE id = p_purchase_id;
 
                 IF v_is_delivered = 1 THEN
-                    -- Apaga movimentos antigos (reference_id agora é CHAR(36))
                     DELETE FROM stock_movements
                     WHERE reference_type = 'App\\\\Models\\\\Purchase' AND reference_id = p_purchase_id;
 
                     INSERT INTO stock_movements (
-                        id, -- ✅ ADICIONADO: Inserir UUID para a tabela de movimentos
-                        stock_id, product_id, type, quantity, unit_cost, 
+                        id, stock_id, product_id, type, quantity, unit_cost, 
                         reference_type, reference_id, notes, created_at, updated_at
                     )
                     SELECT
-                        UUID(), -- ✅ ADICIONADO: Gerar UUID para o movimento
-                        v_stock_id, product_id, 'in_purchase', quantity, unit_cost,
+                        UUID(), v_stock_id, product_id, 'in_purchase', quantity, unit_cost,
                         'App\\\\Models\\\\Purchase', p_purchase_id, 
                         CONCAT('Entrada via Compra #', p_purchase_id),
                         NOW(), NOW()
@@ -93,7 +95,7 @@ return new class extends Migration
             END
         ");
 
-        // 3. Re-criar os Triggers (Estes já estavam corretos)
+        // 3. Re-criar os Triggers
         DB::unprepared('CREATE TRIGGER trg_after_purchase_item_insert AFTER INSERT ON purchase_items FOR EACH ROW BEGIN CALL sp_update_purchase_data(NEW.purchase_id); END');
         DB::unprepared('CREATE TRIGGER trg_after_purchase_item_update AFTER UPDATE ON purchase_items FOR EACH ROW BEGIN CALL sp_update_purchase_data(NEW.purchase_id); END');
         DB::unprepared('CREATE TRIGGER trg_after_purchase_item_delete AFTER DELETE ON purchase_items FOR EACH ROW BEGIN CALL sp_update_purchase_data(OLD.purchase_id); END');

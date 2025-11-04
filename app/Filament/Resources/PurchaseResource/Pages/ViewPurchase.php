@@ -27,7 +27,8 @@ class ViewPurchase extends ViewRecord
         return $infolist
             ->schema([
                 Section::make('Detalhes da Compra')
-                    ->columns(3)
+                    // ✅ CORRIGIDO: De columns(3) para responsivo
+                    ->columns(['default' => 1, 'md' => 3])
                     ->schema([
                         TextEntry::make('document_date')
                             ->label('Data da Fatura/Doc.')
@@ -44,45 +45,41 @@ class ViewPurchase extends ViewRecord
                             ->color(fn (bool $state) => $state ? 'success' : 'warning'),
                     ]),
 
-                // ✅ SEÇÃO FINANCEIRA ATUALIZADA COM number_format
                 Section::make('Resumo Financeiro e Armazém')
-                    ->columns(4) // Aumentado para 4 colunas
+                    // ✅ CORRIGIDO: De columns(4) para responsivo
+                    ->columns(['default' => 1, 'md' => 4]) 
                     ->schema([
                         TextEntry::make('stock.name')
                             ->label('Armazém Destino')
                             ->icon('heroicon-o-cube')
                             ->size('lg')
-                            ->columnSpan(4), // Ocupa a linha toda
+                            // ✅ CORRIGIDO: De columnSpan(4) para columnSpanFull() (que é responsivo)
+                            ->columnSpanFull(), 
 
-                        TextEntry::make('total_amount') // Este é o Subtotal
+                        TextEntry::make('total_amount') 
                             ->label('Subtotal (Itens)')
-                            // ✅ CORREÇÃO: Substituído Number::currency por number_format
                             ->formatStateUsing(fn ($state): string => 'Kz ' . number_format($state ?? 0, 2, ',', '.'))
                             ->icon('heroicon-o-archive-box')
                             ->weight('medium'),
 
                         TextEntry::make('discount_total')
                             ->label('Desconto Total (Itens)')
-                            // ✅ CORREÇÃO: Substituído Number::currency por number_format
                             ->formatStateUsing(fn ($state): string => 'Kz ' . number_format($state ?? 0, 2, ',', '.'))
                             ->color('danger')
                             ->icon('heroicon-o-minus'),
 
-                        TextEntry::make('freight_cost') // NOVO: Frete
+                        TextEntry::make('freight_cost') 
                             ->label('Custo do Frete')
-                            // ✅ CORREÇÃO: Substituído Number::currency por number_format
                             ->formatStateUsing(fn ($state): string => 'Kz ' . number_format($state ?? 0, 2, ',', '.'))
                             ->icon('heroicon-o-truck'),
 
-                        TextEntry::make('iva_amount') // NOVO: IVA
+                        TextEntry::make('iva_amount') 
                             ->label('IVA (14%)')
-                            // ✅ CORREÇÃO: Substituído Number::currency por number_format
                             ->formatStateUsing(fn ($state): string => 'Kz ' . number_format($state ?? 0, 2, ',', '.'))
                             ->icon('heroicon-o-receipt-percent'),
 
-                        TextEntry::make('total_payable') // NOVO: Total Final
+                        TextEntry::make('total_payable') 
                             ->label('Total Final (c/ IVA e Frete)')
-                            // ✅ CORREÇÃO: Substituído Number::currency por number_format
                             ->formatStateUsing(fn ($state): string => 'Kz ' . number_format($state ?? 0, 2, ',', '.'))
                             ->color('success')
                             ->weight('bold')
@@ -92,7 +89,8 @@ class ViewPurchase extends ViewRecord
                     ]),
                 
                 Section::make('Informações do Fornecedor')
-                    ->columns(3)
+                    // ✅ CORRIGIDO: De columns(3) para responsivo
+                    ->columns(['default' => 1, 'md' => 3])
                     ->schema([
                         TextEntry::make('supplier.name')
                             ->label('Nome da Empresa')
@@ -110,15 +108,11 @@ class ViewPurchase extends ViewRecord
                             ->icon('heroicon-o-envelope'),
                         TextEntry::make('supplier.address')
                             ->label('Endereço')
-                            ->columnSpanFull(),
+                            ->columnSpanFull(), // columnSpanFull() já é responsivo
                     ]),
             ]);
     }
 
-    /**
-     * Registar os Relation Managers para a página de View.
-     * (Isto garante que a tabela "Itens da Compra" aparece)
-     */
     public function getRelations(): array
     {
         return [
@@ -126,4 +120,3 @@ class ViewPurchase extends ViewRecord
         ];
     }
 }
-

@@ -12,12 +12,14 @@ class BusinessInsights extends Page
 {
     protected static ?string $navigationIcon = 'heroicon-o-presentation-chart-line';
     protected static string $view = 'filament.pages.business-insights';
-    
+
     // ✅ NOVO: Coloca no grupo de IA
     protected static ?string $navigationGroup = 'Recursos de IA';
     protected static ?string $navigationLabel = 'Assistente de Insights';
     protected static ?string $title = 'Assistente de Insights de Negócio';
     protected static ?int $navigationSort = 1; // Coloca no topo do grupo
+
+    protected static ?string $slug = 'assistente-de-insights';
 
     // Estado da Página
     public ?string $insightsResult = null;
@@ -36,7 +38,7 @@ class BusinessInsights extends Page
     {
         return static::$title;
     }
-    
+
     /**
      * Ação principal: Chamada pelo botão na view
      */
@@ -48,14 +50,13 @@ class BusinessInsights extends Page
         try {
             // Chama a nova função 3 que criámos no serviço
             $this->insightsResult = $this->ai->generateBusinessInsights();
-        
         } catch (Exception $e) {
             Notification::make()
                 ->title('Erro ao Gerar Insights')
                 ->body($e->getMessage())
                 ->danger()
                 ->send();
-            
+
             $this->insightsResult = "Ocorreu um erro: " . $e->getMessage();
         } finally {
             $this->isLoading = false;

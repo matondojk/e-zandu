@@ -13,7 +13,10 @@ class SalesChartWidget extends ChartWidget
     protected static ?int $sort = 1;
     protected int | string | array $columnSpan = 'full';
 
-    // ✅ Props e Listener para o filtro
+    // ✅ A SOLUÇÃO: Definir uma altura máxima para o gráfico
+    protected static ?string $maxHeight = '300px';
+
+    // Props e Listener para o filtro
     public ?string $startDate = null;
     public ?string $endDate = null;
     protected $listeners = ['dateRangeUpdated' => 'updateDateRange'];

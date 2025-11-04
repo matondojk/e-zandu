@@ -37,7 +37,6 @@ class AdminPanelProvider extends PanelProvider
         return $panel
             ->default()
             ->id('admin')
-            ->spa()
             ->unsavedChangesAlerts()
             ->path('admin')
             ->login()
@@ -76,8 +75,9 @@ class AdminPanelProvider extends PanelProvider
                 Authenticate::class,
             ])->plugins([
                 \CharrafiMed\GlobalSearchModal\GlobalSearchModalPlugin::make(),
-                FilamentLogViewer::make(),
-                
+                FilamentLogViewer::make()->navigationGroup('Sistema & Config')->navigationLabel('Logs do Sistema'),
+                \MixCode\FilamentMulti2fa\FilamentMulti2faPlugin::make(),
+                // ->forceSetup2fa(),
             ]);
     }
 

@@ -259,11 +259,13 @@ class IntelligenceService
 
             // --- KPI 3: Top 5 Clientes (Últimos 30 dias) ---
             // Usa customer_id, que é UUID
-            $kpiData['top_5_clientes_30d'] = DB::select("
+           $kpiData['top_5_clientes_30d'] = DB::select("
                 SELECT cu.name, cu.phone, SUM(c.total_price) as 'total_gasto'
                 FROM carts c
-                JOIN customers cu ON c.customer_id = cu.id
-                WHERE c.status = 'paid' AND c.created_at >= ?
+                JOIN users cu ON c.user_id = cu.id  -- 1. Junção correta (user_id)
+                WHERE c.status = 'paid' 
+                  AND c.created_at >= ?
+                  AND cu.role = 'customer'          -- 2. Filtro de Role
                 GROUP BY cu.id, cu.name, cu.phone
                 ORDER BY total_gasto DESC
                 LIMIT 5
@@ -347,7 +349,7 @@ PROMPT;
                 'category_product',
                 'product_images',
                 'product_cross_sell',
-                'customers',
+                'users',
                 'carts',
                 'cart_items',
                 'suppliers',

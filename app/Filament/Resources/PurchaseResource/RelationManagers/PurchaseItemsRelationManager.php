@@ -44,14 +44,10 @@ class PurchaseItemsRelationManager extends RelationManager
                             $set('unit_cost', $product->price); 
                             $set('unit', $product->unit ? $product->unit : 'Unidade');
                             
-                            // ✅ LÓGICA DE IVA AUTOMÁTICO (Opcional, mas útil)
-                            // Calcula 14% sobre o (custo * qtd)
-                            $quantity = (int) $get('quantity') > 0 ? (int) $get('quantity') : 1;
-                            $cost = (float) $product->price;
-                            $set('iva_amount', ($cost * $quantity) * 0.14);
+                            // ✅ REMOVIDO: Cálculo de IVA individual
                         }
                     })
-                    ->columnSpan(4), 
+                    ->columnSpanFull(), 
 
                 Forms\Components\TextInput::make('unit_cost')
                     ->label('Custo Unitário (Kz)')
@@ -60,13 +56,9 @@ class PurchaseItemsRelationManager extends RelationManager
                     ->inputMode('decimal')
                     ->prefix('Kz')
                     ->dehydrateStateUsing(fn ($state) => (float) $state)
-                    ->reactive() // Reativo para recalcular IVA
+                    ->reactive() 
                     ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
-                        $quantity = (int) $get('quantity') > 0 ? (int) $get('quantity') : 1;
-                        $cost = (float) $state;
-                        $discount = (float) $get('discount');
-                        // IVA sobre (Custo - Desconto) * Qtd
-                        $set('iva_amount', (($cost * $quantity) - $discount) * 0.14);
+                        // ✅ REMOVIDO: Cálculo de IVA individual
                     }),
                     
                 Forms\Components\TextInput::make('quantity')
@@ -76,13 +68,9 @@ class PurchaseItemsRelationManager extends RelationManager
                     ->default(1)
                     ->minValue(1)
                     ->dehydrateStateUsing(fn ($state) => (int) $state)
-                    ->reactive() // Reativo para recalcular IVA
+                    ->reactive() 
                     ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
-                        $quantity = (int) $state > 0 ? (int) $state : 1;
-                        $cost = (float) $get('unit_cost');
-                        $discount = (float) $get('discount');
-                        // IVA sobre (Custo * Qtd) - Desconto
-                        $set('iva_amount', (($cost * $quantity) - $discount) * 0.14);
+                         // ✅ REMOVIDO: Cálculo de IVA individual
                     }),
                     
                 Forms\Components\Select::make('unit')
@@ -103,32 +91,20 @@ class PurchaseItemsRelationManager extends RelationManager
                     ->default(0)
                     ->prefix('Kz')
                     ->dehydrateStateUsing(fn ($state) => (float) $state)
-                    ->reactive() // Reativo para recalcular IVA
+                    ->reactive() 
                     ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
-                        $quantity = (int) $get('quantity') > 0 ? (int) $get('quantity') : 1;
-                        $cost = (float) $get('unit_cost');
-                        $discount = (float) $state;
-                        // IVA sobre (Custo * Qtd) - Desconto
-                        $set('iva_amount', (($cost * $quantity) - $discount) * 0.14);
+                         // ✅ REMOVIDO: Cálculo de IVA individual
                     }),
 
-                // ✅ NOVO: Campo para IVA do Item
-                Forms\Components\TextInput::make('iva_amount')
-                    ->label('Valor de IVA do Item (Kz)')
-                    ->numeric()
-                    ->required()
-                    ->default(0)
-                    ->prefix('Kz')
-                    ->helperText('IVA (14%) deste item. Ajuste se for isento (0).')
-                    ->dehydrateStateUsing(fn ($state) => (float) $state),
+                // ✅ REMOVIDO: Campo 'iva_amount'
+                // Forms\Components\TextInput::make('iva_amount') ...
 
-                // ✅ CORREÇÃO: Aumentado para 3 linhas
                 Forms\Components\Textarea::make('notes')
                     ->label('Notas (Opcional)')
                     ->rows(3)
                     ->columnSpanFull(),
             ])
-            ->columns(4); 
+            ->columns(['default' => 1, 'md' => 4]); 
     }
 
     public function table(Table $table): Table
@@ -159,15 +135,16 @@ class PurchaseItemsRelationManager extends RelationManager
                     ->formatStateUsing(fn ($state): string => number_format($state, 2, ',', '.') . ' Kz')
                     ->alignEnd(),
                 
-                // ✅ NOVO: Coluna de IVA do Item
-                Tables\Columns\TextColumn::make('iva_amount')
-                    ->label('IVA Item')
-                    ->formatStateUsing(fn ($state): string => number_format($state, 2, ',', '.') . ' Kz')
-                    ->alignEnd(),
+                // ✅ REMOVIDO: Coluna 'iva_amount'
+                // Tables\Columns\TextColumn::make('iva_amount') ...
 
-                // ✅ ALTERADO: Usa o Accessor total_payable (Subtotal + IVA do item)
-                Tables\Columns\TextColumn::make('total_payable') 
-                    ->label('Custo Total (c/ IVA)')
+                // ✅ ALTERADO: 'total_payable' substituído por um subtotal de linha calculado
+                Tables\Columns\TextColumn::make('line_subtotal') 
+                    ->label('Subtotal Item')
+                    ->state(function (PurchaseItem $record): float {
+                        // Calcula (Qtd * Custo) - Desconto
+                        return ($record->quantity * $record->unit_cost) - $record->discount;
+                    })
                     ->formatStateUsing(fn ($state): string => number_format($state, 2, ',', '.') . ' Kz')
                     ->weight('bold')
                     ->alignEnd(),

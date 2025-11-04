@@ -32,6 +32,7 @@ class ViewOrder extends ViewRecord
 
     protected function getHeaderActions(): array
     {
+        // ... (O SEU CÓDIGO DE AÇÕES PERMANECE IGUAL) ...
         $shippingRate = Cache::remember('shipping_rate', 60 * 5, function () {
             $settings = Setting::find(1);
             return $settings->shipping_rate ?? 0;
@@ -167,6 +168,11 @@ class ViewOrder extends ViewRecord
         ];
     }
 
+    //
+    // =================================================================
+    // AQUI COMEÇA A CORREÇÃO DO INFOLIST
+    // =================================================================
+    //
     public function infolist(Infolist $infolist): Infolist
     {
         $shippingRate = Cache::remember('shipping_rate', 60 * 5, function () {
@@ -177,6 +183,7 @@ class ViewOrder extends ViewRecord
         return $infolist
             ->schema([
                 // --- Secção de Notas do Cliente (Se existir) ---
+                // Esta secção já estava boa, pois não definia colunas.
                 Infolists\Components\Section::make('Notas do Cliente (Tamanho/Cor)')
                     ->schema([
                         Infolists\Components\TextEntry::make('order_notes')
@@ -187,18 +194,25 @@ class ViewOrder extends ViewRecord
                     ])
                     ->visible(fn(Cart $record) => !empty($record->order_notes)), // Só mostra esta secção se houver notas
 
-                // --- Secção Cliente ---
+                // --- Secção Cliente (CORRIGIDA) ---
                 Infolists\Components\Section::make('Detalhes do Cliente')
-                    ->columns(3)
+                    // CORREÇÃO: Usar colunas responsivas. 1 no mobile (default), 3 no desktop (md).
+                    ->columns(['default' => 1, 'md' => 3])
                     ->schema([
                         Infolists\Components\TextEntry::make('user.name')->label('Cliente')->icon('heroicon-o-user'),
                         Infolists\Components\TextEntry::make('user.phone')->label('WhatsApp')->copyable(),
-                        Infolists\Components\TextEntry::make('user.delivery_address')->label('Endereço de Entrega')->default('Não fornecido')->columnSpanFull(),
+                        
+                        // CORREÇÃO: O 'columnSpanFull' deve ser responsivo também.
+                        Infolists\Components\TextEntry::make('user.delivery_address')
+                            ->label('Endereço de Entrega')
+                            ->default('Não fornecido')
+                            ->columnSpan(['default' => 1, 'md' => 'full']), // Ocupa a largura total em 'md', mas 1 no mobile.
                     ]),
 
-                // --- Secção Status ---
+                // --- Secção Status (CORRIGIDA) ---
                 Infolists\Components\Section::make('Resumo Financeiro e Status')
-                    ->columns(3)
+                    // CORREÇÃO: A mesma lógica de colunas responsivas.
+                    ->columns(['default' => 1, 'md' => 3])
                     ->schema([
                         Infolists\Components\TextEntry::make('id')->label('ID Pedido'),
 
@@ -234,29 +248,31 @@ class ViewOrder extends ViewRecord
 
                         Infolists\Components\TextEntry::make('total_price')
                             ->label('Subtotal (Produtos)')
-                            ->formatStateUsing(fn($state): string => number_format($state, 2, ',', '.') . ' Kz')
-                            ->columnSpan(1),
+                            ->formatStateUsing(fn($state): string => number_format($state, 2, ',', '.') . ' Kz'),
+                            // ->columnSpan(1) removido por ser desnecessário
 
                         Infolists\Components\TextEntry::make('shipping_rate_display')
                             ->label('Taxa de Frete')
-                            ->state(fn(Cart $record) => number_format($shippingRate, 2, ',', '.') . ' Kz')
-                            ->columnSpan(1),
+                            ->state(fn(Cart $record) => number_format($shippingRate, 2, ',', '.') . ' Kz'),
+                            // ->columnSpan(1) removido por ser desnecessário
 
                         Infolists\Components\TextEntry::make('grand_total')
                             ->label('TOTAL GERAL')
                             ->state(fn(Cart $record) => number_format($record->total_price + $shippingRate, 2, ',', '.') . ' Kz')
                             ->size(Infolists\Components\TextEntry\TextEntrySize::Large)
                             ->color('success')
-                            ->weight('bold')
-                            ->columnSpan(1),
+                            ->weight('bold'),
+                            // ->columnSpan(1) removido por ser desnecessário
 
                         Infolists\Components\TextEntry::make('created_at')
                             ->label('Data do Pedido')
                             ->dateTime('d/m/Y H:i')
-                            ->columnSpan(3),
+                            // CORREÇÃO: O 'columnSpan(3)' deve ser responsivo.
+                            ->columnSpan(['default' => 1, 'md' => 3]),
                     ]),
 
                 // --- Secção Pagamento (Comprovativo) ---
+                // Esta secção também já estava boa.
                 Infolists\Components\Section::make('Pagamento')
                     ->visible(fn(Cart $record) => !empty($record->payment_proof_path))
                     ->schema([

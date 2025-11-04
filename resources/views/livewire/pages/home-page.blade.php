@@ -1,7 +1,7 @@
 <div>
     {{-- 
       ======================================================================
-      FEEDBACK DE "ADICIONADO AO CARRINHO"
+      FEEDBACK DE "ADICIONADO AO CARRINHO" (Sem alteração)
       ======================================================================
     --}}
     @if (session()->has('message'))
@@ -21,36 +21,48 @@
 
     {{-- 
       ======================================================================
-      1. SEÇÃO HERO (COM IMAGEM DE FUNDO)
+      1. SEÇÃO HERO (✅ NOVO DESIGN "SPLIT")
       ======================================================================
     --}}
-    <section class="relative h-[70vh] md:h-[80vh] flex items-center justify-center text-white">
-        <div class="absolute inset-0 z-0">
-            <img src="https://images.unsplash.com/photo-1505740420928-5e560c06d30e?ixlib=rb-4.0.3&q=80&w=1920&auto=format&fit=crop" 
-                 alt="Produtos E-Zandu" 
-                 class="w-full h-full object-cover">
-            <div class="absolute inset-0 bg-black bg-opacity-60"></div>
-        </div>
-        
-        <div class="relative z-10 text-center max-w-3xl mx-auto px-4">
-            <span class="font-semibold text-orange-400 uppercase tracking-widest">
-                E-Zandu E-commerce
-            </span>
-            <h1 class="mt-4 text-4xl md:text-6xl font-extrabold tracking-tight">
-                Inovação que <span class="text-orange-500">Inspira</span>. Qualidade que <span class="text-orange-500">Dura</span>.
-            </h1>
-            <p class="mt-6 text-lg text-gray-200">
-                Descubra a seleção E-Zandu. Soluções inteligentes e design premium para transformar seu dia a dia.
-            </p>
-            <a href="#produtos" class="mt-10 inline-block bg-orange-600 text-white font-bold text-lg px-8 py-3 rounded-md shadow-lg hover:bg-orange-700 transition duration-300 transform hover:-translate-y-1">
-                Explorar Coleção
-            </a>
+    <section class="bg-gray-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-28">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+                
+                {{-- Coluna de Texto --}}
+                <div class="lg:col-span-6 text-center lg:text-left">
+                    <span class="font-semibold text-orange-600 uppercase tracking-widest">
+                        E-Zandu E-commerce
+                    </span>
+                    <h1 class="mt-4 text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight text-gray-900">
+                        Inovação que <span class="text-orange-500">Inspira</span>. Qualidade que <span class="text-orange-500">Dura</span>.
+                    </h1>
+                    <p class="mt-6 text-lg text-gray-600">
+                        Descubra a seleção E-Zandu. Soluções inteligentes e design premium para transformar seu dia a dia.
+                    </p>
+                    <a href="#produtos" class="mt-10 inline-block bg-orange-600 text-white font-bold text-lg px-8 py-3 rounded-md shadow-lg hover:bg-orange-700 transition duration-300 transform hover:-translate-y-1">
+                        Explorar Coleção
+                    </a>
+                </div>
+
+                {{-- Coluna de Imagem --}}
+                <div class="lg:col-span-6">
+                    <div class="bg-white p-4 rounded-xl shadow-2xl relative">
+                        
+                        <img src="https://images.unsplash.com/photo-1593344484962-796b36d08b3c?ixlib=rb-4.0.3&q=80&w=1920&auto=format&fit=crop" 
+                             alt="Produtos E-Zandu" 
+                             class="w-full h-auto object-cover rounded-lg">
+                        <div class="absolute -bottom-4 -right-4 w-20 h-20 bg-orange-500 rounded-full z-[-1] opacity-50"></div>
+                        <div class="absolute -top-4 -left-4 w-24 h-24 bg-gray-200 rounded-lg z-[-1] opacity-50"></div>
+                    </div>
+                </div>
+
+            </div>
         </div>
     </section>
 
     {{-- 
       ======================================================================
-      2. SEÇÃO DE DIFERENCIAIS (INFO DA LOJA)
+      2. SEÇÃO DE DIFERENCIAIS (Sem alteração)
       ======================================================================
     --}}
     <section class="bg-white py-20">
@@ -92,35 +104,46 @@
 
     {{-- 
       ======================================================================
-      3. SEÇÃO DE CATEGORIAS (NOVO DESIGN "PREMIUM" SEM FOTOS)
+      3. SEÇÃO DE CATEGORIAS (✅ CENTRALIZADO E COM ÍCONE DINÂMICO)
       ======================================================================
     --}}
-    <section class="bg-gray-50 py-20">
+    <section class="bg-gray-100 py-20">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <h2 class="text-3xl font-bold text-center text-gray-900 mb-12">Explore Nossas Categorias</h2>
-            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
+            
+            {{-- 
+              Layout alterado de 'grid' para 'flex flex-wrap justify-center'
+              Isto garante que os itens fiquem sempre centralizados.
+            --}}
+            <div class="flex flex-wrap justify-center gap-6">
                 
                 @forelse($categories as $category)
-                    <a href="#" class="group block">
+                    {{-- 
+                      Adicionado 'w-44' (width) para consistência no layout flex
+                    --}}
+                    <a href="#" class="group block w-44">
                         <div class="bg-white p-6 rounded-lg shadow-lg border border-gray-200 
+                                    text-center
                                     hover:shadow-xl hover:border-orange-500 hover:-translate-y-1 
                                     transition-all duration-300 ease-in-out">
                             
-                            <div class="flex items-center justify-center mb-4">
-                                <svg class="h-10 w-10 text-orange-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                  <path stroke-linecap="round" stroke-linejoin="round" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.73.53l2.275-1.137a2.25 2.25 0 002.73-.53l9.581-9.581a2.25 2.25 0 00.659-1.591V5.25A2.25 2.25 0 0018.75 3h-4.318c-.597 0-1.17-.237-1.591-.659L12 1.75l-1.05-1.051A2.25 2.25 0 009.568 3z" />
-                                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 6h.008v.008H6V6z" />
-                                </svg>
-                            </div>
+                            {{-- 
+                              Ícone SVG estático substituído por um componente dinâmico.
+                              Isto vai renderizar o ícone com base no nome guardado 
+                              em $category->icon (ex: 'heroicon-o-user-circle')
+                            --}}
+                            <x-dynamic-component 
+                                :component="$category->icon" 
+                                class="h-10 w-10 text-orange-500 mx-auto mb-4 transition-colors duration-300 group-hover:text-orange-600" />
                             
-                            <h3 class="text-center text-lg font-semibold text-gray-800 group-hover:text-orange-600 transition duration-300">
+                            <h3 class="text-lg font-semibold text-gray-800 group-hover:text-orange-600 transition duration-300">
                                 {{ $category->name }}
                             </h3>
                         </div>
                     </a>
                 @empty
                     <p class="text-center col-span-full text-gray-500">Nenhuma categoria encontrada.</p>
-                @endforelse {{-- <-- Erro corrigido! Estava @endfcirc --}}
+                @endforelse
                 
             </div>
         </div>
@@ -128,7 +151,7 @@
 
     {{-- 
       ======================================================================
-      4. SEÇÃO DE PRODUTOS (COM PREÇO EM Kz E BOTÃO)
+      4. SEÇÃO DE PRODUTOS (Design anterior com galeria no hover - Mantido)
       ======================================================================
     --}}
     <section class="bg-white py-20" id="produtos">
@@ -137,17 +160,39 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
 
                 @forelse($products as $product)
-                    <div class="bg-white rounded-lg shadow-xl overflow-hidden flex flex-col group border border-transparent hover:border-orange-500 transition-all duration-300 transform hover:-translate-y-1">
+                    <div x-data="{ mainImage: '{{ $product->image_url }}' }" 
+                         class="bg-white rounded-lg shadow-xl overflow-hidden flex flex-col group border border-transparent hover:border-orange-500 transition-all duration-300 transform hover:-translate-y-1">
                         
                         <div class="relative overflow-hidden">
                             <a href="/produto/{{ $product->slug }}" wire:navigate>
                                 <img class="w-full h-64 object-cover transform group-hover:scale-110 transition-transform duration-500 ease-in-out" 
-                                     src="{{ $product->image_url }}" 
+                                     :src="mainImage" 
                                      alt="{{ $product->name }}">
                             </a>
-                            <span class="absolute top-4 left-4 bg-orange-500 text-white text-xs font-bold px-3 py-1 rounded-full">NOVO</span>
+                            <span class="absolute top-4 left-4 bg-orange-500 text-white text-xs font-bold px-3 py-1 rounded-full z-10">NOVO</span>
+
+                            {{-- GALERIA DE THUMBNAILS (aparece no hover) --}}
+                            <div class="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-black/70 to-transparent p-2
+                                        opacity-0 group-hover:opacity-100 transition-opacity duration-300
+                                        flex items-center justify-center space-x-2 z-20">
+
+                                {{-- Thumbnail 1: Imagem principal --}}
+                                <button @mouseenter="mainImage = '{{ $product->image_url }}'" 
+                                        class="rounded ring-2 ring-transparent hover:ring-white transition-all cursor-pointer">
+                                    <img src="{{ $product->image_url }}" alt="Thumbnail principal" class="w-14 h-14 object-cover rounded">
+                                </button>
+
+                                {{-- Loop pelas imagens da galeria (limitado a 3) --}}
+                                @foreach($product->images->take(3) as $image)
+                                    <button @mouseenter="mainImage = '{{ $image->getRawOriginal('url') }}'" 
+                                            class="rounded ring-2 ring-transparent hover:ring-white transition-all cursor-pointer">
+                                        <img src="{{ $image->getRawOriginal('url') }}" alt="Thumbnail {{ $loop->iteration }}" class="w-14 h-14 object-cover rounded">
+                                    </button>
+                                @endforeach
+                            </div>
                         </div>
                         
+                        {{-- Info do Card --}}
                         <div class="p-6 flex-grow flex flex-col">
                             <div class="flex-grow mb-4">
                                 <h3 class="text-lg font-semibold text-gray-800">
@@ -162,6 +207,7 @@
                                 Kz {{ number_format($product->price, 2, ',', '.') }}
                             </div>
 
+                            {{-- Botão "Adicionar ao Carrinho" --}}
                             <button 
                                 wire:click.prevent="addToCart('{{ $product->id }}')" 
                                 wire:loading.attr="disabled"
@@ -169,8 +215,8 @@
                                 class="w-full bg-orange-600 text-white font-bold py-3 px-4 rounded-md hover:bg-orange-700 transition duration-300 flex items-center justify-center space-x-2">
                                 
                                 <svg wire:loading wire:target="addToCart('{{ $product->id }}')" class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                 </svg>
 
                                 <svg wire:loading.remove wire:target="addToCart('{{ $product->id }}')" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -196,7 +242,7 @@
 
     {{-- 
       ======================================================================
-      5. SEÇÃO CTA (CALL TO ACTION)
+      5. SEÇÃO CTA (CALL TO ACTION) (Sem alteração)
       ======================================================================
     --}}
     <section class="bg-orange-600">

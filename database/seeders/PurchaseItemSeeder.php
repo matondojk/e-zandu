@@ -6,20 +6,19 @@ use Illuminate\Database\Seeder;
 use App\Models\Purchase;
 use App\Models\Product;
 use App\Models\PurchaseItem; // Certifique-se que você tem o Model PurchaseItem
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\DB; // 👈 IMPORTANTE: Para chamar a Procedure
 use Faker\Factory as Faker;
 
 class PurchaseItemSeeder extends Seeder
 {
     public function run(): void
     {
-        // ❌ A limpeza (truncate) é feita no DatabaseSeeder.php.
-        
         $purchases = Purchase::all();
         $products = Product::all();
         $faker = Faker::create('pt_PT');
 
         if ($purchases->isEmpty() || $products->isEmpty()) {
+            $this->command->info('Nenhuma compra ou produto encontrado. Seeder de Itens de Compra ignorado.');
             return;
         }
 
@@ -27,11 +26,11 @@ class PurchaseItemSeeder extends Seeder
         foreach ($purchases as $purchase) {
             
             $productsToBuy = $products->random(rand(1, 3));
-            
-            // Variáveis para recalcular o total da Compra (Purchase)
-            $totalPurchaseAmount = 0; // Soma dos (custo * qtd)
-            $totalPurchaseIva = 0;    // Soma do IVA de todos os itens
-            $totalPurchaseDiscount = 0; // Soma do desconto de todos os itens
+
+            // ✅ REMOVIDO: Variáveis de total. A Procedure trata disso.
+            // $totalPurchaseAmount = 0;
+            // $totalPurchaseIva = 0;
+            // $totalPurchaseDiscount = 0;
 
             foreach ($productsToBuy as $product) {
                 $quantity = rand(5, 50); 
@@ -39,13 +38,9 @@ class PurchaseItemSeeder extends Seeder
                 // Custo por unidade (unit_cost)
                 $unitCost = $product->price * (rand(55, 75) / 100); 
                 
-                // Calcular subtotal do item
-                $itemSubtotal = $unitCost * $quantity;
-                
-                // Calcular IVA (ex: 14% sobre o subtotal)
-                $ivaAmount = $itemSubtotal * 0.14; 
+                // ✅ REMOVIDO: Cálculo de subtotal e IVA do item aqui.
 
-                // ✅ CAMPOS ADICIONADOS
+                // ✅ CORRIGIDO: 'iva_amount' foi removido do create()
                 PurchaseItem::create([
                     'purchase_id' => $purchase->id,
                     'product_id' => $product->id,
@@ -54,25 +49,24 @@ class PurchaseItemSeeder extends Seeder
                     'discount' => 0.00, // Desconto por item
                     'unit' => $product->unit ?? 'Unidade', // Puxa do produto
                     'notes' => 'Item de compra de teste',
-                    'iva_amount' => round($ivaAmount, 2), // IVA calculado
+                    // 'iva_amount' => ... (REMOVIDO)
                 ]);
                 
-                // Soma os totais para atualizar a Compra (Purchase)
-                $totalPurchaseAmount += ($unitCost * $quantity);
-                $totalPurchaseIva += $ivaAmount;
-                // $totalPurchaseDiscount += (desconto); // Se 'discount' > 0
+                // ✅ REMOVIDO: Soma manual dos totais
             }
 
-            // 4. (RECOMENDADO) Atualizar o total da Compra (Purchase)
-            $freight = $purchase->freight_cost ?? 0;
-            // $discount = $purchase->discount_total ?? 0; // Usar o totalPurchaseDiscount se preferir
+            // 4. ✅ GRANDE MUDANÇA: Chamar a Stored Procedure
+            // Em vez de calcular manualmente no PHP, mandamos a BD recalcular tudo.
+            // A procedure vai buscar todos os itens que acabámos de criar,
+            // calcula o subtotal, descontos, o IVA de 14% sobre o líquido
+            // e atualiza a 'purchases' automaticamente.
+            try {
+                DB::statement('CALL sp_update_purchase_data(?)', [$purchase->id]);
+            } catch (\Exception $e) {
+                $this->command->error("Erro ao chamar sp_update_purchase_data para Compra ID {$purchase->id}: " . $e->getMessage());
+            }
 
-            $purchase->total_amount = round($totalPurchaseAmount, 2); // Subtotal (soma dos itens)
-            $purchase->iva_amount = round($totalPurchaseIva, 2);     // IVA (soma dos itens)
-            
-            // Total a Pagar = (Subtotal + Frete + IVA) - Desconto
-            $purchase->total_payable = round(($totalPurchaseAmount + $freight + $totalPurchaseIva) - $purchase->discount_total, 2); 
-            $purchase->save();
+            // ✅ REMOVIDO: Toda a lógica de $purchase->save()
         }
     }
 }

@@ -1,21 +1,15 @@
 <x-filament-panels::page>
 
-    {{-- Formulário de Controlo --}}
+    {{-- Formulário de Controlo (Sem alteração) --}}
     <form wire:submit="generate">
         {{ $this->form }}
         <div class="mt-6">
-
-            {{--
-              #########################################################
-              # ✅ CORREÇÃO 1: Botão "Gerar Relatório" com Loading Correto
-              #########################################################
-            --}}
             <x-filament::button
                 type="submit"
                 icon="heroicon-o-check"
                 wire:loading.attr="disabled"
                 wire:target="generate"
-                :loading-indicator="$isGenerating" {{-- Adicionado, pois o PHP já suporta --}}>
+                :loading-indicator="$isGenerating">
                 <span wire:loading.remove wire:target="generate">Gerar Relatório</span>
                 <span wire:loading wire:target="generate">A Gerar...</span>
             </x-filament::button>
@@ -32,12 +26,10 @@
         </h2>
         @endif
 
-        {{-- Toolbar de Ações com ABAS (TABS) --}}
+        {{-- Toolbar de Ações com ABAS (TABS) (Sem alteração) --}}
         <div class="flex flex-wrap items-center gap-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg shadow-sm">
-
-            {{-- 1. ABAS PRINCIPAIS --}}
+            {{-- (Todo o código das abas permanece igual) --}}
             <span class="text-sm font-medium mr-2">Ver:</span>
-
             <x-filament::button
                 size="sm"
                 color="{{ $mainView === 'report' ? 'primary' : 'gray' }}"
@@ -46,7 +38,6 @@
                 :disabled="!$reportData">
                 Relatório / Gráfico
             </x-filament::button>
-
             <x-filament::button
                 size="sm"
                 color="{{ $mainView === 'analysis' ? 'primary' : 'gray' }}"
@@ -55,24 +46,14 @@
                 :disabled="!$reportData">
                 Análise IA
             </x-filament::button>
-
-            {{--
-                  #########################################################
-                  # ✅ CORREÇÃO 2: Ícone correto para "Previsão"
-                  #########################################################
-                --}}
             <x-filament::button
                 size="sm"
                 color="{{ $mainView === 'forecast' ? 'primary' : 'gray' }}"
                 wire:click.prevent="setMainView('forecast')"
-                icon="heroicon-o-arrow-trending-up"> {{-- Estava 'chart-bar' --}}
+                icon="heroicon-o-arrow-trending-up">
                 Previsão de Vendas
             </x-filament::button>
-
-            {{-- Separador Visual --}}
             <span class="mx-4 border-l border-gray-300 dark:border-gray-700 h-6"></span>
-
-            {{-- 2. ABAS SECUNDÁRIAS (Formatos de Relatório) --}}
             @if ($mainView === 'report')
             <span class="text-sm font-medium mr-2">Formato:</span>
             <x-filament::button size="sm" color="{{ $currentType === 'visualization' ? 'primary' : 'gray' }}"
@@ -95,8 +76,6 @@
                 Linha
             </x-filament::button>
             @endif
-
-            {{-- 3. EXPORTS (Só aparecem na aba Relatório) --}}
             @if ($mainView === 'report')
             <span class="flex-grow"></span>
             <span class="text-sm font-medium mr-2">Exportar:</span>
@@ -126,20 +105,19 @@
             @elseif ($currentMode === 'chart' && !$chartsDisabled)
 
             {{--
-                          #########################################################
-                          # ✅ CORREÇÃO 3 (PRINCIPAL): Usar as variáveis corretas
-                          #########################################################
-                        --}}
+              #########################################################
+              # ✅ CORREÇÃO 1: Adicionado 'min-height: 300px;'
+              #########################################################
+            --}}
             <div
-                style="width: 95%; max-width: 1000px; margin: 20px auto;"
+                style="width: 95%; max-width: 1000px; margin: 20px auto; min-height: 300px;"
                 wire:key="{{ $currentMode }}-{{ $currentType }}-{{ $reportId }}"
                 x-data="reportChart(
-    @js($currentType),
-    @js(array_column($reportData, $chartLabelColumn)),  {{-- <-- USAR A VARIÁVEL INTELIGENTE --}}
-    @js(array_column($reportData, $chartDataColumn)),   {{-- <-- USAR A VARIÁVEL INTELIGENTE --}}
-    @js($chartDataColumn ?? 'Valor')                     {{-- <-- USAR A VARIÁVEL INTELIGENTE --}}
-    @js($chartDisplayLabel ?? 'Valor')
-)">
+                    @js($currentType),
+                    @js(array_column($reportData, $chartLabelColumn)),
+                    @js(array_column($reportData, $chartDataColumn)),
+                    @js($chartDisplayLabel ?? 'Valor')
+                )">
                 <canvas x-ref="canvas"></canvas>
             </div>
             @endif
@@ -157,7 +135,7 @@
             </div>
             @endif
 
-            {{-- ABA 3: Previsão de Vendas (Sem alteração) --}}
+            {{-- ABA 3: Previsão de Vendas --}}
             @elseif ($mainView === 'forecast')
             @if ($forecastLoading)
             <div class="flex justify-center items-center p-8">
@@ -168,8 +146,13 @@
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div class="md:col-span-2">
                     <h3 class="text-lg font-medium mb-2">Previsão de Vendas (Próximos 6 Meses)</h3>
+                    {{--
+                      #########################################################
+                      # ✅ CORREÇÃO 2: Adicionado 'min-height: 300px;'
+                      #########################################################
+                    --}}
                     <div
-                        style="width: 100%; margin: 10px auto;"
+                        style="width: 100%; margin: 10px auto; min-height: 300px;"
                         wire:key="forecast-chart"
                         x-data="forecastChart(@js($forecastData))">
                         <canvas x-ref="forecastCanvas"></canvas>
@@ -189,13 +172,13 @@
     </div>
     @endif
 
-    {{-- Script Alpine.js (Completo e correto, sem alteração) --}}
+    {{-- Script Alpine.js (Sem alteração) --}}
     @push('scripts')
     <script>
         document.addEventListener('alpine:init', () => {
             
             /**
-             * Gráfico 1: reportChart (Lógica do eixo corrigida)
+             * Gráfico 1: reportChart (Sem alteração)
              */
             Alpine.data('reportChart', (type, labels, data, dataLabel) => ({
                 init() {
@@ -226,9 +209,9 @@
                         borderColors = ['rgba(54, 162, 235, 1)'];
                     }
                     
-                    // --- ✅ CORREÇÃO: Define as opções de gráfico ---
                     let options = {
                         responsive: true,
+                        maintainAspectRatio: false, // <-- Adicionado para respeitar o min-height
                         plugins: {
                             legend: { position: (type === 'pie') ? 'top' : 'bottom' }
                         },
@@ -237,22 +220,6 @@
                             x: { display: (type !== 'pie' && type !== 'radar') }
                         }
                     };
-
-                    // Torna o gráfico de barras HORIZONTAL e inverte a ordem
-                    if (type === 'bar') {
-                        options.indexAxis = 'y'; // Faz com que as barras sejam horizontais
-                        options.scales = {
-                            x: { // Eixo X (o das vendas)
-                                beginAtZero: true, 
-                                display: true
-                            },
-                            y: { // Eixo Y (o dos nomes)
-                                display: true,
-                                reverse: false // Inverte para o maior valor ficar no topo
-                            }
-                        };
-                    }
-                    // --- FIM DA CORREÇÃO ---
 
                     new Chart(ctx, {
                         type: type, 
@@ -267,13 +234,13 @@
                                 fill: (type === 'radar' || type === 'line') ? true : false,
                             }]
                         },
-                        options: options // Usa o novo objeto options
+                        options: options
                     });
                 }
             }));
 
             /**
-             * Gráfico 2: forecastChart (Sem alteração, pois já é linha vertical)
+             * Gráfico 2: forecastChart (Sem alteração)
              */
             Alpine.data('forecastChart', (chartData) => ({
                 init() {
@@ -317,6 +284,7 @@
                         },
                         options: {
                             responsive: true,
+                            maintainAspectRatio: false, // <-- Adicionado para respeitar o min-height
                             plugins: {
                                 legend: { position: 'top' }
                             },

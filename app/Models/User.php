@@ -8,10 +8,12 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use MixCode\FilamentMulti2fa\Traits\UsingTwoFA;
+use MixCode\FilamentMulti2fa\Enums\TwoFactorAuthType;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable, HasUuids;
+    use HasApiTokens, HasFactory, Notifiable, HasUuids, UsingTwoFA;
 
     /**
      * The attributes that are mass assignable.
@@ -28,6 +30,23 @@ class User extends Authenticatable
         'role',
     ];
 
+    protected $guarded = [
+        'two_factor_type',
+        'two_factor_secret',
+        'two_factor_recovery_codes',
+        'two_factor_sent_at',
+        'two_factor_expires_at',
+        'two_factor_confirmed_at',
+    ];
+
+    protected $casts = [
+        'two_factor_type' => TwoFactorAuthType::class,
+        'two_factor_sent_at' => 'datetime',
+        'two_factor_expires_at' => 'datetime',
+        'two_factor_confirmed_at' => 'datetime',
+        'email_verified_at' => 'datetime',
+    ];
+
     public function canAccessPanel(\Filament\Panel $panel): bool
     {
         if ($panel->getId() === 'admin') {
@@ -42,7 +61,7 @@ class User extends Authenticatable
         if ($this->avatar) {
             return Storage::disk('public')->url($this->avatar);
         }
- 
+
         return 'https://ui-avatars.com/api/?name=' . urlencode($this->name) . '&color=FFFFFF&background=f97316';
     }
 
@@ -56,14 +75,6 @@ class User extends Authenticatable
         'remember_token',
     ];
 
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array<string, string>
-     */
-    protected $casts = [
-        'email_verified_at' => 'datetime',
-    ];
 
     public function reviews()
     {

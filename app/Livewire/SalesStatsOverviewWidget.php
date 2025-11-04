@@ -11,7 +11,7 @@ use Filament\Widgets\StatsOverviewWidget\Stat;
 use Illuminate\Support\Carbon;
 use Livewire\Component;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\DB; 
+use Illuminate\Support\Facades\DB; // <-- Verifique se o DB está importado
 use Illuminate\Database\Query\Builder as QueryBuilder;
 
 class SalesStatsOverviewWidget extends Component
@@ -48,11 +48,13 @@ class SalesStatsOverviewWidget extends Component
 
         // 2. Lógica de Compras (Custos)
         $purchasesQuery = Purchase::whereBetween('document_date', [$start, $end]);
-        $totalPurchases = $purchasesQuery->sum('total_amount');
+        
+        // ✅ CORREÇÃO 1: Usar o custo líquido (Subtotal - Descontos)
+        $totalPurchases = $purchasesQuery->sum(DB::raw('total_amount - discount_total'));
 
         // 3. Lucro Bruto e Métricas
-        // ✅ CORREÇÃO: Lucro Bruto = Vendas - Compras
-        $grossProfit =  $totalPurchases - $totalRevenue; 
+        // ✅ CORREÇÃO 2: Lucro Bruto = Vendas - Compras
+        $grossProfit = $totalRevenue - $totalPurchases; 
         $avgTicket = $totalOrders > 0 ? $totalRevenue / $totalOrders : 0;
         
         // 4. Estoque Baixo 
@@ -76,21 +78,19 @@ class SalesStatsOverviewWidget extends Component
             // CARD 1: Receita Total (Vendas)
             Stat::make('Receita Total', number_format($totalRevenue, 0, ',', '.') . ' Kz')
                 ->description('Vendas completas no período')
-                // ✅ COR LARANJA
                 ->descriptionIcon('heroicon-m-arrow-trending-up')
                 ->color('primary'), 
             
             // CARD 2: Total de Compras (Custo)
             Stat::make('Total de Compras', number_format($totalPurchases, 0, ',', '.') . ' Kz')
-                ->description('Custo total de mercadorias compradas')
-                // ✅ COR LARANJA
+                // ✅ Atualizada a descrição para refletir o custo líquido
+                ->description('Custo líquido de mercadorias (s/ frete e iva)')
                 ->descriptionIcon('heroicon-m-archive-box')
                 ->color('primary'), 
 
             // CARD 3: Lucro Bruto (Diferença)
             Stat::make('Lucro Bruto', number_format($grossProfit, 0, ',', '.') . ' Kz')
                 ->description('Vendas - Compras (Margem Bruta)')
-                // Mantém a cor condicional para o lucro, o que é importante para o gestor.
                 ->descriptionIcon($grossProfit >= 0 ? 'heroicon-m-banknotes' : 'heroicon-m-arrow-trending-down')
                 ->color($grossProfit >= 0 ? 'success' : 'danger'), // Sucesso para lucro, Danger para prejuízo
             
@@ -98,7 +98,7 @@ class SalesStatsOverviewWidget extends Component
             Stat::make('Pedidos / Estoque Baixo', number_format($totalOrders, 0, ',', '.') . ' / ' . number_format($lowStock, 0, ',', '.'))
                 ->description('Total de pedidos / Produtos em alerta de estoque')
                 ->descriptionIcon('heroicon-m-exclamation-triangle')
-                ->color('warning'), // Mantemos Warning para risco de estoque
+                ->color('warning'), 
         ];
     }
 
