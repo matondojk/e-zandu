@@ -19,11 +19,13 @@ class UserResource extends Resource
 
     // --- Configuração da Navegação ---
     protected static ?string $navigationIcon = 'heroicon-o-user-group';
-    protected static ?string $navigationGroup = 'Sistema & Config';
+    protected static ?string $navigationGroup = 'Configurações';
     protected static ?string $navigationLabel = 'Administradores';
     protected static ?string $modelLabel = 'Administrador';
     protected static ?string $pluralModelLabel = 'Administradores';
     protected static ?int $navigationSort = 90;
+
+    protected static ?string $slug = 'administradores';
 
     /**
      * ✅ PONTO-CHAVE 1: Filtrar para mostrar apenas 'admin'
@@ -48,18 +50,18 @@ class UserResource extends Resource
                             ->imageEditor()
                             ->circleCropper()
                             ->columnSpanFull(),
-                        
+
                         Forms\Components\TextInput::make('name')
                             ->label('Nome Completo')
                             ->required()
                             ->maxLength(255),
-                        
+
                         Forms\Components\TextInput::make('email')
                             ->email()
                             ->required()
                             ->unique(table: User::class, column: 'email', ignoreRecord: true) // Ignora o próprio registo na edição
                             ->maxLength(255),
-                        
+
                         Forms\Components\TextInput::make('phone')
                             ->label('Telefone (WhatsApp)')
                             ->tel()
@@ -70,12 +72,12 @@ class UserResource extends Resource
                             ->label('Palavra-passe')
                             ->password()
                             // ✅ PONTO-CHAVE 2: Lógica de Password
-                            ->required(fn (string $context): bool => $context === 'create') // Obrigatório apenas ao Criar
-                            ->nullable(fn (string $context): bool => $context === 'edit') // Opcional ao Editar
-                            ->dehydrateStateUsing(fn (?string $state): ?string => filled($state) ? Hash::make($state) : null) // Só faz hash se for preenchido
-                            ->dehydrated(fn (?string $state): bool => filled($state)) // Só envia para o update se for preenchido
+                            ->required(fn(string $context): bool => $context === 'create') // Obrigatório apenas ao Criar
+                            ->nullable(fn(string $context): bool => $context === 'edit') // Opcional ao Editar
+                            ->dehydrateStateUsing(fn(?string $state): ?string => filled($state) ? Hash::make($state) : null) // Só faz hash se for preenchido
+                            ->dehydrated(fn(?string $state): bool => filled($state)) // Só envia para o update se for preenchido
                             ->maxLength(255),
-                        
+
                         Forms\Components\Textarea::make('delivery_address')
                             ->label('Morada (Opcional)')
                             ->columnSpanFull(),
@@ -91,20 +93,20 @@ class UserResource extends Resource
                     ->label('Avatar')
                     ->disk('public') // Ler do disco 'public'
                     ->circular(),
-                
+
                 Tables\Columns\TextColumn::make('name')
                     ->label('Nome')
                     ->searchable()
                     ->sortable(),
-                
+
                 Tables\Columns\TextColumn::make('email')
                     ->searchable()
                     ->sortable(),
-                
+
                 Tables\Columns\TextColumn::make('phone')
                     ->label('Telefone')
                     ->searchable(),
-                
+
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Data de Registo')
                     ->dateTime('d/m/Y')
@@ -125,14 +127,14 @@ class UserResource extends Resource
                 ]),
             ]);
     }
-    
+
     public static function getRelations(): array
     {
         return [
             //
         ];
     }
-    
+
     public static function getPages(): array
     {
         return [
@@ -141,5 +143,5 @@ class UserResource extends Resource
             'view' => Pages\ViewUser::route('/{record}'), // Página de View que gerámos
             'edit' => Pages\EditUser::route('/{record}/edit'),
         ];
-    }    
+    }
 }

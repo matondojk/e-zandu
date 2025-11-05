@@ -17,14 +17,13 @@ class SubscriptionResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-credit-card';
 
     // --- Configuração da Navegação ---
-    // 1. Define o nome do grupo
-    protected static ?string $navigationGroup = 'Sistema & Config';
-
-    // 2. Define o nome do item no menu
+    protected static ?string $navigationGroup = 'Configurações';
     protected static ?string $navigationLabel = 'Minha Assinatura';
-
-    // 3. Define a ordem (um número alto o joga para o final)
     protected static ?int $navigationSort = 99;
+
+    // Define o slug da URL em português
+    protected static ?string $slug = 'minha-assinatura';
+
     // --- Fim da Configuração ---
 
 
@@ -41,14 +40,14 @@ class SubscriptionResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('plan_name')->label('Plano'),
                 Tables\Columns\TextColumn::make('status')->label('Status')->badge()
-                    ->color(fn (string $state): string => match ($state) {
+                    ->color(fn(string $state): string => match ($state) {
                         'active' => 'success',
                         'paused' => 'warning',
                         'canceled' => 'danger',
                     }),
                 Tables\Columns\TextColumn::make('start_date')->label('Início')->dateTime(),
                 Tables\Columns\TextColumn::make('end_date')->label('Expira em')->dateTime(),
-                
+
                 // Exibindo os novos campos
                 Tables\Columns\TextColumn::make('renewed_at')->label('Última Renovação')->dateTime(),
                 Tables\Columns\TextColumn::make('paused_at')->label('Pausado em')->dateTime(),

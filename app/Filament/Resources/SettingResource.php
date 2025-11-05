@@ -13,7 +13,6 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TagsInput;
 use Filament\Forms\Components\FileUpload; 
 use Filament\Tables\Columns;
-use Illuminate\Support\Facades\Log;
 
 class SettingResource extends Resource
 {
@@ -21,11 +20,12 @@ class SettingResource extends Resource
 
     // Configuração do Menu
     protected static ?string $navigationIcon = 'heroicon-o-cog-6-tooth';
+    protected static ?string $navigationGroup = 'Configurações';
     protected static ?string $navigationLabel = 'Configurações da Loja';
     protected static ?string $modelLabel = 'Configuração';
     protected static ?string $pluralModelLabel = 'Configurações';
-    protected static ?int $navigationSort = 100; // Põe no final do menu
-    protected static ?string $navigationGroup = 'Sistema & Config';
+    protected static ?int $navigationSort = 100;
+    protected static ?string $slug = 'configuracoes-da-loja'; // URL em português
 
     public static function form(Form $form): Form
     {
@@ -72,28 +72,7 @@ class SettingResource extends Resource
                             ->required(),
                     ])->columns(2),
                 
-                // --- Secção 2: Pagamentos e Frete ---
-                Section::make('Pagamentos & Frete')
-                    ->description('Dados bancários e custos de entrega.')
-                    ->icon('heroicon-o-banknotes')
-                    ->collapsible()
-                    ->schema([
-                        TextInput::make('iban')
-                            ->label('IBAN (para Transferência)')
-                            ->required(),
-                        TextInput::make('multicaixa_express')
-                            ->label('Nº Multicaixa Express')
-                            ->required(),
-                        TextInput::make('shipping_rate')
-                            ->label('Taxa de Frete Padrão (Kz)')
-                            ->numeric()
-                            ->step(100)
-                            ->default(0)
-                            ->helperText('Valor fixo cobrado por pedido (Ex: 1000 Kz).')
-                            ->required(),
-                    ])->columns(3),
-
-                // --- Secção 3: Gestão de Stock e Alertas ---
+                // --- Secção 2: Gestão de Stock e Alertas ---
                 Section::make('Gestão de Stock e Alertas')
                     ->description('Definições para alertas automáticos de stock.')
                     ->icon('heroicon-o-archive-box')
@@ -111,7 +90,7 @@ class SettingResource extends Resource
                             ->columnSpan(2),
                     ])->columns(3),
 
-                // --- Secção 4: IA / Respostas do Bot (FAQs) ---
+                // --- Secção 3: IA / Respostas do Bot (FAQs) ---
                 Section::make('IA / Respostas do Bot (FAQs)')
                     ->description('Contexto e respostas que o bot de IA usará para perguntas comuns.')
                     ->icon('heroicon-o-cpu-chip')
@@ -146,43 +125,28 @@ class SettingResource extends Resource
             ]);
     }
 
-    // A Tabela não é necessária, pois a página de 'index' (ListSettings) redireciona sempre
     public static function table(Table $table): Table
     {
         return $table
-            ->columns([
-                //
-            ])
-            ->actions([
-                //
-            ])
+            ->columns([])
+            ->actions([])
             ->bulkActions([]);
     }
     
     public static function getRelations(): array
     {
-        return [
-            //
-        ];
+        return [];
     }
     
-    // ✅ Este é o método que você mencionou.
-    // Assegura que o registo existe para as páginas 'edit'.
     public static function getRecord(): \Illuminate\Database\Eloquent\Model
     {
-         // Encontra o primeiro registo ou cria um vazio se a tabela estiver limpa.
-         // Isto é crucial para que a página 'edit' não falhe.
          return static::getModel()::firstOrCreate([], []);
     }
 
     public static function getPages(): array
     {
         return [
-            // ✅ A rota 'index' DEVE existir para o Filament funcionar.
-            // Ela aponta para o nosso 'ListSettings' (Ficheiro 6), que faz o redirecionamento.
             'index' => Pages\ListSettings::route('/'), 
-            
-            // A rota 'edit' funciona normalmente graças ao 'getRecord()' acima.
             'edit' => Pages\EditSetting::route('/{record}/edit'),
         ];
     }

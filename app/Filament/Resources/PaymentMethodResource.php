@@ -20,6 +20,7 @@ class PaymentMethodResource extends Resource
     protected static ?string $pluralModelLabel = 'Métodos de Pagamento';
     protected static ?string $navigationGroup = 'Configurações';
     protected static ?int $navigationSort = 2;
+    protected static ?string $slug = 'metodos-de-pagamento'; // URL em português
 
     public static function form(Form $form): Form
     {
@@ -31,7 +32,7 @@ class PaymentMethodResource extends Resource
                             ->label('Nome do Método')
                             ->placeholder('Ex: Transferência BAI')
                             ->required(),
-                        
+
                         Forms\Components\Select::make('type')
                             ->label('Tipo de Método')
                             ->options([
@@ -41,12 +42,12 @@ class PaymentMethodResource extends Resource
                             ])
                             ->required()
                             ->reactive(), // ✅ Torna o formulário reativo
-                        
+
                         Forms\Components\Toggle::make('is_active')
                             ->label('Ativo')
                             ->default(true),
                     ])->columns(2),
-                
+
                 // --- Campos Reativos ---
 
                 Forms\Components\Section::make('Instruções para o Cliente')
@@ -57,7 +58,7 @@ class PaymentMethodResource extends Resource
                             ->placeholder('Ex: Após a transferência, envie o comprovativo para...')
                             ->rows(4),
                     ])
-                    ->visible(fn (Get $get) => $get('type') !== 'cash_on_delivery'), // Só mostra se NÃO for Pag. na Entrega
+                    ->visible(fn(Get $get) => $get('type') !== 'cash_on_delivery'), // Só mostra se NÃO for Pag. na Entrega
 
                 Forms\Components\Section::make('Dados Bancários')
                     ->schema([
@@ -66,7 +67,7 @@ class PaymentMethodResource extends Resource
                         Forms\Components\TextInput::make('bank_iban')->label('IBAN'),
                     ])
                     ->columns(3)
-                    ->visible(fn (Get $get) => $get('type') === 'bank_transfer'), // ✅ Só mostra para Transferência
+                    ->visible(fn(Get $get) => $get('type') === 'bank_transfer'), // ✅ Só mostra para Transferência
 
                 Forms\Components\Section::make('Dados Pagamento Express')
                     ->schema([
@@ -74,7 +75,7 @@ class PaymentMethodResource extends Resource
                             ->label('Nº de Telefone (Express)')
                             ->tel(),
                     ])
-                    ->visible(fn (Get $get) => $get('type') === 'express'), // ✅ Só mostra para Express
+                    ->visible(fn(Get $get) => $get('type') === 'express'), // ✅ Só mostra para Express
             ]);
     }
 
@@ -85,10 +86,10 @@ class PaymentMethodResource extends Resource
                 Tables\Columns\TextColumn::make('name')
                     ->label('Nome')
                     ->searchable(),
-                
+
                 Tables\Columns\BadgeColumn::make('type')
                     ->label('Tipo')
-                    ->formatStateUsing(fn ($state) => match($state) {
+                    ->formatStateUsing(fn($state) => match ($state) {
                         'bank_transfer' => 'Bancário',
                         'express' => 'Express',
                         'cash_on_delivery' => 'Na Entrega',
@@ -113,7 +114,7 @@ class PaymentMethodResource extends Resource
                 ]),
             ]);
     }
-    
+
     public static function getPages(): array
     {
         return [
@@ -121,5 +122,5 @@ class PaymentMethodResource extends Resource
             'create' => Pages\CreatePaymentMethod::route('/create'),
             'edit' => Pages\EditPaymentMethod::route('/{record}/edit'),
         ];
-    }    
+    }
 }

@@ -7,7 +7,7 @@ use App\Models\Product;
 use App\Models\Purchase; 
 use App\Models\StockMovement; 
 use App\Models\Setting;
-use App\Models\Expense; // ✅ NOVO: Importar Model Expense
+use App\Models\Expense;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 use Illuminate\Support\Carbon;
 use Livewire\Component;
@@ -44,22 +44,25 @@ class SalesStatsOverviewWidget extends Component
         // 1. Lógica de Vendas (Receita)
         $salesQuery = Cart::whereIn('status', ['completed', 'paid'])
             ->whereBetween('updated_at', [$start, $end]);
-        $totalRevenue = $salesQuery->sum('total_price');
+            
+        // ✅ CORREÇÃO FINAL: Usar COALESCE para garantir que todos os campos da soma
+        // (total_price, shipping_amount, discount_amount) são tratados como 0 se forem NULL.
+        $revenueExpression = 'COALESCE(total_price, 0) + COALESCE(shipping_amount, 0) - COALESCE(discount_amount, 0)';
+        $totalRevenue = $salesQuery->sum(DB::raw($revenueExpression));
+
         $totalOrders = $salesQuery->count();
 
         // 2. Lógica de Compras (Custos de Mercadoria)
         $purchasesQuery = Purchase::whereBetween('document_date', [$start, $end]);
-            // Assumindo que o status 'completed' ou 'delivered'
-            // ->whereIn('status', ['completed', 'delivered']); 
         $totalPurchases = $purchasesQuery->sum('total_amount');
 
-        // 3. ✅ NOVO: Lógica de Despesas Operacionais
+        // 3. Lógica de Despesas Operacionais
         $totalExpenses = Expense::whereBetween('expense_date', [$start, $end])
             ->sum('amount');
         
-        // 4. ✅ NOVO: Cálculo do Lucro Líquido
-        $grossProfit = $totalRevenue - $totalPurchases; // Lucro Bruto
-        $netProfit = $grossProfit - $totalExpenses; // Lucro Líquido
+        // 4. Cálculo do Lucro Líquido
+        $grossProfit = $totalRevenue - $totalPurchases; 
+        $netProfit = $grossProfit - $totalExpenses; 
         
         // 5. Estoque Baixo (Lógica mantida)
         $minimumStock = Cache::remember('min_stock', 60 * 60, fn() => Setting::first()?->minimum_stock ?? 10);
@@ -72,8 +75,8 @@ class SalesStatsOverviewWidget extends Component
                     ->having(DB::raw('SUM(T2.quantity)'), '>', 0);
             })
             ->count();
-
-        // --- ✅ CARDS FINANCEIROS REFINADOS ---
+        
+        // --- CARDS FINANCEIROS REFINADOS ---
         return [
             // CARD 1: Receita Total (Vendas)
             Stat::make('Receita Total', number_format($totalRevenue, 0, ',', '.') . ' Kz')
@@ -83,7 +86,8 @@ class SalesStatsOverviewWidget extends Component
             
             // CARD 2: Custos Totais (Mercadoria + Operacional)
             Stat::make('Custos Totais', number_format($totalPurchases + $totalExpenses, 0, ',', '.') . ' Kz')
-                ->description("Compras (Kz $totalPurchases) + Despesas (Kz $totalExpenses)")
+                // ✅ CORRIGIDO: Formatação para Kz no description
+                ->description("Compras (Kz " . number_format($totalPurchases, 0, ',', '.') . ") + Despesas (Kz " . number_format($totalExpenses, 0, ',', '.') . ")")
                 ->descriptionIcon('heroicon-m-arrow-trending-down')
                 ->color('warning'),
 

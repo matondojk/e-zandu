@@ -26,12 +26,12 @@ class SupplierResource extends Resource
 
     // ✅ Pedido 5: Ícone alterado
     protected static ?string $navigationIcon = 'heroicon-o-truck'; // MUDADO (era building-office-2)
-    
     protected static ?string $navigationLabel = 'Fornecedores';
     protected static ?string $modelLabel = 'Fornecedor';
     protected static ?string $pluralModelLabel = 'Fornecedores';
     protected static ?string $navigationGroup = 'Catálogo & Inventário';
     protected static ?int $navigationSort = 4;
+    protected static ?string $slug = 'fornecedores'; // URL em português
 
     public static function form(Form $form): Form
     {
@@ -52,16 +52,16 @@ class SupplierResource extends Resource
                                             ->unique(ignoreRecord: true)
                                             ->maxLength(255)
                                             ->columnSpanFull(),
-                                        
+
                                         Forms\Components\TextInput::make('nif')
                                             ->label('NIF/Nº Contribuinte')
                                             ->maxLength(50),
-                                            
+
                                         Forms\Components\TextInput::make('contact_name')
                                             ->label('Pessoa de Contacto')
                                             ->maxLength(255),
                                     ]),
-                                
+
                                 Section::make('Contactos')
                                     ->columns(2)
                                     ->schema([
@@ -103,19 +103,19 @@ class SupplierResource extends Resource
                     ->label('Nome da Empresa')
                     ->searchable()
                     ->sortable(),
-                
+
                 Tables\Columns\TextColumn::make('contact_name')
                     ->label('Pessoa de Contacto')
                     ->searchable()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: false), // Visível por defeito
-                    
+
                 Tables\Columns\TextColumn::make('phone')
                     ->label('Telefone')
                     ->searchable()
                     ->copyable() // Clicável para copiar
                     ->copyMessage('Telefone copiado'),
-                
+
                 // ✅ Pedido 1: Nova coluna de E-mail
                 Tables\Columns\TextColumn::make('email')
                     ->label('E-mail')
@@ -148,11 +148,11 @@ class SupplierResource extends Resource
                         return $query
                             ->when(
                                 $data['created_from'],
-                                fn (Builder $query, $date): Builder => $query->whereDate('created_at', '>=', $date),
+                                fn(Builder $query, $date): Builder => $query->whereDate('created_at', '>=', $date),
                             )
                             ->when(
                                 $data['created_until'],
-                                fn (Builder $query, $date): Builder => $query->whereDate('created_at', '<=', $date),
+                                fn(Builder $query, $date): Builder => $query->whereDate('created_at', '<=', $date),
                             );
                     }),
             ])

@@ -23,6 +23,7 @@ class AnalyticsDashboard extends Page implements HasForms
     protected static ?string $title = 'Análise Geral da Loja';
     protected static bool $shouldRegisterNavigation = true;
 
+    
     // ------------------------------------------------
     // Global State for Date Filtering
     // ------------------------------------------------

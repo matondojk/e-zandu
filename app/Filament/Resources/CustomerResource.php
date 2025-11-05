@@ -4,7 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\CustomerResource\Pages;
 // ✅ Importar as Relações
-use App\Filament\Resources\CustomerResource\RelationManagers; 
+use App\Filament\Resources\CustomerResource\RelationManagers;
 use App\Models\Customer;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -18,9 +18,8 @@ class CustomerResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-users';
     protected static ?string $navigationLabel = 'Clientes';
-    // ✅ Corrigido o $pluralLabel
-    protected static ?string $pluralModelLabel = 'Clientes'; 
-    protected static ?string $slug = 'customers';
+    protected static ?string $pluralModelLabel = 'Clientes';
+    protected static ?string $slug = 'clientes'; // URL em português
     protected static ?string $navigationGroup = 'Loja & Vendas';
 
     /**
@@ -52,7 +51,7 @@ class CustomerResource extends Resource
                             ->rows(3)
                             ->columnSpanFull(),
                     ]),
-                
+
                 // ✅ NOVA SECÇÃO DE CRM
                 Forms\Components\Section::make('Atributos de CRM')
                     ->schema([
@@ -72,7 +71,7 @@ class CustomerResource extends Resource
         return $table
             ->query(
                 // O seu ficheiro original tinha esta query
-                Customer::query()->where('role', 'customer') 
+                Customer::query()->where('role', 'customer')
             )
             ->columns([
                 Tables\Columns\TextColumn::make('name')
@@ -104,10 +103,11 @@ class CustomerResource extends Resource
                     ->label('WhatsApp')
                     ->icon('heroicon-o-chat-bubble-left')
                     ->color('success')
-                    ->url(fn(Customer $record): string =>
+                    ->url(
+                        fn(Customer $record): string =>
                         "https://wa.me/{$record->phone}?text=" .
-                        // ✅ Atualizado o nome da loja
-                        urlencode("Olá {$record->name}! Aqui é da E-Zandu.") 
+                            // ✅ Atualizado o nome da loja
+                            urlencode("Olá {$record->name}! Aqui é da E-Zandu.")
                     )
                     ->openUrlInNewTab()
                     ->visible(fn(Customer $record): bool => filled($record->phone))

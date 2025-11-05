@@ -24,6 +24,8 @@ class StockResource extends Resource
     protected static ?string $pluralModelLabel = 'Armazéns';
     protected static ?string $navigationGroup = 'Catálogo & Inventário';
     protected static ?int $navigationSort = 5;
+    protected static ?string $slug = 'armazens'; // URL em português
+
 
     public static function form(Form $form): Form
     {
@@ -38,11 +40,11 @@ class StockResource extends Resource
                             ->unique(ignoreRecord: true)
                             ->maxLength(255)
                             ->helperText('Ex: Armazém Principal, Loja Física, Depósito Secundário'),
-                            
+
                         Forms\Components\Toggle::make('is_default')
                             ->label('Armazém Padrão')
                             ->helperText('Marque se este for o local de estoque principal.'),
-                            
+
                         Forms\Components\Textarea::make('location')
                             ->label('Localização Física / Endereço')
                             ->rows(2)
@@ -57,26 +59,26 @@ class StockResource extends Resource
         return $table
             // ✅ REMOVIDO: O defaultSort foi movido para getEloquentQuery()
             // ->defaultSort('updated_at', 'desc') 
-            
+
             ->columns([
                 Tables\Columns\TextColumn::make('name')
                     ->label('Nome do Armazém')
                     ->searchable()
                     ->sortable(),
-                    
+
                 Tables\Columns\IconColumn::make('is_default')
                     ->label('Padrão')
                     ->boolean()
                     ->sortable(),
-                    
+
                 Tables\Columns\TextColumn::make('total_stock')
                     ->label('Total de Itens')
-                    ->state(fn (Stock $record): int => $record->movements()->sum('quantity'))
-                    ->formatStateUsing(fn ($state) => number_format($state, 0, ',', '.'))
+                    ->state(fn(Stock $record): int => $record->movements()->sum('quantity'))
+                    ->formatStateUsing(fn($state) => number_format($state, 0, ',', '.'))
                     ->color('info')
                     ->alignEnd()
-                    ->sortable(false), 
-                    
+                    ->sortable(false),
+
                 Tables\Columns\TextColumn::make('location')
                     ->label('Localização')
                     ->limit(50)
@@ -124,7 +126,7 @@ class StockResource extends Resource
             'edit' => Pages\EditStock::route('/{record}/edit'),
         ];
     }
-    
+
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
@@ -132,4 +134,3 @@ class StockResource extends Resource
             ->orderBy('updated_at', 'desc');
     }
 }
-

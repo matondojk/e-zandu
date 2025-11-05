@@ -24,6 +24,7 @@ class ExpenseResource extends Resource
     protected static ?string $pluralModelLabel = 'Despesas';
     protected static ?string $navigationGroup = 'Financeiro'; // Novo grupo
     protected static ?int $navigationSort = 6;
+    protected static ?string $slug = 'despesas-operacionais'; // URL em português
 
     public static function form(Form $form): Form
     {
@@ -37,13 +38,13 @@ class ExpenseResource extends Resource
                             ->required()
                             ->maxLength(255)
                             ->columnSpanFull(),
-                        
+
                         Forms\Components\TextInput::make('amount')
                             ->label('Valor (Kz)')
                             ->numeric()
                             ->prefix('Kz')
                             ->required(),
-                        
+
                         Forms\Components\DatePicker::make('expense_date')
                             ->label('Data da Despesa')
                             ->required()
@@ -65,17 +66,17 @@ class ExpenseResource extends Resource
                     ->label('Descrição')
                     ->searchable()
                     ->sortable(),
-                
+
                 Tables\Columns\TextColumn::make('amount')
                     ->label('Valor')
                     ->sortable()
                     ->alignEnd(),
-                
+
                 Tables\Columns\TextColumn::make('expense_date')
                     ->label('Data da Despesa')
                     ->date('d/m/Y')
                     ->sortable(),
-                
+
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Data de Registo')
                     ->dateTime('d/m/Y H:i')
@@ -93,11 +94,11 @@ class ExpenseResource extends Resource
                         return $query
                             ->when(
                                 $data['date_from'],
-                                fn (Builder $query, $date): Builder => $query->whereDate('expense_date', '>=', $date),
+                                fn(Builder $query, $date): Builder => $query->whereDate('expense_date', '>=', $date),
                             )
                             ->when(
                                 $data['date_until'],
-                                fn (Builder $query, $date): Builder => $query->whereDate('expense_date', '<=', $date),
+                                fn(Builder $query, $date): Builder => $query->whereDate('expense_date', '<=', $date),
                             );
                     }),
             ])
@@ -110,9 +111,9 @@ class ExpenseResource extends Resource
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ])
-            ->defaultSort('expense_date', 'desc'); 
+            ->defaultSort('expense_date', 'desc');
     }
-    
+
     public static function getPages(): array
     {
         return [
@@ -120,5 +121,5 @@ class ExpenseResource extends Resource
             'create' => Pages\CreateExpense::route('/create'),
             'edit' => Pages\EditExpense::route('/{record}/edit'),
         ];
-    }    
+    }
 }

@@ -2,10 +2,13 @@
 
 namespace App\Filament\Resources;
 
+// ✅ IMPORTS ESSENCIAIS
 use App\Filament\Resources\OrderResource\Pages;
 use App\Filament\Resources\OrderResource\RelationManagers;
 use App\Models\Cart;
 use App\Models\Setting;
+use App\Models\PaymentMethod; // ✅ NOVO: Para filtro
+use App\Models\ShippingRate; // ✅ NOVO: Para filtro
 use Exception;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -30,6 +33,7 @@ class OrderResource extends Resource
     protected static ?int $navigationSort = 2;
     protected static ?string $recordTitleAttribute = 'id';
     protected static ?string $navigationGroup = 'Loja & Vendas';
+    protected static ?string $slug = 'vendas'; // URL em português
 
     public static function getNavigationBadge(): ?string
     {
@@ -50,36 +54,37 @@ class OrderResource extends Resource
 
     public static function table(Table $table): Table
     {
-        // ❌ REMOVIDO: A busca obsoleta pelo $shippingRate estático
-        
+
         return $table
             ->columns([
-                
-                // ✅ CORRIGIDO: user -> user (Null-Safe)
+
+                // ✅ Coluna de Cliente (Null-Safe)
                 Tables\Columns\TextColumn::make('user.name')
                     ->label('Cliente')
-                    ->state(fn (Cart $record): ?string => $record->user?->name ?? 'Cliente Anónimo')
-                    ->searchable(query: fn (Builder $query, string $search): Builder => 
-                        $query->whereHas('user', fn ($q) => $q->where('name', 'like', "%{$search}%"))
+                    ->state(fn(Cart $record): ?string => $record->user?->name ?? 'Cliente Anónimo')
+                    ->searchable(
+                        query: fn(Builder $query, string $search): Builder =>
+                        $query->whereHas('user', fn($q) => $q->where('name', 'like', "%{$search}%"))
                     )
                     ->sortable(),
 
-                // ✅ CORRIGIDO: user -> user (Null-Safe)
+                // ✅ Coluna de Telefone (Null-Safe)
                 Tables\Columns\TextColumn::make('user.phone')
                     ->label('WhatsApp')
-                    ->state(fn (Cart $record): ?string => $record->user?->phone)
+                    ->state(fn(Cart $record): ?string => $record->user?->phone)
                     ->placeholder('N/A')
-                    ->searchable(query: fn (Builder $query, string $search): Builder => 
-                        $query->whereHas('user', fn ($q) => $q->where('phone', 'like', "%{$search}%"))
+                    ->searchable(
+                        query: fn(Builder $query, string $search): Builder =>
+                        $query->whereHas('user', fn($q) => $q->where('phone', 'like', "%{$search}%"))
                     )
                     ->copyable()
                     ->copyMessage('Número copiado!'),
 
                 Tables\Columns\BadgeColumn::make('status')
-                    ->label('Status')
+                    ->label('Status Pagamento')
                     ->colors([
                         'warning' => 'active',
-                        'success' => fn ($state) => in_array($state, ['paid', 'completed']),
+                        'success' => fn($state) => in_array($state, ['paid', 'completed']),
                     ])
                     ->formatStateUsing(fn(string $state): string => match ($state) {
                         'active' => 'Pendente',
@@ -88,7 +93,7 @@ class OrderResource extends Resource
                         default => ucfirst($state),
                     })
                     ->sortable(),
-                
+
                 Tables\Columns\TextColumn::make('discount_amount')
                     ->label('Desconto')
                     ->money('Kz')
@@ -96,11 +101,11 @@ class OrderResource extends Resource
                     ->color('danger')
                     ->toggleable(isToggledHiddenByDefault: true),
 
-                // ✅ CORRIGIDO: Grand Total agora usa $record->shipping_amount
+                // ✅ Coluna Total Geral (Com cálculo de frete e desconto dinâmicos)
                 Tables\Columns\TextColumn::make('grand_total')
                     ->label('Total Geral')
-                    ->state(fn(Cart $record): float => 
-                        ($record->total_price + $record->shipping_amount) - $record->discount_amount
+                    ->state(
+                        fn(Cart $record): float => ($record->total_price + $record->shipping_amount) - $record->discount_amount
                     )
                     ->formatStateUsing(fn($state): string => number_format($state, 2, ',', '.') . ' Kz')
                     ->alignEnd()
@@ -111,22 +116,69 @@ class OrderResource extends Resource
                     ->label('Data Pedido')
                     ->dateTime('d/m/Y H:i')
                     ->sortable(),
-
-                Tables\Columns\TextColumn::make('updated_at')
-                    ->label('Última Atualização')
-                    ->since()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
+
+                // --- FILTROS EXISTENTES ---
+
                 Tables\Filters\SelectFilter::make('status')
                     ->options([
                         'active' => 'Pendente',
                         'paid' => 'Pago',
                         'completed' => 'Concluído',
                     ])
-                    ->label('Filtrar por Status'),
+                    ->label('Filtrar por Status Pagamento'),
 
+                // --- NOVOS FILTROS ---
+
+                // ✅ 1. Filtro de Método de Pagamento
+                Tables\Filters\SelectFilter::make('payment_method_id')
+                    ->relationship('paymentMethod', 'name') // Usa a relação paymentMethod
+                    ->label('Método de Pagamento'),
+
+                // ✅ 2. Filtro de Local de Entrega
+                Tables\Filters\SelectFilter::make('shipping_rate_id')
+                    ->relationship('shippingRate', 'province_name') // Usa a relação shippingRate
+                    ->label('Local de Entrega'),
+
+                // ✅ 3. Filtro de Status de Entrega
+                Tables\Filters\SelectFilter::make('delivery_status')
+                    ->options([
+                        'pending' => 'Pendente',
+                        'processing' => 'Em Processamento',
+                        'delivered' => 'Entregue',
+                    ])
+                    ->label('Status Entrega'),
+
+                // ✅ 4. Filtro de Cupão Utilizado
+                Tables\Filters\Filter::make('coupon')
+                    ->label('Cupão Utilizado')
+                    ->query(function (Builder $query, array $data): Builder {
+                        if ($data['is_used'] ?? false) {
+                            return $query->whereNotNull('coupon_id');
+                        }
+                        if (($data['is_not_used'] ?? false)) {
+                            return $query->whereNull('coupon_id');
+                        }
+                        return $query;
+                    })
+                    ->indicateUsing(function (array $data): ?string {
+                        if ($data['is_used'] ?? false) {
+                            return 'Cupão: Utilizado';
+                        }
+                        if ($data['is_not_used'] ?? false) {
+                            return 'Cupão: Não Utilizado';
+                        }
+                        return null;
+                    })
+                    ->form([
+                        Forms\Components\Toggle::make('is_used')
+                            ->label('Usou um cupão'),
+                        Forms\Components\Toggle::make('is_not_used')
+                            ->label('Não usou cupão'),
+                    ]),
+
+                // --- FILTRO DE DATA EXISTENTE ---
                 Tables\Filters\Filter::make('created_at')
                     ->form([
                         Forms\Components\DatePicker::make('created_from')
@@ -147,20 +199,20 @@ class OrderResource extends Resource
                     }),
             ])
             ->actions([
-                // ✅ CORRIGIDO: user -> user na Ação do WhatsApp
                 Tables\Actions\Action::make('contact_whatsapp')
                     ->label('WhatsApp')
                     ->icon('heroicon-o-chat-bubble-left')
                     ->color('success')
-                    ->url(fn(Cart $record): ?string => 
-                        $record->user?->phone // Usa o user, não user
-                            ? "https://wa.me/{$record->user->phone}?text=" . urlencode("Olá! Sou da E-Zandu, sobre o seu pedido #{$record->id}.") 
+                    ->url(
+                        fn(Cart $record): ?string =>
+                        $record->user?->phone
+                            ? "https://wa.me/{$record->user->phone}?text=" . urlencode("Olá! Sou da E-Zandu, sobre o seu pedido #{$record->id}.")
                             : null
                     )
                     ->openUrlInNewTab()
                     ->tooltip('Abrir conversa no WhatsApp Web')
                     ->iconButton()
-                    ->visible(fn(Cart $record): bool => !empty($record->user?->phone)), // Usa o user, não user
+                    ->visible(fn(Cart $record): bool => !empty($record->user?->phone)),
 
                 Tables\Actions\ViewAction::make()
                     ->iconButton(),
@@ -175,7 +227,6 @@ class OrderResource extends Resource
 
     public static function infolist(Infolist $infolist): Infolist
     {
-        // Esta função é ignorada, mas vamos mantê-la limpa.
         return $infolist->schema([]);
     }
 
@@ -193,10 +244,10 @@ class OrderResource extends Resource
             'view' => Pages\ViewOrder::route('/{record}'),
         ];
     }
-    
+
     public static function getEloquentQuery(): Builder
     {
-        // ✅ ATUALIZADO: Carrega as novas relações 'shippingRate' e 'paymentMethod'
+        // ✅ ATUALIZADO: Carrega as relações para os filtros
         return parent::getEloquentQuery()->with(['items.product', 'user', 'coupon', 'shippingRate', 'paymentMethod']);
     }
 }

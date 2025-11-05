@@ -75,7 +75,7 @@ class AdminPanelProvider extends PanelProvider
                 Authenticate::class,
             ])->plugins([
                 \CharrafiMed\GlobalSearchModal\GlobalSearchModalPlugin::make(),
-                FilamentLogViewer::make()->navigationGroup('Sistema & Config')->navigationLabel('Logs do Sistema'),
+                FilamentLogViewer::make()->navigationGroup('Configurações')->navigationLabel('Logs do Sistema'),
                 \MixCode\FilamentMulti2fa\FilamentMulti2faPlugin::make(),
                 // ->forceSetup2fa(),
             ]);

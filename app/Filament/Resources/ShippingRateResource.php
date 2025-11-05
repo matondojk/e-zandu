@@ -16,10 +16,12 @@ class ShippingRateResource extends Resource
 
     // Configuração da Navegação
     protected static ?string $navigationIcon = 'heroicon-o-truck';
+    protected static ?string $navigationLabel = 'Taxas de Frete';
     protected static ?string $modelLabel = 'Taxa de Frete';
     protected static ?string $pluralModelLabel = 'Taxas de Frete';
     protected static ?string $navigationGroup = 'Loja & Vendas';
     protected static ?int $navigationSort = 7; // Depois de Clientes
+    protected static ?string $slug = 'taxas-de-frete'; // URL em português
 
     public static function form(Form $form): Form
     {
@@ -30,12 +32,12 @@ class ShippingRateResource extends Resource
                     ->required()
                     ->maxLength(255)
                     ->unique(ignoreRecord: true),
-                
+
                 Forms\Components\TextInput::make('rate')
                     ->label('Valor do Frete (Kz)')
                     ->numeric()
                     ->required(),
-                
+
                 Forms\Components\Toggle::make('is_active')
                     ->label('Ativo')
                     ->default(true),
@@ -50,12 +52,12 @@ class ShippingRateResource extends Resource
                     ->label('Província')
                     ->searchable()
                     ->sortable(),
-                
+
                 Tables\Columns\TextColumn::make('rate')
                     ->label('Taxa de Frete')
                     ->alignEnd()
                     ->sortable(),
-                
+
                 Tables\Columns\IconColumn::make('is_active')
                     ->label('Ativo')
                     ->boolean(),
@@ -73,7 +75,7 @@ class ShippingRateResource extends Resource
                 ]),
             ]);
     }
-    
+
     public static function getPages(): array
     {
         return [
@@ -81,5 +83,5 @@ class ShippingRateResource extends Resource
             'create' => Pages\CreateShippingRate::route('/create'),
             'edit' => Pages\EditShippingRate::route('/{record}/edit'),
         ];
-    }    
+    }
 }

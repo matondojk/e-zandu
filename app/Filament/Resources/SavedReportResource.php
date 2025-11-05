@@ -19,10 +19,9 @@ class SavedReportResource extends Resource
     protected static ?string $navigationLabel = 'Relatórios Guardados';
     protected static ?string $modelLabel = 'Relatório Guardado';
     protected static ?string $pluralModelLabel = 'Relatórios Guardados';
-    
-    // Colocar no grupo de IA
-    protected static ?string $navigationGroup = 'Recursos de IA'; 
+    protected static ?string $navigationGroup = 'Recursos de IA';
     protected static ?int $navigationSort = 4;
+    protected static ?string $slug = 'relatorios-guardados'; // URL em português
 
     public static function form(Form $form): Form
     {
@@ -38,7 +37,7 @@ class SavedReportResource extends Resource
                     ->required()
                     ->rows(4)
                     ->columnSpanFull(),
-                
+
                 Forms\Components\Section::make('Agendamento (Opcional)')
                     ->collapsible()
                     ->schema([
@@ -53,16 +52,16 @@ class SavedReportResource extends Resource
                                 'weekly' => 'Semanal (à Segunda-feira)',
                                 'monthly' => 'Mensal (dia 1)',
                             ])
-                            ->required(fn (Forms\Get $get) => $get('is_scheduled'))
-                            ->visible(fn (Forms\Get $get) => $get('is_scheduled')),
+                            ->required(fn(Forms\Get $get) => $get('is_scheduled'))
+                            ->visible(fn(Forms\Get $get) => $get('is_scheduled')),
                         Forms\Components\TextInput::make('recipient_email')
                             ->label('E-mail do Destinatário')
                             ->email()
-                            ->required(fn (Forms\Get $get) => $get('is_scheduled'))
-                            ->visible(fn (Forms\Get $get) => $get('is_scheduled'))
+                            ->required(fn(Forms\Get $get) => $get('is_scheduled'))
+                            ->visible(fn(Forms\Get $get) => $get('is_scheduled'))
                             ->helperText('O relatório em PDF será enviado para este e-mail.'),
                     ])->columnSpanFull(),
-                
+
                 // Campo oculto para associar ao utilizador logado
                 Forms\Components\Hidden::make('user_id')
                     ->default(Auth::id()),

@@ -21,6 +21,7 @@ class ChatAnalysis extends Page implements HasForms
     protected static ?string $navigationLabel = 'Chat de Análise';
     protected static ?string $title = 'Chat de Análise (IA Conversacional)';
     protected static ?int $navigationSort = 2; // Coloca abaixo do Assistente
+    protected static ?string $slug = 'chat-de-analise'; // URL em português
 
     // --- Estado do Chat ---
     public string $currentMessage = ''; // O que o utilizador está a digitar
@@ -66,7 +67,7 @@ class ChatAnalysis extends Page implements HasForms
     public function sendMessage(): void
     {
         $this->validate(); // Valida o 'currentMessage'
-        
+
         $this->isLoading = true;
         $userQuestion = $this->currentMessage;
 
@@ -75,17 +76,16 @@ class ChatAnalysis extends Page implements HasForms
             'role' => 'user',
             'analysis' => $userQuestion,
         ];
-        
+
         $this->currentMessage = ''; // 2. Limpa a caixa de texto imediatamente
 
         // 3. Envia para o "cérebro" e obtém a resposta completa
         try {
             $response = $this->ai->runChatQuery($userQuestion);
             $response['role'] = 'ai';
-            
+
             // Adiciona a resposta da IA ao histórico
             $this->chatHistory[] = $response;
-
         } catch (Exception $e) {
             $this->chatHistory[] = [
                 'role' => 'ai',

@@ -19,11 +19,13 @@ class ProductReviewResource extends Resource
 
     // --- Configuração da Navegação ---
     protected static ?string $navigationIcon = 'heroicon-o-chat-bubble-left-right';
-    protected static ?string $navigationLabel = 'Reviews & Moderação';
+    protected static ?string $navigationLabel = 'Avaliações & Moderação';
     protected static ?string $navigationGroup = 'Loja & Vendas';
-    protected static ?string $modelLabel = 'Review';
-    protected static ?string $pluralModelLabel = 'Reviews';
+    protected static ?string $modelLabel = 'Avaliação';
+    protected static ?string $pluralModelLabel = 'Avaliações';
     protected static ?int $navigationSort = 4;
+    protected static ?string $slug = 'avaliacoes'; // URL em português
+
 
     /**
      * ✅ Contador de Reviews Pendentes (Badge)
@@ -50,23 +52,23 @@ class ProductReviewResource extends Resource
                             ->relationship('product', 'name')
                             ->label('Produto')
                             ->searchable()
-                            ->disabledOn('edit') 
+                            ->disabledOn('edit')
                             ->required(),
-                        
+
                         Forms\Components\Select::make('user_id')
                             ->relationship('user', 'name')
                             ->label('Utilizador')
                             ->searchable()
-                            ->disabledOn('edit') 
+                            ->disabledOn('edit')
                             ->required(),
-                            
+
                         // Rating
                         Forms\Components\Select::make('rating')
                             ->label('Rating (1-5)')
                             ->options([1 => 1, 2 => 2, 3 => 3, 4 => 4, 5 => 5])
                             ->required()
                             ->disabledOn('edit'),
-                        
+
                         // Status (Para Moderação)
                         Forms\Components\Select::make('status')
                             ->label('Status da Moderação')
@@ -98,7 +100,7 @@ class ProductReviewResource extends Resource
                     ->label('Produto')
                     ->searchable()
                     ->sortable(),
-                    // Removido o url() para evitar dependência do ProductResource
+                // Removido o url() para evitar dependência do ProductResource
 
                 Tables\Columns\TextColumn::make('user.name')
                     ->label('Utilizador')
@@ -109,18 +111,18 @@ class ProductReviewResource extends Resource
                 Tables\Columns\IconColumn::make('rating')
                     ->label('Rating')
                     ->size(Tables\Columns\IconColumn\IconColumnSize::Medium)
-                    ->color('warning') 
+                    ->color('warning')
                     ->icons(function (string $state): array {
                         // Devolve um array de N ícones para que o Filament os exiba em sequência
                         $count = (int) $state;
                         // O array_fill é a forma mais limpa de criar N repetições de um valor
                         return array_fill(0, $count, 'heroicon-s-star');
                     }),
-                
+
                 Tables\Columns\TextColumn::make('status')
                     ->label('Status')
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
+                    ->color(fn(string $state): string => match ($state) {
                         'approved' => 'success',
                         'rejected' => 'danger',
                         'pending' => 'warning',
@@ -128,11 +130,11 @@ class ProductReviewResource extends Resource
                     })
                     ->searchable()
                     ->sortable(),
-                
+
                 Tables\Columns\TextColumn::make('comment')
                     ->label('Comentário')
                     ->limit(50)
-                    ->tooltip(fn ($record) => $record->comment)
+                    ->tooltip(fn($record) => $record->comment)
                     ->wrap(),
 
                 Tables\Columns\TextColumn::make('created_at')
@@ -149,7 +151,7 @@ class ProductReviewResource extends Resource
                         'rejected' => 'Rejeitadas',
                     ])
                     ->label('Filtrar por Status')
-                    ->default('pending') 
+                    ->default('pending')
             ])
             ->actions([
                 Tables\Actions\ActionGroup::make([
@@ -157,18 +159,18 @@ class ProductReviewResource extends Resource
                         ->label('Aprovar Review')
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
-                        ->visible(fn (ProductReview $record): bool => $record->status !== 'approved')
+                        ->visible(fn(ProductReview $record): bool => $record->status !== 'approved')
                         ->requiresConfirmation()
-                        ->action(fn (ProductReview $record) => $record->update(['status' => 'approved'])),
+                        ->action(fn(ProductReview $record) => $record->update(['status' => 'approved'])),
 
                     Tables\Actions\Action::make('reject')
                         ->label('Rejeitar Review')
                         ->icon('heroicon-o-x-circle')
                         ->color('danger')
-                        ->visible(fn (ProductReview $record): bool => $record->status !== 'rejected')
+                        ->visible(fn(ProductReview $record): bool => $record->status !== 'rejected')
                         ->requiresConfirmation()
-                        ->action(fn (ProductReview $record) => $record->update(['status' => 'rejected'])),
-                    
+                        ->action(fn(ProductReview $record) => $record->update(['status' => 'rejected'])),
+
                     Tables\Actions\EditAction::make(),
                     Tables\Actions\DeleteAction::make(),
                 ])
@@ -179,28 +181,28 @@ class ProductReviewResource extends Resource
                         ->label('Aprovar Selecionadas')
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
-                        ->action(fn (\Illuminate\Support\Collection $records) => $records->each->update(['status' => 'approved']))
+                        ->action(fn(\Illuminate\Support\Collection $records) => $records->each->update(['status' => 'approved']))
                         ->deselectRecordsAfterCompletion(),
 
                     Tables\Actions\BulkAction::make('reject_selected')
                         ->label('Rejeitar Selecionadas')
                         ->icon('heroicon-o-x-circle')
                         ->color('danger')
-                        ->action(fn (\Illuminate\Support\Collection $records) => $records->each->update(['status' => 'rejected']))
+                        ->action(fn(\Illuminate\Support\Collection $records) => $records->each->update(['status' => 'rejected']))
                         ->deselectRecordsAfterCompletion(),
-                        
+
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ]);
     }
-    
+
     public static function getRelations(): array
     {
         return [
             //
         ];
     }
-    
+
     public static function getPages(): array
     {
         return [

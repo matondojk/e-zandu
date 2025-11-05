@@ -30,8 +30,9 @@ class CategoryResource extends Resource
     protected static ?string $navigationLabel = 'Categorias';
     protected static ?string $modelLabel = 'Categoria';
     protected static ?string $pluralModelLabel = 'Categorias';
-    protected static ?int $navigationSort = 3; 
+    protected static ?int $navigationSort = 3;
     protected static ?string $navigationGroup = 'Catálogo & Inventário';
+    protected static ?string $slug = 'categorias'; // URL em português
 
     public static function form(Form $form): Form
     {
@@ -50,7 +51,7 @@ class CategoryResource extends Resource
                                         ->required()
                                         ->maxLength(255)
                                         ->live(onBlur: true)
-                                        ->afterStateUpdated(fn (string $operation, $state, Forms\Set $set) => $operation === 'create' ? $set('slug', Str::slug($state)) : null)
+                                        ->afterStateUpdated(fn(string $operation, $state, Forms\Set $set) => $operation === 'create' ? $set('slug', Str::slug($state)) : null)
                                         ->columnSpan(1),
 
                                     Forms\Components\TextInput::make('slug')
@@ -60,7 +61,7 @@ class CategoryResource extends Resource
                                         ->required()
                                         ->maxLength(255)
                                         ->columnSpan(1),
-                                    
+
                                     Forms\Components\TextInput::make('icon')
                                         ->label('Ícone (Heroicons)')
                                         ->helperText('Ex: heroicon-o-computer-desktop. Ícone para uso futuro.')
@@ -93,7 +94,7 @@ class CategoryResource extends Resource
                     ->label('Nome')
                     ->searchable()
                     ->sortable(),
-                    
+
                 Tables\Columns\TextColumn::make('slug')
                     ->label('Slug')
                     ->copyable()
@@ -104,7 +105,7 @@ class CategoryResource extends Resource
                     ->counts('products')
                     ->alignCenter()
                     ->sortable(),
-                    
+
                 Tables\Columns\TextColumn::make('updated_at')
                     ->label('Última Atualização')
                     ->dateTime('d/m/Y H:i')
@@ -125,22 +126,22 @@ class CategoryResource extends Resource
                         return $query
                             ->when(
                                 $data['created_from'],
-                                fn (Builder $query, $date): Builder => $query->whereDate('created_at', '>=', $date),
+                                fn(Builder $query, $date): Builder => $query->whereDate('created_at', '>=', $date),
                             )
                             ->when(
                                 $data['created_until'],
-                                fn (Builder $query, $date): Builder => $query->whereDate('created_at', '<=', $date),
+                                fn(Builder $query, $date): Builder => $query->whereDate('created_at', '<=', $date),
                             );
                     }),
-                
+
                 TernaryFilter::make('products')
                     ->label('Produtos')
                     ->boolean()
                     ->trueLabel('Apenas com produtos')
                     ->falseLabel('Apenas sem produtos')
                     ->queries(
-                        true: fn (Builder $query) => $query->has('products'),
-                        false: fn (Builder $query) => $query->doesntHave('products'),
+                        true: fn(Builder $query) => $query->has('products'),
+                        false: fn(Builder $query) => $query->doesntHave('products'),
                     )
                     ->native(false),
             ])
@@ -173,7 +174,7 @@ class CategoryResource extends Resource
             'edit' => Pages\EditCategory::route('/{record}/edit'),
         ];
     }
-    
+
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()->withCount('products');

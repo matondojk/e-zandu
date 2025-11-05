@@ -15,11 +15,11 @@ class UserSeeder extends Seeder
     {
         // Cria ou atualiza o utilizador admin
         User::updateOrCreate(
-            ['email' => 'matondojoaokitemoco@gmail.com'],
+            ['email' => 'demo@e-zandu.com'],
             [
-                'name' => 'Matondo João',
+                'name' => 'Demo',
                 'role' => 'admin',
-                'password' => Hash::make('Matondo#85'),
+                'password' => Hash::make('demo#85'),
                 'email_verified_at' => now(),
             ]
         );
