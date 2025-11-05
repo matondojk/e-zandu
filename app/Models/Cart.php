@@ -10,7 +10,7 @@ class Cart extends Model
 {
     use HasFactory, HasUuids;
 
-    protected $fillable = ['user_id', 'status', 'total_price', 'delivery_status', 'order_notes'];
+    protected $fillable = ['user_id', 'coupon_id', 'status', 'total_price', 'delivery_status', 'order_notes'];
 
     public function items()
     {
@@ -19,6 +19,21 @@ class Cart extends Model
 
     public function user()
     {
-        return $this->belongsTo(User::class ,'user_id');
+        return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function coupon()
+    {
+        return $this->belongsTo(Coupon::class);
+    }
+
+    public function shippingRate()
+    {
+        return $this->belongsTo(ShippingRate::class);
+    }
+
+    public function paymentMethod()
+    {
+        return $this->belongsTo(PaymentMethod::class);
     }
 }

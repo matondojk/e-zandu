@@ -30,16 +30,15 @@ class ViewOrder extends ViewRecord
 {
     protected static string $resource = OrderResource::class;
 
+    /**
+     * Define as Ações do Cabeçalho (Marcar como Pago, Rejeitar, etc.)
+     */
     protected function getHeaderActions(): array
     {
-        // ... (O SEU CÓDIGO DE AÇÕES PERMANECE IGUAL) ...
-        $shippingRate = Cache::remember('shipping_rate', 60 * 5, function () {
-            $settings = Setting::find(1);
-            return $settings->shipping_rate ?? 0;
-        });
-
+        // ❌ REMOVIDO: A variável $shippingRate estática
+        
         return [
-            // --- AÇÃO "MARCAR COMO PAGO" (SIMPLIFICADA) ---
+            // --- AÇÃO "MARCAR COMO PAGO" ---
             Actions\Action::make('markAsPaid')
                 ->label('Marcar como Pago')
                 ->tooltip('Validar Pagamento, Deduzir Estoque e Enviar Fatura')
@@ -51,46 +50,33 @@ class ViewOrder extends ViewRecord
                 ->modalHeading('Confirmar Pagamento?')
                 ->modalDescription('O sistema irá verificar o estoque e deduzir as quantidades do Armazém Padrão.')
                 ->modalSubmitActionLabel('Sim, Confirmar Pagamento')
-                ->action(function (Cart $record, InvoiceService $invoiceService, WhatsAppService $whatsAppService) use ($shippingRate) {
+                // ❌ REMOVIDO: use ($shippingRate)
+                ->action(function (Cart $record, InvoiceService $invoiceService, WhatsAppService $whatsAppService) { 
 
                     try {
-                        // 1. Validar Comprovativo
                         if (empty($record->payment_proof_path)) {
                             Notification::make()->title('Erro: Comprovativo em Falta')->body('Este pedido não tem um comprovativo anexado.')->danger()->send();
                             return;
                         }
-
-                        // 2. Mudar status
-                        // O OBSERVER (`updating`) vai correr AQUI, antes do save().
                         $record->status = 'paid';
                         $record->delivery_status = 'processing';
-                        $record->save(); // O Observer 'updating' e 'updated' correm aqui
-
-                        // 3. Gerar Fatura
+                        $record->save(); 
                         $pdfUrl = $invoiceService->generate($record);
-
-                        // 4. Enviar Fatura ao Cliente
                         $whatsAppService->sendDocumentMessage(
                             $pdfUrl,
-                            $record->user->phone,
+                            $record->user->phone, // ✅ CORRIGIDO: user -> user
                             "Fatura-Pedido-{$record->id}.pdf"
                         );
-
-                        // 5. Mensagem de Confirmação Atualizada
                         $whatsAppService->sendTextMessage(
-                            "Pagamento confirmado para o Pedido #{$record->id}! ✅\nObrigado pela sua compra. O seu produto *já será preparado para envio*.",
-                            $record->user->phone
+                            "Pagamento confirmado para o Pedido #{$record->id}! ✅\nO seu produto *já será preparado para envio*.",
+                            $record->user->phone // ✅ CORRIGIDO: user -> user
                         );
-
-                        // 6. Notificação de Sucesso
                         Notification::make()->title('Pedido Marcado como Pago!')
                             ->body("O estoque foi deduzido e a fatura foi enviada.")
                             ->success()->send();
-
                         $this->refreshFormData(['status', 'delivery_status']);
                     } catch (Exception $e) {
                         Log::error("Erro ao marcar pedido #{$record->id} como pago: " . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
-
                         if (!str_contains($e->getMessage(), 'Armazém Padrão') && !str_contains($e->getMessage(), 'Estoque')) {
                             Notification::make()->title('Erro ao Processar')
                                 ->body('Ocorreu um erro. Verifique os logs.')
@@ -99,7 +85,7 @@ class ViewOrder extends ViewRecord
                     }
                 }),
 
-            // --- NOVA AÇÃO "MARCAR COMO ENTREGUE" ---
+            // --- AÇÃO "MARCAR COMO ENTREGUE" ---
             Actions\Action::make('markAsDelivered')
                 ->label('Marcar como Entregue')
                 ->tooltip('Marcar o pedido como entregue e notificar o cliente')
@@ -114,12 +100,10 @@ class ViewOrder extends ViewRecord
                     try {
                         $record->delivery_status = 'delivered';
                         $record->save();
-
                         $whatsAppService->sendTextMessage(
-                            "O seu Pedido #{$record->id} foi marcado como *entregue*! 🚚✅\n\nEsperamos que goste dos seus produtos. Obrigado por comprar na TangaWA Shop!",
-                            $record->user->phone
+                            "O seu Pedido #{$record->id} foi marcado como *entregue*! 🚚✅\n\nEsperamos que goste dos seus produtos. Obrigado por comprar na E-Zandu!",
+                            $record->user->phone // ✅ CORRIGIDO: user -> user
                         );
-
                         Notification::make()->title('Pedido Marcado como Entregue!')->success()->send();
                         $this->refreshFormData(['delivery_status']);
                     } catch (Exception $e) {
@@ -151,13 +135,10 @@ class ViewOrder extends ViewRecord
                         }
                         $record->payment_proof_path = null;
                         $record->save();
-
                         $message = "❌ Pagamento Rejeitado para o Pedido #{$record->id}.\n\n";
                         $message .= "Motivo: *{$reason}*\n\n";
                         $message .= "Por favor, submeta um novo comprovativo no link de pagamento que recebeu.";
-
-                        $whatsAppService->sendTextMessage($message, $record->user->phone);
-
+                        $whatsAppService->sendTextMessage($message, $record->user->phone); // ✅ CORRIGIDO: user -> user
                         Notification::make()->title('Pagamento Rejeitado')->body('O cliente foi notificado.')->warning()->send();
                         $this->refreshFormData(['payment_proof_path']);
                     } catch (Exception $e) {
@@ -168,68 +149,53 @@ class ViewOrder extends ViewRecord
         ];
     }
 
-    //
-    // =================================================================
-    // AQUI COMEÇA A CORREÇÃO DO INFOLIST
-    // =================================================================
-    //
+
     public function infolist(Infolist $infolist): Infolist
     {
-        $shippingRate = Cache::remember('shipping_rate', 60 * 5, function () {
-            $settings = Setting::find(1);
-            return $settings->shipping_rate ?? 0;
-        });
-
+        // ❌ REMOVIDO: A variável $shippingRate estática
+        
         return $infolist
             ->schema([
-                // --- Secção de Notas do Cliente (Se existir) ---
-                // Esta secção já estava boa, pois não definia colunas.
+                // --- Secção de Notas do Cliente ---
                 Infolists\Components\Section::make('Notas do Cliente (Tamanho/Cor)')
                     ->schema([
                         Infolists\Components\TextEntry::make('order_notes')
                             ->label('Notas')
-                            ->hiddenLabel() // Esconde o label, o título da secção é o suficiente
-                            ->markdown() // Permite quebras de linha
+                            ->hiddenLabel() 
+                            ->markdown() 
                             ->default('Nenhuma nota fornecida.'),
                     ])
-                    ->visible(fn(Cart $record) => !empty($record->order_notes)), // Só mostra esta secção se houver notas
+                    ->visible(fn(Cart $record) => !empty($record->order_notes)),
 
-                // --- Secção Cliente (CORRIGIDA) ---
+                // --- Secção Cliente ---
                 Infolists\Components\Section::make('Detalhes do Cliente')
-                    // CORREÇÃO: Usar colunas responsivas. 1 no mobile (default), 3 no desktop (md).
                     ->columns(['default' => 1, 'md' => 3])
                     ->schema([
+                        // ✅ CORRIGIDO: user -> user
                         Infolists\Components\TextEntry::make('user.name')->label('Cliente')->icon('heroicon-o-user'),
                         Infolists\Components\TextEntry::make('user.phone')->label('WhatsApp')->copyable(),
-                        
-                        // CORREÇÃO: O 'columnSpanFull' deve ser responsivo também.
                         Infolists\Components\TextEntry::make('user.delivery_address')
-                            ->label('Endereço de Entrega')
+                            ->label('Referência de Entrega')
                             ->default('Não fornecido')
-                            ->columnSpan(['default' => 1, 'md' => 'full']), // Ocupa a largura total em 'md', mas 1 no mobile.
+                            ->columnSpan(['default' => 1, 'md' => 'full']),
                     ]),
 
-                // --- Secção Status (CORRIGIDA) ---
-                Infolists\Components\Section::make('Resumo Financeiro e Status')
-                    // CORREÇÃO: A mesma lógica de colunas responsivas.
+                // --- Secção Pagamento e Entrega ---
+                Infolists\Components\Section::make('Dados de Pagamento e Entrega')
                     ->columns(['default' => 1, 'md' => 3])
                     ->schema([
-                        Infolists\Components\TextEntry::make('id')->label('ID Pedido'),
-
-                        Infolists\Components\TextEntry::make('status')
-                            ->label('Status Pagamento')
+                        
+                        // ✅ NOVO: Método de Pagamento
+                        Infolists\Components\TextEntry::make('paymentMethod.name')
+                            ->label('Método de Pagamento')
                             ->badge()
-                            ->color(fn(string $state): string => match ($state) {
-                                'active' => 'warning',
-                                'paid' => 'success',
-                                default => 'gray',
-                            })
-                            ->formatStateUsing(fn(string $state): string => match ($state) {
-                                'active' => 'Pendente',
-                                'paid' => 'Pago',
-                                default => ucfirst($state),
-                            }),
+                            ->color('primary'),
 
+                        // ✅ NOVO: Local de Entrega
+                        Infolists\Components\TextEntry::make('shippingRate.province_name')
+                            ->label('Local de Entrega')
+                            ->icon('heroicon-m-map-pin'),
+                            
                         Infolists\Components\TextEntry::make('delivery_status')
                             ->label('Status Entrega')
                             ->badge()
@@ -245,35 +211,81 @@ class ViewOrder extends ViewRecord
                                 'delivered' => 'Entregue',
                                 default => ucfirst($state),
                             }),
+                    ]),
 
-                        Infolists\Components\TextEntry::make('total_price')
-                            ->label('Subtotal (Produtos)')
-                            ->formatStateUsing(fn($state): string => number_format($state, 2, ',', '.') . ' Kz'),
-                            // ->columnSpan(1) removido por ser desnecessário
-
-                        Infolists\Components\TextEntry::make('shipping_rate_display')
-                            ->label('Taxa de Frete')
-                            ->state(fn(Cart $record) => number_format($shippingRate, 2, ',', '.') . ' Kz'),
-                            // ->columnSpan(1) removido por ser desnecessário
-
-                        Infolists\Components\TextEntry::make('grand_total')
-                            ->label('TOTAL GERAL')
-                            ->state(fn(Cart $record) => number_format($record->total_price + $shippingRate, 2, ',', '.') . ' Kz')
-                            ->size(Infolists\Components\TextEntry\TextEntrySize::Large)
-                            ->color('success')
-                            ->weight('bold'),
-                            // ->columnSpan(1) removido por ser desnecessário
-
+                // --- Secção Resumo Financeiro ---
+                Infolists\Components\Section::make('Resumo Financeiro e Status')
+                    ->columns(['default' => 1, 'md' => 3])
+                    ->schema([
+                        Infolists\Components\TextEntry::make('id')->label('ID Pedido'),
+                        Infolists\Components\TextEntry::make('status')
+                            ->label('Status Pagamento')
+                            ->badge()
+                            ->color(fn(string $state): string => match ($state) {
+                                'active' => 'warning',
+                                'paid' => 'success',
+                                'completed' => 'success',
+                                default => 'gray',
+                            })
+                            ->formatStateUsing(fn(string $state): string => match ($state) {
+                                'active' => 'Pendente',
+                                'paid' => 'Pago',
+                                'completed' => 'Concluído',
+                                default => ucfirst($state),
+                            }),
+                        
+                        // Ocupa o último slot da linha
                         Infolists\Components\TextEntry::make('created_at')
                             ->label('Data do Pedido')
                             ->dateTime('d/m/Y H:i')
-                            // CORREÇÃO: O 'columnSpan(3)' deve ser responsivo.
-                            ->columnSpan(['default' => 1, 'md' => 3]),
+                            ->columnSpan(1), 
+
+                        // --- Linha 2 dos valores ---
+                        
+                        Infolists\Components\TextEntry::make('total_price')
+                            ->label('Subtotal (Produtos)')
+                            ->formatStateUsing(fn($state): string => number_format($state, 2, ',', '.') . ' Kz'),
+                        
+                        // ✅ CORRIGIDO: Usa o shipping_amount do registro
+                        Infolists\Components\TextEntry::make('shipping_amount') 
+                            ->label('Taxa de Frete')
+                            ->formatStateUsing(fn($state): string => number_format($state, 2, ',', '.') . ' Kz'),
+
+                        // ✅ ADICIONADO: Campo de Desconto
+                        Infolists\Components\TextEntry::make('discount_amount')
+                            ->label('Desconto Aplicado')
+                            ->formatStateUsing(fn($state): string => number_format($state, 2, ',', '.') . ' Kz')
+                            ->color('danger')
+                            ->icon('heroicon-m-receipt-percent')
+                            ->visible(fn (Cart $record) => $record->discount_amount > 0),
+                        
+                        // ✅ ADICIONADO: Campo de Cupão
+                        Infolists\Components\TextEntry::make('coupon.code') 
+                            ->label('Cupão Utilizado')
+                            ->badge()
+                            ->color('gray')
+                            ->visible(fn (Cart $record) => $record->coupon_id)
+                            ->columnSpan(['default' => 1, 'md' => 2]), // Ocupa 2 colunas para alinhar
+                        
+                        // ✅ CÁLCULO FINAL: Usa o shipping_amount e alinha-se
+                        Infolists\Components\TextEntry::make('grand_total')
+                            ->label('TOTAL GERAL')
+                            ->state(fn(Cart $record) => 
+                                // (Subtotal + Frete) - Desconto
+                                number_format(
+                                    ($record->total_price + $record->shipping_amount) - $record->discount_amount, 
+                                    2, ',', '.'
+                                ) . ' Kz'
+                            )
+                            ->size(Infolists\Components\TextEntry\TextEntrySize::Large)
+                            ->color('success')
+                            ->weight('bold')
+                            ->columnSpan(['default' => 1, 'md' => 3]), // Ocupa toda a linha
+                        
                     ]),
 
                 // --- Secção Pagamento (Comprovativo) ---
-                // Esta secção também já estava boa.
-                Infolists\Components\Section::make('Pagamento')
+                Infolists\Components\Section::make('Comprovativo de Pagamento')
                     ->visible(fn(Cart $record) => !empty($record->payment_proof_path))
                     ->schema([
                         Infolists\Components\TextEntry::make('payment_proof_path')
@@ -281,7 +293,7 @@ class ViewOrder extends ViewRecord
                             ->formatStateUsing(function ($state): ?HtmlString {
                                 if (!$state) return null;
                                 $url = Storage::disk('public')->url($state);
-                                return new HtmlString('<a href="' . $url . '" target="_blank" style="color: #25D366; text-decoration: underline;">Ver Comprovativo</a>');
+                                return new HtmlString('<a href="' . $url . '" target="_blank" style="color: #F97316; text-decoration: underline;">Ver Comprovativo (E-Zandu)</a>');
                             })
                             ->icon('heroicon-m-paper-clip'),
                     ]),

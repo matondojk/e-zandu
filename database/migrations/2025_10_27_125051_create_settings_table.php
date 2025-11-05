@@ -16,10 +16,6 @@ return new class extends Migration
             $table->string('admin_phone')->nullable();
             $table->string('support_email')->nullable();
 
-            // Configurações de Pagamento
-            $table->string('iban')->nullable();
-            $table->string('multicaixa_express')->nullable();
-
             // Configurações da IA (FAQs)
             $table->text('faq_who_answer')->nullable();
             $table->text('faq_locations_answer')->nullable();

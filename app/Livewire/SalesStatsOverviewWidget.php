@@ -7,11 +7,12 @@ use App\Models\Product;
 use App\Models\Purchase; 
 use App\Models\StockMovement; 
 use App\Models\Setting;
+use App\Models\Expense; // ✅ NOVO: Importar Model Expense
 use Filament\Widgets\StatsOverviewWidget\Stat;
 use Illuminate\Support\Carbon;
 use Livewire\Component;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\DB; // <-- Verifique se o DB está importado
+use Illuminate\Support\Facades\DB; 
 use Illuminate\Database\Query\Builder as QueryBuilder;
 
 class SalesStatsOverviewWidget extends Component
@@ -46,25 +47,23 @@ class SalesStatsOverviewWidget extends Component
         $totalRevenue = $salesQuery->sum('total_price');
         $totalOrders = $salesQuery->count();
 
-        // 2. Lógica de Compras (Custos)
+        // 2. Lógica de Compras (Custos de Mercadoria)
         $purchasesQuery = Purchase::whereBetween('document_date', [$start, $end]);
-        
-        // ✅ CORREÇÃO 1: Usar o custo líquido (Subtotal - Descontos)
-        $totalPurchases = $purchasesQuery->sum(DB::raw('total_amount - discount_total'));
+            // Assumindo que o status 'completed' ou 'delivered'
+            // ->whereIn('status', ['completed', 'delivered']); 
+        $totalPurchases = $purchasesQuery->sum('total_amount');
 
-        // 3. Lucro Bruto e Métricas
-        // ✅ CORREÇÃO 2: Lucro Bruto = Vendas - Compras
-        $grossProfit = $totalRevenue - $totalPurchases; 
-        $avgTicket = $totalOrders > 0 ? $totalRevenue / $totalOrders : 0;
+        // 3. ✅ NOVO: Lógica de Despesas Operacionais
+        $totalExpenses = Expense::whereBetween('expense_date', [$start, $end])
+            ->sum('amount');
         
-        // 4. Estoque Baixo 
-        $minimumStock = Cache::remember('min_stock', 60 * 60, function () {
-            return Setting::first()?->minimum_stock ?? 10;
-        });
+        // 4. ✅ NOVO: Cálculo do Lucro Líquido
+        $grossProfit = $totalRevenue - $totalPurchases; // Lucro Bruto
+        $netProfit = $grossProfit - $totalExpenses; // Lucro Líquido
         
-        $lowStockQuery = Product::query()
-            ->select('id');
-        
+        // 5. Estoque Baixo (Lógica mantida)
+        $minimumStock = Cache::remember('min_stock', 60 * 60, fn() => Setting::first()?->minimum_stock ?? 10);
+        $lowStockQuery = Product::query()->select('id');
         $lowStock = $lowStockQuery->whereExists(function (QueryBuilder $query) use ($minimumStock) { 
                 $query->select(DB::raw('SUM(T2.quantity)'))
                     ->from('stock_movements as T2')
@@ -74,38 +73,38 @@ class SalesStatsOverviewWidget extends Component
             })
             ->count();
 
+        // --- ✅ CARDS FINANCEIROS REFINADOS ---
         return [
             // CARD 1: Receita Total (Vendas)
             Stat::make('Receita Total', number_format($totalRevenue, 0, ',', '.') . ' Kz')
-                ->description('Vendas completas no período')
+                ->description('Total de vendas concluídas no período')
                 ->descriptionIcon('heroicon-m-arrow-trending-up')
-                ->color('primary'), 
+                ->color('success'),
             
-            // CARD 2: Total de Compras (Custo)
-            Stat::make('Total de Compras', number_format($totalPurchases, 0, ',', '.') . ' Kz')
-                // ✅ Atualizada a descrição para refletir o custo líquido
-                ->description('Custo líquido de mercadorias (s/ frete e iva)')
-                ->descriptionIcon('heroicon-m-archive-box')
-                ->color('primary'), 
+            // CARD 2: Custos Totais (Mercadoria + Operacional)
+            Stat::make('Custos Totais', number_format($totalPurchases + $totalExpenses, 0, ',', '.') . ' Kz')
+                ->description("Compras (Kz $totalPurchases) + Despesas (Kz $totalExpenses)")
+                ->descriptionIcon('heroicon-m-arrow-trending-down')
+                ->color('warning'),
 
-            // CARD 3: Lucro Bruto (Diferença)
-            Stat::make('Lucro Bruto', number_format($grossProfit, 0, ',', '.') . ' Kz')
-                ->description('Vendas - Compras (Margem Bruta)')
-                ->descriptionIcon($grossProfit >= 0 ? 'heroicon-m-banknotes' : 'heroicon-m-arrow-trending-down')
-                ->color($grossProfit >= 0 ? 'success' : 'danger'), // Sucesso para lucro, Danger para prejuízo
+            // CARD 3: Lucro Líquido (O MAIS IMPORTANTE)
+            Stat::make('Lucro Líquido', number_format($netProfit, 0, ',', '.') . ' Kz')
+                ->description('Receita - (Compras + Despesas)')
+                ->descriptionIcon($netProfit >= 0 ? 'heroicon-m-banknotes' : 'heroicon-m-exclamation-triangle')
+                ->color($netProfit >= 0 ? 'primary' : 'danger'),
             
             // CARD 4: Métricas Operacionais
             Stat::make('Pedidos / Estoque Baixo', number_format($totalOrders, 0, ',', '.') . ' / ' . number_format($lowStock, 0, ',', '.'))
-                ->description('Total de pedidos / Produtos em alerta de estoque')
-                ->descriptionIcon('heroicon-m-exclamation-triangle')
-                ->color('warning'), 
+                ->description('Total de pedidos concluídos / Alertas de estoque')
+                ->descriptionIcon('heroicon-m-shopping-cart')
+                ->color('gray'),
         ];
     }
-
+    
     public function render()
     {
         return view('filament.widgets.stats-overview-widget', [
-            'stats' => $this->getStats(),
+            'stats' => $this->getStats(), 
         ]);
     }
 }

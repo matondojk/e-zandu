@@ -357,7 +357,8 @@ PROMPT;
                 'purchases',
                 'purchase_items',
                 'stock_movements',
-                'saved_reports'
+                'saved_reports',
+                'expenses'
             ];
             $schemaString = "";
             foreach ($allowedTables as $tableName) {

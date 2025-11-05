@@ -10,31 +10,36 @@ class Setting extends Model
 {
     use HasFactory, HasUuids;
 
-    /**
-     * Os atributos que podem ser preenchidos em massa.
-     */
     protected $fillable = [
-        'id',
+        // Configurações Gerais
         'store_name',
-        'minimum_stock',
-        'stock_alert_emails',
         'admin_phone',
         'support_email',
-        'iban',
-        'multicaixa_express',
+
+        // ✅ NOVOS CAMPOS DE PAGAMENTO
+        'enable_bank_transfer',
+        'bank_account_holder',
+        'bank_account_number',
+        'bank_iban',
+        'enable_express_payment',
+        'express_payment_phone',
+        'enable_cash_on_delivery',
+
+        // Configurações da IA (FAQs)
         'faq_who_answer',
         'faq_locations_answer',
         'faq_time_answer',
         'faq_payment_answer',
-        'company_description',
-        'product_types',
+
+        // Outros
         'nif',
         'logo_path',
         'icon_path',
-        'shipping_rate'
     ];
 
     protected $casts = [
-        'product_types' => 'array', // <-- NOVO: Trata o JSON como array
+        'enable_bank_transfer' => 'boolean',
+        'enable_express_payment' => 'boolean',
+        'enable_cash_on_delivery' => 'boolean',
     ];
 }

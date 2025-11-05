@@ -42,6 +42,7 @@ class DatabaseSeeder extends Seeder
             // 1. Configurações e Utilizadores de Sistema
             SettingSeeder::class,
             UserSeeder::class,
+            CouponSeeder::class,
 
             // 2. Base do ERP (Fornecedores e Armazéns)
             SupplierSeeder::class,
@@ -49,12 +50,16 @@ class DatabaseSeeder extends Seeder
             
             // 3. Catálogo (Categorias e Produtos)
             ProductSeeder::class, 
+            ShippingRateSeeder::class, 
 
             // 4. Clientes e Fluxo de Estoque
             CustomerSeeder::class,
+            PaymentMethodSeeder::class,
             PurchaseSeeder::class, 
             PurchaseItemSeeder::class, 
             StockMovementSeeder::class,
+            ExpenseSeeder::class,
+            SubscriptionSeeder::class,
             
             // 5. Vendas/Pedidos (Cria carrinhos ativos e finalizados)
             CartSeeder::class, 

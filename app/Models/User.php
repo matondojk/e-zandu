@@ -45,6 +45,7 @@ class User extends Authenticatable
         'two_factor_expires_at' => 'datetime',
         'two_factor_confirmed_at' => 'datetime',
         'email_verified_at' => 'datetime',
+        'tags' => 'array',
     ];
 
     public function canAccessPanel(\Filament\Panel $panel): bool
@@ -84,5 +85,10 @@ class User extends Authenticatable
     public function wishlist()
     {
         return $this->hasMany(Wishlist::class);
+    }
+
+    public function carts()
+    {
+        return $this->hasMany(Cart::class ,'user_id');
     }
 }
