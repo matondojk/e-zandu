@@ -121,7 +121,15 @@ class CouponResource extends Resource
                 //
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
+                // --- AÇÕES CONVERTIDAS EM BOTÕES DE ÍCONE ---
+                Tables\Actions\EditAction::make()
+                    ->iconButton() // Renderiza como um botão circular de ícone (Lápis)
+                    ->tooltip('Editar Taxa'), // Dica de ajuda (tooltip) ao passar o mouse
+                    
+                Tables\Actions\DeleteAction::make()
+                    ->iconButton() // Renderiza como um botão circular de ícone (Lixo)
+                    ->tooltip('Apagar Taxa'), // Dica de ajuda (tooltip) ao passar o mouse
+                // ---------------------------------------------
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

@@ -16,12 +16,11 @@ class SettingSeeder extends Seeder
                 'store_name' => 'E-Zandu Loja',
                 'admin_phone' => '9XXXXXXXX',
                 'support_email' => 'suporte@e-zandu.com',
-
-                
-                'faq_who_answer' => 'Somos a E-Zandu, a sua loja online de confiança.',
-                'faq_locations_answer' => 'Entregamos em todo o país.',
-                'faq_time_answer' => 'O nosso horário de atendimento é das 8h às 18h.',
-                'faq_payment_answer' => 'Aceitamos Transferência Bancária, Pagamento Express e Pagamento na Entrega.',
+                'faq_who_answer' => 'Eu sou um assistente virtual de IA da E-Zandu, desenvolvido por Matondo João.',
+                'faq_time_answer' => 'Para Luanda, a entrega leva em média 24 horas úteis após a confirmação do pagamento.',
+                'company_description' => 'Somos a E-Zandu, a sua loja online de confiança para produtos de alta qualidade em Angola.',
+                'company_description' => 'Somos a E-Zandu, a sua loja online de confiança para produtos de alta qualidade em Angola.',
+                // 'product_types' => ['Roupas', 'Calçados', 'Acessórios'], 
 
                 'nif' => '5000123456',
             ]

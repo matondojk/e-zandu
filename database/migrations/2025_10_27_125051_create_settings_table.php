@@ -18,9 +18,7 @@ return new class extends Migration
 
             // Configurações da IA (FAQs)
             $table->text('faq_who_answer')->nullable();
-            $table->text('faq_locations_answer')->nullable();
             $table->text('faq_time_answer')->nullable();
-            $table->text('faq_payment_answer')->nullable();
 
             $table->string('nif')->nullable();
             $table->string('logo_path')->nullable();

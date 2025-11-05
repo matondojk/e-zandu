@@ -112,15 +112,7 @@ class SettingResource extends Resource
                         Textarea::make('faq_who_answer')
                             ->label('Resposta: Quem é você?')
                             ->rows(3)->required(),
-                        Textarea::make('faq_locations_answer')
-                            ->label('Resposta: Locais de entrega?')
-                            ->rows(3)->required(),
-                        Textarea::make('faq_time_answer')
-                            ->label('Resposta: Tempo de entrega?')
-                            ->rows(3)->required(),
-                        Textarea::make('faq_payment_answer')
-                            ->label('Resposta: Métodos de pagamento?')
-                            ->rows(3)->required(),
+                        // Os campos 'Locais de entrega', 'Tempo de entrega' e 'Métodos de pagamento' foram removidos.
                     ]),
             ]);
     }

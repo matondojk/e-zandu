@@ -37,6 +37,12 @@ class ShippingRateResource extends Resource
                     ->label('Valor do Frete (Kz)')
                     ->numeric()
                     ->required(),
+                
+                Forms\Components\TextInput::make('estimated_delivery_time')
+                    ->label('Tempo de Entrega Estimado')
+                    ->helperText('Ex: 24-48 horas úteis, 3-5 dias. Para ser usado pelo Bot de IA.')
+                    ->maxLength(150)
+                    ->required(),
 
                 Forms\Components\Toggle::make('is_active')
                     ->label('Ativo')
@@ -57,6 +63,12 @@ class ShippingRateResource extends Resource
                     ->label('Taxa de Frete')
                     ->alignEnd()
                     ->sortable(),
+                
+                Tables\Columns\TextColumn::make('estimated_delivery_time')
+                    ->label('Tempo Estimado')
+                    ->limit(40)
+                    ->wrap()
+                    ->searchable(),
 
                 Tables\Columns\IconColumn::make('is_active')
                     ->label('Ativo')
@@ -66,8 +78,15 @@ class ShippingRateResource extends Resource
                 //
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+                // --- AÇÕES CONVERTIDAS EM BOTÕES DE ÍCONE ---
+                Tables\Actions\EditAction::make()
+                    ->iconButton() // Renderiza como um botão circular de ícone (Lápis)
+                    ->tooltip('Editar Taxa'), // Dica de ajuda (tooltip) ao passar o mouse
+                    
+                Tables\Actions\DeleteAction::make()
+                    ->iconButton() // Renderiza como um botão circular de ícone (Lixo)
+                    ->tooltip('Apagar Taxa'), // Dica de ajuda (tooltip) ao passar o mouse
+                // ---------------------------------------------
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
