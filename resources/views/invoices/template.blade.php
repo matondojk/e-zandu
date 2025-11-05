@@ -7,15 +7,15 @@
     <style>
         /* Estilos básicos para o PDF */
         body {
-            font-family: DejaVu Sans, sans-serif; /* DejaVu Sans suporta caracteres especiais */
+            font-family: DejaVu Sans, sans-serif; /* Suporte a caracteres especiais */
             font-size: 12px;
             line-height: 1.4;
             color: #333;
         }
         .container { width: 95%; margin: 0 auto; }
         .header { margin-bottom: 20px; border-bottom: 2px solid #000; padding-bottom: 10px; }
-        .header-left { float: left; width: 70%; }
-        .header-right { float: right; width: 30%; text-align: right; }
+        .header-left { float: left; width: 65%; }
+        .header-right { float: right; width: 35%; text-align: right; }
         .header h1 { margin: 0 0 5px 0; color: #000; }
         .logo { max-width: 150px; max-height: 50px; }
         .details { margin-bottom: 25px; padding-bottom: 10px; }
@@ -25,21 +25,27 @@
         table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
         th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
         th { background-color: #f2f2f2; }
-        .total-table { width: 40%; float: right; border: 1px solid #000; }
-        .total-table td { border: none; }
+        .total-table { width: 50%; float: right; border: 1px solid #000; }
+        .total-table td { border: none; padding: 6px 8px; }
         .total-table .label { text-align: right; font-weight: bold; }
         .total-table .value { text-align: right; width: 120px; }
+        .total-table .discount { color: #D9534F; } /* Cor para o desconto */
         .total-table .grand-total { background-color: #e6f7f5; border-top: 2px solid #128C7E; }
         .footer { margin-top: 30px; text-align: center; font-size: 10px; color: #777; }
         
-        /* ✅ CSS PARA OS NOVOS STATUS */
         .status-badge {
-            display: inline-block; padding: 4px 8px; border-radius: 4px; color: #fff; font-weight: bold;
+            display: inline-block; padding: 4px 8px; border-radius: 4px; color: #fff; font-weight: bold; font-size: 10px;
         }
-        .status-paid { background-color: #28a745; } /* Verde para Pago */
-        .status-pending { background-color: #ffc107; color: #000; } /* Amarelo para Pendente */
-        .status-processing { background-color: #ffc107; color: #000; } /* Amarelo para Em Processamento */
-        .status-delivered { background-color: #007bff; } /* Azul para Entregue */
+        .status-paid { background-color: #28a745; }
+        .status-pending { background-color: #ffc107; color: #000; }
+        .status-processing { background-color: #ffc107; color: #000; }
+        .status-delivered { background-color: #007bff; }
+        
+        /* Informações de Entrega e Pagamento */
+        .info-section { margin-bottom: 20px; }
+        .info-section h3 { border-bottom: 1px solid #eee; padding-bottom: 5px; margin-bottom: 10px; }
+        .info-section p { margin: 2px 0; }
+
     </style>
 </head>
 <body>
@@ -61,9 +67,9 @@
         <div class="details">
             <div class="details-left">
                 <strong>Detalhes do Cliente:</strong><br>
-                Nome: {{ $cart->customer->name ?? 'N/A' }}<br>
-                Telefone (WhatsApp): {{ $cart->customer->phone ?? $cart->user_phone }}<br>
-                Endereço de Entrega: {{ $cart->customer->delivery_address ?? 'Não fornecido' }}
+                Nome: {{ $cart->user->name ?? 'N/A' }}<br>
+                Telefone (WhatsApp): {{ $cart->user->phone ?? 'N/A' }}<br>
+                Email: {{ $cart->user->email ?? 'N/A' }}
             </div>
             <div class="details-right">
                 <strong>Pedido Nº:</strong> {{ $cart->id }}<br>
@@ -98,6 +104,20 @@
             <div class="clear"></div>
         </div>
 
+        <div class="info-section">
+            <h3>Detalhes de Entrega e Pagamento</h3>
+            <p><strong>Referência de Entrega:</strong> {{ $cart->user->delivery_address ?? 'Não fornecido' }}</p>
+            <p><strong>Local de Entrega (Província):</strong> {{ $cart->shippingRate->province_name ?? 'N/A' }}</p>
+            <p><strong>Método de Pagamento:</strong> {{ $cart->paymentMethod->name ?? 'N/A' }}</p>
+        </div>
+
+        @if(!empty($cart->order_notes))
+        <div class="info-section">
+            <h3>Notas do Cliente (Tamanho/Cor)</h3>
+            <p>{{ $cart->order_notes }}</p>
+        </div>
+        @endif
+
         <h3>Itens do Pedido</h3>
         <table>
             <thead>
@@ -128,12 +148,16 @@
                 </tr>
                 <tr>
                     <td class="label">Taxa de Frete:</td>
-                    <td class="value">{{ number_format($shippingRate, 2, ',', '.') }} Kz</td>
+                    <td class="value">{{ number_format($cart->shipping_amount, 2, ',', '.') }} Kz</td>
                 </tr>
-                <tr>
-                    <td class="label">Impostos (IVA 14%):</td>
-                    <td class="value">0.00 Kz</td> 
+                
+                @if($cart->discount_amount > 0)
+                <tr class="discount">
+                    <td class="label">Desconto (Cupão: {{ $cart->coupon->code ?? 'N/A' }}):</td>
+                    <td class="value">- {{ number_format($cart->discount_amount, 2, ',', '.') }} Kz</td>
                 </tr>
+                @endif
+                
                 <tr class="grand-total">
                     <td class="label">TOTAL GERAL:</td>
                     <td class="value" style="font-size: 16px;">
@@ -145,8 +169,8 @@
         <div class="clear"></div>
 
         <div class="footer">
-            <p>Obrigado pela sua compra!</p>
-            <p>Esta fatura confirma o pagamento e os detalhes do seu pedido.</p>
+            <p>Obrigado pela sua compra</p>
+            <p>Esta fatura confirma os detalhes do seu pedido.</p>
         </div>
     </div>
 </body>

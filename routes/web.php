@@ -16,6 +16,7 @@ use App\Livewire\SetupWizard;
 |--------------------------------------------------------------------------
 */
 
+Route::post('payment/{uuid}/apply-coupon', [PaymentController::class, 'applyCoupon'])->name('payment.applyCoupon');
 Route::get('/politica-de-privacidade', PrivacyPolicyPage::class)->name('privacy.policy');
 Route::get('/', HomePage::class);
 Route::get('/produto/{slug}', ProductDetailPage::class)->name('product.detail');

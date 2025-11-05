@@ -65,8 +65,10 @@ return new class extends Migration
             $table->string('type')->comment('in_purchase, out_sale, adjustment');
             $table->decimal('quantity', 8, 2);
             $table->decimal('unit_cost', 10, 2)->nullable();
-            
-            $table->uuidMorphs('reference'); 
+
+            // $table->uuidMorphs('reference'); 
+            $table->uuid('reference_id')->nullable();
+            $table->string('reference_type')->nullable();
 
             $table->text('notes')->nullable();
             $table->timestamps();

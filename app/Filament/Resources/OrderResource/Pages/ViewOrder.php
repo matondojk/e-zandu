@@ -18,12 +18,19 @@ use Illuminate\Support\Facades\Cache;
 use Filament\Forms;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Database\Eloquent\Model;
-// --- Fim dos Imports ---
 
-// Imports do Infolist
+// --- Imports para o Infolist ---
 use Filament\Infolists;
 use Filament\Infolists\Infolist;
 use Illuminate\Support\HtmlString;
+
+// --- NOVOS IMPORTS PARA EMAIL ---
+use Illuminate\Support\Facades\Mail;
+// Você precisará criar estas classes Mail: php artisan make:mail OrderPaid
+use App\Mail\OrderPaid; 
+use App\Mail\OrderDelivered;
+use App\Mail\OrderRejected;
+// --- FIM DOS NOVOS IMPORTS ---
 
 
 class ViewOrder extends ViewRecord
@@ -35,8 +42,6 @@ class ViewOrder extends ViewRecord
      */
     protected function getHeaderActions(): array
     {
-        // ❌ REMOVIDO: A variável $shippingRate estática
-        
         return [
             // --- AÇÃO "MARCAR COMO PAGO" ---
             Actions\Action::make('markAsPaid')
@@ -48,33 +53,58 @@ class ViewOrder extends ViewRecord
                 ->visible(fn(Cart $record): bool => $record->status === 'active')
                 ->requiresConfirmation()
                 ->modalHeading('Confirmar Pagamento?')
-                ->modalDescription('O sistema irá verificar o estoque e deduzir as quantidades do Armazém Padrão.')
+                ->modalDescription('O sistema irá verificar o estoque e deduzir as quantidades do Armazém Padrão. As notificações serão enviadas.')
                 ->modalSubmitActionLabel('Sim, Confirmar Pagamento')
-                // ❌ REMOVIDO: use ($shippingRate)
                 ->action(function (Cart $record, InvoiceService $invoiceService, WhatsAppService $whatsAppService) { 
 
                     try {
-                        if (empty($record->payment_proof_path)) {
-                            Notification::make()->title('Erro: Comprovativo em Falta')->body('Este pedido não tem um comprovativo anexado.')->danger()->send();
-                            return;
-                        }
+                        
+                        // --- ALTERADO: Verificação de comprovativo REMOVIDA ---
+                        // A ação agora continua mesmo sem comprovativo (para Pagamento na Entrega)
+                        
                         $record->status = 'paid';
                         $record->delivery_status = 'processing';
                         $record->save(); 
-                        $pdfUrl = $invoiceService->generate($record);
-                        $whatsAppService->sendDocumentMessage(
-                            $pdfUrl,
-                            $record->user->phone, // ✅ CORRIGIDO: user -> user
-                            "Fatura-Pedido-{$record->id}.pdf"
-                        );
-                        $whatsAppService->sendTextMessage(
-                            "Pagamento confirmado para o Pedido #{$record->id}! ✅\nO seu produto *já será preparado para envio*.",
-                            $record->user->phone // ✅ CORRIGIDO: user -> user
-                        );
+                        
+                        $user = $record->user; // Obter o utilizador
+                        
+                        // Gerar a fatura. 
+                        // NOTA: Assumindo que $invoiceService->generate() retorna o CAMINHO RELATIVO (ex: 'invoices/fatura-123.pdf')
+                        $pdfPath = $invoiceService->generate($record);
+                        $pdfPublicUrl = Storage::disk('public')->url($pdfPath);
+                        $pdfAbsolutePath = storage_path('app/public/' . $pdfPath);
+
+                        // --- 1. Notificação WhatsApp (Se tiver telemóvel) ---
+                        if ($user && $user->phone) {
+                            $whatsAppService->sendDocumentMessage(
+                                $pdfPublicUrl,
+                                $user->phone,
+                                "Fatura-Pedido-{$record->id}.pdf"
+                            );
+                            $whatsAppService->sendTextMessage(
+                                "Pagamento confirmado para o Pedido #{$record->id}! ✅\nO seu produto *já será preparado para envio*.",
+                                $user->phone
+                            );
+                        }
+
+                        // --- 2. Notificação por Email (Se tiver email) ---
+                        if ($user && $user->email) {
+                            // Crie esta classe: php artisan make:mail OrderPaid
+                            // Esta classe Mailable deve aceitar $record e $pdfAbsolutePath no construtor
+                            // e usar ->attach($pdfAbsolutePath) na função build()
+                            try {
+                                Mail::to($user->email)->send(new OrderPaid($record, $pdfAbsolutePath));
+                            } catch (Exception $e) {
+                                Log::error("Falha ao enviar email 'OrderPaid' para o pedido #{$record->id}: " . $e->getMessage());
+                                // Não falha a ação inteira, apenas regista o erro
+                            }
+                        }
+
                         Notification::make()->title('Pedido Marcado como Pago!')
-                            ->body("O estoque foi deduzido e a fatura foi enviada.")
+                            ->body("O estoque foi deduzido e as notificações foram enviadas.")
                             ->success()->send();
                         $this->refreshFormData(['status', 'delivery_status']);
+
                     } catch (Exception $e) {
                         Log::error("Erro ao marcar pedido #{$record->id} como pago: " . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
                         if (!str_contains($e->getMessage(), 'Armazém Padrão') && !str_contains($e->getMessage(), 'Estoque')) {
@@ -100,10 +130,25 @@ class ViewOrder extends ViewRecord
                     try {
                         $record->delivery_status = 'delivered';
                         $record->save();
-                        $whatsAppService->sendTextMessage(
-                            "O seu Pedido #{$record->id} foi marcado como *entregue*! 🚚✅\n\nEsperamos que goste dos seus produtos. Obrigado por comprar na E-Zandu!",
-                            $record->user->phone // ✅ CORRIGIDO: user -> user
-                        );
+                        
+                        $user = $record->user; // Obter o utilizador
+                        $message = "O seu Pedido #{$record->id} foi marcado como *entregue*! 🚚✅\n\nEsperamos que goste dos seus produtos. Obrigado por comprar na E-Zandu!";
+
+                        // --- 1. Notificação WhatsApp (Se tiver telemóvel) ---
+                        if ($user && $user->phone) {
+                            $whatsAppService->sendTextMessage($message, $user->phone);
+                        }
+
+                        // --- 2. Notificação por Email (Se tiver email) ---
+                        if ($user && $user->email) {
+                            // Crie esta classe: php artisan make:mail OrderDelivered
+                            try {
+                                Mail::to($user->email)->send(new OrderDelivered($record));
+                            } catch (Exception $e) {
+                                Log::error("Falha ao enviar email 'OrderDelivered' para o pedido #{$record->id}: " . $e->getMessage());
+                            }
+                        }
+
                         Notification::make()->title('Pedido Marcado como Entregue!')->success()->send();
                         $this->refreshFormData(['delivery_status']);
                     } catch (Exception $e) {
@@ -128,6 +173,7 @@ class ViewOrder extends ViewRecord
                 ->action(function (Cart $record, array $data, WhatsAppService $whatsAppService) {
                     try {
                         $reason = $data['reason'];
+                        
                         if ($record->payment_proof_path) {
                             if (Storage::disk('public')->exists($record->payment_proof_path)) {
                                 Storage::disk('public')->delete($record->payment_proof_path);
@@ -135,12 +181,30 @@ class ViewOrder extends ViewRecord
                         }
                         $record->payment_proof_path = null;
                         $record->save();
+                        
+                        $user = $record->user; // Obter o utilizador
                         $message = "❌ Pagamento Rejeitado para o Pedido #{$record->id}.\n\n";
                         $message .= "Motivo: *{$reason}*\n\n";
                         $message .= "Por favor, submeta um novo comprovativo no link de pagamento que recebeu.";
-                        $whatsAppService->sendTextMessage($message, $record->user->phone); // ✅ CORRIGIDO: user -> user
+
+                        // --- 1. Notificação WhatsApp (Se tiver telemóvel) ---
+                        if ($user && $user->phone) {
+                            $whatsAppService->sendTextMessage($message, $user->phone);
+                        }
+
+                        // --- 2. Notificação por Email (Se tiver email) ---
+                        if ($user && $user->email) {
+                            // Crie esta classe: php artisan make:mail OrderRejected
+                            try {
+                                Mail::to($user->email)->send(new OrderRejected($record, $reason));
+                            } catch (Exception $e) {
+                                Log::error("Falha ao enviar email 'OrderRejected' para o pedido #{$record->id}: " . $e->getMessage());
+                            }
+                        }
+                        
                         Notification::make()->title('Pagamento Rejeitado')->body('O cliente foi notificado.')->warning()->send();
                         $this->refreshFormData(['payment_proof_path']);
+
                     } catch (Exception $e) {
                         Log::error("Erro ao rejeitar pedido #{$record->id}: " . $e->getMessage());
                         Notification::make()->title('Erro ao Rejeitar')->body('Ocorreu um erro. Verifique os logs.')->danger()->send();
@@ -152,11 +216,10 @@ class ViewOrder extends ViewRecord
 
     public function infolist(Infolist $infolist): Infolist
     {
-        // ❌ REMOVIDO: A variável $shippingRate estática
-        
         return $infolist
             ->schema([
                 // --- Secção de Notas do Cliente ---
+                // (Esta secção já existia no seu código e está correta)
                 Infolists\Components\Section::make('Notas do Cliente (Tamanho/Cor)')
                     ->schema([
                         Infolists\Components\TextEntry::make('order_notes')
@@ -171,9 +234,11 @@ class ViewOrder extends ViewRecord
                 Infolists\Components\Section::make('Detalhes do Cliente')
                     ->columns(['default' => 1, 'md' => 3])
                     ->schema([
-                        // ✅ CORRIGIDO: user -> user
                         Infolists\Components\TextEntry::make('user.name')->label('Cliente')->icon('heroicon-o-user'),
                         Infolists\Components\TextEntry::make('user.phone')->label('WhatsApp')->copyable(),
+                        // --- NOVO: Campo de Email ---
+                        Infolists\Components\TextEntry::make('user.email')->label('Email')->copyable()->icon('heroicon-o-envelope'),
+                        
                         Infolists\Components\TextEntry::make('user.delivery_address')
                             ->label('Referência de Entrega')
                             ->default('Não fornecido')
@@ -185,13 +250,11 @@ class ViewOrder extends ViewRecord
                     ->columns(['default' => 1, 'md' => 3])
                     ->schema([
                         
-                        // ✅ NOVO: Método de Pagamento
                         Infolists\Components\TextEntry::make('paymentMethod.name')
                             ->label('Método de Pagamento')
                             ->badge()
                             ->color('primary'),
 
-                        // ✅ NOVO: Local de Entrega
                         Infolists\Components\TextEntry::make('shippingRate.province_name')
                             ->label('Local de Entrega')
                             ->icon('heroicon-m-map-pin'),
@@ -234,7 +297,6 @@ class ViewOrder extends ViewRecord
                                 default => ucfirst($state),
                             }),
                         
-                        // Ocupa o último slot da linha
                         Infolists\Components\TextEntry::make('created_at')
                             ->label('Data do Pedido')
                             ->dateTime('d/m/Y H:i')
@@ -246,12 +308,10 @@ class ViewOrder extends ViewRecord
                             ->label('Subtotal (Produtos)')
                             ->formatStateUsing(fn($state): string => number_format($state, 2, ',', '.') . ' Kz'),
                         
-                        // ✅ CORRIGIDO: Usa o shipping_amount do registro
                         Infolists\Components\TextEntry::make('shipping_amount') 
                             ->label('Taxa de Frete')
                             ->formatStateUsing(fn($state): string => number_format($state, 2, ',', '.') . ' Kz'),
 
-                        // ✅ ADICIONADO: Campo de Desconto
                         Infolists\Components\TextEntry::make('discount_amount')
                             ->label('Desconto Aplicado')
                             ->formatStateUsing(fn($state): string => number_format($state, 2, ',', '.') . ' Kz')
@@ -259,19 +319,16 @@ class ViewOrder extends ViewRecord
                             ->icon('heroicon-m-receipt-percent')
                             ->visible(fn (Cart $record) => $record->discount_amount > 0),
                         
-                        // ✅ ADICIONADO: Campo de Cupão
                         Infolists\Components\TextEntry::make('coupon.code') 
                             ->label('Cupão Utilizado')
                             ->badge()
                             ->color('gray')
                             ->visible(fn (Cart $record) => $record->coupon_id)
-                            ->columnSpan(['default' => 1, 'md' => 2]), // Ocupa 2 colunas para alinhar
+                            ->columnSpan(['default' => 1, 'md' => 2]), 
                         
-                        // ✅ CÁLCULO FINAL: Usa o shipping_amount e alinha-se
                         Infolists\Components\TextEntry::make('grand_total')
                             ->label('TOTAL GERAL')
                             ->state(fn(Cart $record) => 
-                                // (Subtotal + Frete) - Desconto
                                 number_format(
                                     ($record->total_price + $record->shipping_amount) - $record->discount_amount, 
                                     2, ',', '.'
@@ -280,7 +337,7 @@ class ViewOrder extends ViewRecord
                             ->size(Infolists\Components\TextEntry\TextEntrySize::Large)
                             ->color('success')
                             ->weight('bold')
-                            ->columnSpan(['default' => 1, 'md' => 3]), // Ocupa toda a linha
+                            ->columnSpan(['default' => 1, 'md' => 3]), 
                         
                     ]),
 

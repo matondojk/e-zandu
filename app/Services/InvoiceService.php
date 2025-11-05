@@ -18,25 +18,32 @@ class InvoiceService
         //
     }
 
+    /**
+     * Gera a fatura em PDF, salva no storage público e retorna o caminho RELATIVO.
+     *
+     * @param Cart $cart
+     * @return string O caminho relativo do arquivo (ex: 'invoices/fatura-123.pdf')
+     */
     public function generate(Cart $cart): string
     {
-        // 1. Carregar dados necessários
-        $cart->load('items.product', 'customer');
+        // 1. ✅ Carregar dados necessários (relações usadas na Fatura Blade)
+        $cart->load('items.product', 'user', 'shippingRate', 'paymentMethod', 'coupon');
         
         $settings = Cache::remember('shop_settings', 60 * 5, function () {
             return Setting::first() ?? new Setting(); 
         });
 
-        // 2. Calcular totais
-        $shippingRate = $settings->shipping_rate ?? 0;
-        $grandTotal = $cart->total_price + $shippingRate;
+        // 2. ✅ CÁLCULO ATUALIZADO
+        // Os valores agora vêm diretamente do carrinho, que foi salvo no 'store'
+        $shippingAmount = $cart->shipping_amount ?? 0;
+        $discountAmount = $cart->discount_amount ?? 0;
+        $grandTotal = ($cart->total_price + $shippingAmount) - $discountAmount;
 
-        // 3. CORREÇÃO DO LOGO: Converter para Base64
+        // 3. Converter Logo para Base64
         $logoBase64 = null;
         $logoMime = null;
         if ($settings->logo_path && Storage::disk('public')->exists($settings->logo_path)) {
             try {
-                // (O logo continua a vir do 'storage/public', o que está correto)
                 $path = Storage::disk('public')->path($settings->logo_path);
                 $contents = file_get_contents($path);
                 $logoMime = mime_content_type($path);
@@ -50,31 +57,28 @@ class InvoiceService
         $data = [
             'cart' => $cart,
             'settings' => $settings,
-            'shippingRate' => $shippingRate,
-            'grandTotal' => $grandTotal,
+            // 'shippingRate' => $shippingRate, // ❌ Removido (obsoleto, usamos $cart->shipping_amount)
+            'grandTotal' => $grandTotal, // ✅ Passa o total JÁ calculado
             'logoBase64' => $logoBase64,
             'logoMime' => $logoMime,
             'issueDate' => now()->format('d/m/Y H:i')
         ];
 
-        // Carrega a view 'invoices.template'
+        // 5. ✅ VIEW CORRIGIDA
+        // Aponta para 'resources/views/invoice.blade.php'
+        // (O seu ficheiro antigo era 'invoices.template')
         $pdf = Pdf::loadView('invoices.template', $data);
 
-        // 5. ✅ CORREÇÃO DO CAMINHO (Como você pediu): Salvar em public/invoices
-        $filename = 'fatura-' . $cart->id . '-' . time() . '.pdf';
-        $directory = public_path('invoices'); // <--- MUDADO DE storage_path PARA public_path
-        $path = $directory . '/' . $filename; 
+        // 6. ✅ CAMINHO E SALVAMENTO CORRIGIDOS
+        // Cria o nome do ficheiro com o subdiretório 'invoices'
+        $filename = 'invoices/fatura-' . $cart->id . '-' . time() . '.pdf';
+        
+        // Salva o PDF no disco 'public' (que aponta para 'storage/app/public')
+        Storage::disk('public')->put($filename, $pdf->output());
 
-        // Cria o diretório se não existir
-        if (!file_exists($directory)) {
-            mkdir($directory, 0755, true);
-        }
-
-        // Salva o PDF no servidor
-        $pdf->save($path);
-
-        // 6. ✅ CORREÇÃO DO URL: Retornar o link público direto
-        // (Sem 'storage/' no caminho)
-        return asset('invoices/' . $filename); 
+        // 7. ✅ RETORNO CORRIGIDO
+        // Retorna o caminho RELATIVO (ex: 'invoices/fatura-123.pdf')
+        // Isto é o que o 'ViewOrder.php' espera
+        return $filename; 
     }
 }

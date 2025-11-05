@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Log;
 use \Exception;
 use App\Http\Controllers\Api\WhatsAppWebhookController; // Importar o Controller
 
-class ProcessWhatsAppMessage implements ShouldQueue
+class ProcessWhatsAppMessage
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 

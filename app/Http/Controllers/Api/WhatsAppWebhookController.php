@@ -284,7 +284,7 @@ class WhatsAppWebhookController extends Controller
 
         try {
             StockAlert::firstOrCreate(
-                ['customer_id' => $customer->id, 'product_id' => $productId],
+                ['user_id' => $customer->id, 'product_id' => $productId],
                 ['destination' => $customer->phone] 
             );
 

@@ -31,7 +31,7 @@ class ProcessStockAlerts extends Command
         $this->info('Iniciando processamento de alertas de estoque...');
         
         $pendingAlerts = StockAlert::where('is_notified', false)
-            ->with(['product', 'customer'])
+            ->with(['product', 'user'])
             ->get();
             
         $alertsToDispatch = collect();
@@ -58,23 +58,23 @@ class ProcessStockAlerts extends Command
             foreach ($alertsToDispatch as $alert) {
                 try {
                     $product = $alert->product;
-                    $customer = $alert->customer;
+                    $user = $alert->user;
                     $isEmailSent = false;
                     $isWhatsappSent = false;
 
                     // A. ENVIAR NOTIFICAÇÃO POR EMAIL
-                    // Assume que o Model Customer usa o Notifiable trait e tem a coluna 'email'
-                    if ($customer->email) {
-                         $customer->notify(new ProductRestocked($product)); 
+                    // Assume que o Model user usa o Notifiable trait e tem a coluna 'email'
+                    if ($user->email) {
+                         $user->notify(new ProductRestocked($product)); 
                          $isEmailSent = true;
                     }
                     
                     // B. ENVIAR NOTIFICAÇÃO POR WHATSAPP
                     try {
-                        $this->sendWhatsAppAlert($customer, $product);
+                        $this->sendWhatsAppAlert($user, $product);
                         $isWhatsappSent = true;
                     } catch (\Exception $e) {
-                        Log::warning("Falha ao enviar WhatsApp para {$customer->phone}: " . $e->getMessage());
+                        Log::warning("Falha ao enviar WhatsApp para {$user->phone}: " . $e->getMessage());
                     }
 
                     if ($isEmailSent || $isWhatsappSent) {
@@ -86,7 +86,7 @@ class ProcessStockAlerts extends Command
                     }
 
                 } catch (\Exception $e) {
-                    Log::error("Falha CRÍTICA ao processar alerta para cliente #{$alert->customer_id}: " . $e->getMessage());
+                    Log::error("Falha CRÍTICA ao processar alerta para cliente #{$alert->user_id}: " . $e->getMessage());
                 }
             }
         });
@@ -98,14 +98,14 @@ class ProcessStockAlerts extends Command
     /**
      * Lógica de envio da mensagem interativa do WhatsApp.
      */
-    protected function sendWhatsAppAlert(\App\Models\Customer $customer, \App\Models\Product $product)
+    protected function sendWhatsAppAlert(\App\Models\user $user, \App\Models\Product $product)
     {
         $price = $product->promotional_price > 0 ? $product->promotional_price : $product->price;
         $priceString = $product->promotional_price > 0 
             ? "Preço: ~" . $this->orderService->formatPrice($product->price) . "~ *Kz " . $this->orderService->formatPrice($product->promotional_price) . "* (Promoção!)"
             : "Preço: *Kz " . $this->orderService->formatPrice($product->price) . "*";
 
-        $body = "🎉 Boas notícias, " . ($customer->name ?? 'Cliente') . "! 🎉\n\n";
+        $body = "🎉 Boas notícias, " . ($user->name ?? 'Cliente') . "! 🎉\n\n";
         $body .= "O produto *{$product->name}* foi reposto no nosso estoque!\n\n";
         $body .= $priceString . "\n";
         
@@ -116,7 +116,7 @@ class ProcessStockAlerts extends Command
 
         $this->whatsAppService->sendInteractiveMessage(
             $body,
-            $customer->phone,
+            $user->phone,
             "Clique abaixo para garantir o seu!",
             $product->image_url,
             $buttons

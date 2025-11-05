@@ -18,7 +18,7 @@ class OrderService
     {
         // Agora usa customer_id em vez de user_phone
         return Cart::firstOrCreate(
-            ['customer_id' => $customer->id, 'status' => 'active'],
+            ['user_id' => $customer->id, 'status' => 'active'],
             ['user_phone' => $customer->phone] // Mantém o user_phone para referência
         );
     }

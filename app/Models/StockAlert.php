@@ -12,15 +12,15 @@ class StockAlert extends Model
     use HasFactory,HasUuids;
 
     protected $fillable = [
-        'customer_id',
+        'user_id',
         'product_id',
         'destination',
         'is_notified',
     ];
 
-    public function customer(): BelongsTo
+    public function user()
     {
-        return $this->belongsTo(Customer::class);
+        return $this->belongsTo(User::class);
     }
 
     public function product(): BelongsTo
