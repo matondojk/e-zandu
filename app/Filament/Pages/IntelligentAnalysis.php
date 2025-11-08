@@ -20,6 +20,7 @@ use Filament\Actions\Action;
 use App\Models\SavedReport;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Carbon;
+use App\Services\SubscriptionManager;
 
 class IntelligentAnalysis extends Page implements HasForms
 {
@@ -33,6 +34,38 @@ class IntelligentAnalysis extends Page implements HasForms
     public ?string $chartDisplayLabel = null;
 
     protected static ?string $slug = 'analise-inteligente';
+
+    // --- 2. ADICIONAR OS MÉTODOS DE BADGE ---
+
+    /**
+     * Mostra um badge "ESSENCIAL" se o utilizador atual (Trial) não tiver acesso.
+     */
+    public static function getNavigationBadge(): ?string
+    {
+        $manager = app(SubscriptionManager::class);
+
+        // A feature key é 'analise-inteligente', como definido no Middleware/Manager
+        if (!$manager->canUse('analise-inteligente')) {
+            return 'ESSENCIAL'; // Retorna o badge para o plano "Trial"
+        }
+
+        // Se pode usar (É Essencial ou PRO), não mostra nada
+        return null;
+    }
+
+    /**
+     * Define a cor do badge (usamos 'warning' - laranja - para destaque).
+     */
+    public static function getNavigationBadgeColor(): ?string
+    {
+        if (!app(SubscriptionManager::class)->canUse('analise-inteligente')) {
+            return 'warning';
+        }
+        
+        return null;
+    }
+
+    // --- FIM DA ADIÇÃO ---
 
     // --- ✅ NOVAS PROPRIEDADES ---
     public bool $isGenerating = false; // Propriedade que faltava para o loading

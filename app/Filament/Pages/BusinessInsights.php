@@ -7,6 +7,7 @@ use App\Services\IntelligenceService;
 use Exception;
 use Filament\Notifications\Notification;
 use Illuminate\Contracts\Support\Htmlable; // Necessário para o título
+use App\Services\SubscriptionManager;
 
 class BusinessInsights extends Page
 {
@@ -20,6 +21,38 @@ class BusinessInsights extends Page
     protected static ?int $navigationSort = 1; // Coloca no topo do grupo
 
     protected static ?string $slug = 'assistente-de-insights';
+
+    // --- 2. ADICIONAR OS MÉTODOS DE BADGE ---
+
+    /**
+     * Mostra um badge "ESSENCIAL" se o utilizador atual (Trial) não tiver acesso.
+     */
+    public static function getNavigationBadge(): ?string
+    {
+        $manager = app(SubscriptionManager::class);
+
+        // A feature key é 'analise-inteligente', como definido no Middleware/Manager
+        if (!$manager->canUse('analise-inteligente')) {
+            return 'ESSENCIAL'; // Retorna o badge para o plano "Trial"
+        }
+
+        // Se pode usar (É Essencial ou PRO), não mostra nada
+        return null;
+    }
+
+    /**
+     * Define a cor do badge (usamos 'warning' - laranja - para destaque).
+     */
+    public static function getNavigationBadgeColor(): ?string
+    {
+        if (!app(SubscriptionManager::class)->canUse('analise-inteligente')) {
+            return 'warning';
+        }
+        
+        return null;
+    }
+
+    // --- FIM DA ADIÇÃO ---
 
     // Estado da Página
     public ?string $insightsResult = null;

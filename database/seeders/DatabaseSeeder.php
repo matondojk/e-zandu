@@ -58,11 +58,10 @@ class DatabaseSeeder extends Seeder
             PurchaseSeeder::class, 
             PurchaseItemSeeder::class, 
             StockMovementSeeder::class,
-            ExpenseSeeder::class,
-            SubscriptionSeeder::class,
-            
+            ExpenseSeeder::class,            
             // 5. Vendas/Pedidos (Cria carrinhos ativos e finalizados)
             CartSeeder::class, 
+            ChangelogSeeder::class,
         ]);
         
         // 4. REATIVA A VERIFICAÇÃO DE CHAVES ESTRANGEIRAS

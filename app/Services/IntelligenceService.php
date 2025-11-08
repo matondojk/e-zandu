@@ -259,7 +259,7 @@ class IntelligenceService
 
             // --- KPI 3: Top 5 Clientes (Últimos 30 dias) ---
             // Usa customer_id, que é UUID
-           $kpiData['top_5_clientes_30d'] = DB::select("
+            $kpiData['top_5_clientes_30d'] = DB::select("
                 SELECT cu.name, cu.phone, SUM(c.total_price) as 'total_gasto'
                 FROM carts c
                 JOIN users cu ON c.user_id = cu.id  -- 1. Junção correta (user_id)
@@ -358,7 +358,10 @@ PROMPT;
                 'purchase_items',
                 'stock_movements',
                 'saved_reports',
-                'expenses'
+                'expenses',
+                'coupons',
+                'shipping_rates',
+                'payment_methods'
             ];
             $schemaString = "";
             foreach ($allowedTables as $tableName) {
@@ -534,5 +537,57 @@ PROMPT;
             ->toArray();
 
         return array_unique($emails);
+    }
+
+    public function generateCampaignTemplates(string $prompt, string $contentType, ?array $products, ?string $couponCode): array
+    {
+        $context = "Contexto da Campanha:\n";
+        $context .= "- Prompt do Admin: '{$prompt}'\n";
+
+        if ($contentType === 'coupon' && $couponCode) {
+            $context .= "- Tipo: Cupão de Desconto ('{cupao}')\n";
+            $context .= "- Código do Cupão: {$couponCode}\n";
+        }
+
+        if ($contentType === 'product_promo' && !empty($products)) {
+            $context .= "- Tipo: Promoção de Produtos\n";
+            $context .= "- Produtos em Promoção:\n";
+            foreach ($products as $prod) {
+                $context .= "  - {$prod['name']} por {$prod['price']} Kz\n";
+            }
+        }
+
+        $systemPrompt = "
+        Você é um Copywriter de Marketing Digital especialista em E-commerce Angolano.
+        Sua tarefa é gerar templates de mensagem (WhatsApp e Email) para uma campanha de marketing.
+
+        REGRAS OBRIGATÓRIAS:
+        1.  Use os placeholders {nomeCliente} e {cupao} exatamente como escritos.
+        2.  A moeda é Kwanza (Kz).
+        3.  O tom deve ser profissional, mas amigável e direto (Angolano).
+        4.  A sua resposta DEVE SER UM ÚNICO OBJETO JSON VÁLIDO.
+        5.  O JSON deve ter EXATAMENTE a seguinte estrutura:
+            {
+              \"whatsapp_template\": \"...texto para whatsapp (curto e direto)...\",
+              \"email_subject\": \"...assunto do email...\",
+              \"email_template\": \"...corpo do email (pode ser mais longo, use quebras de linha \\n)...\"
+            }
+        
+        NÃO inclua NENHUM outro texto fora deste objeto JSON.
+        ";
+
+        $userPrompt = $context;
+
+        $response = $this->callOpenAI($systemPrompt, $userPrompt, $this->model, true);
+
+        $content = $response['choices'][0]['message']['content'];
+        $decodedData = json_decode($content, true);
+
+        if (is_null($decodedData) || !isset($decodedData['whatsapp_template'])) {
+            Log::error("IA retornou JSON inválido para templates: " . $content);
+            throw new Exception("A IA retornou um formato de templates inválido.");
+        }
+
+        return $decodedData;
     }
 }

@@ -3,16 +3,15 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
-use App\Models\Cart;        
+use App\Models\Cart;
 use App\Observers\CartObserver;
-use App\Models\Stock;         
-use App\Observers\StockObserver; 
-use App\Models\ProductImage; 
-use App\Observers\ProductImageObserver; 
-use Filament\Facades\Filament;
-use App\Http\Responses\LoginResponse;
-use Filament\Http\Responses\Auth\Contracts\LoginResponse as LoginResponseContract; 
+use App\Models\Stock;
+use App\Observers\StockObserver;
+use App\Models\ProductImage;
+use App\Observers\ProductImageObserver;
 use Livewire\Livewire;
+use App\Models\WhatsAppSetting;
+use Illuminate\Support\Facades\Schema;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -21,9 +20,7 @@ class AppServiceProvider extends ServiceProvider
      *
      * @return void
      */
-    public function register()
-    {
-    }
+    public function register() {}
 
     /**
      * Bootstrap any application services.
@@ -32,6 +29,28 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot()
     {
+
+        if ($this->app->runningInConsole()) {
+            return;
+        }
+
+        try {
+            if (Schema::hasTable('whatsapp_settings')) {
+                $settings = WhatsAppSetting::first();
+
+                if ($settings) {
+                    config([
+                        'services.whatsapp.token' => $settings->token,
+                        'services.whatsapp.phone_id' => $settings->phone_id,
+                        'services.whatsapp.verify_token' => $settings->verify_token,
+                        'services.whatsapp.admin_phone' => $settings->admin_phone,
+                    ]);
+                }
+            }
+        } catch (\Exception $e) {
+            Log::error('Falha ao carregar configurações do WhatsApp da BD: ' . $e->getMessage());
+        }
+
         Cart::observe(CartObserver::class);
         Stock::observe(StockObserver::class);
         ProductImage::observe(ProductImageObserver::class);

@@ -11,7 +11,7 @@ use Filament\Forms\Components\Section;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TagsInput;
-use Filament\Forms\Components\FileUpload; 
+use Filament\Forms\Components\FileUpload;
 use Filament\Tables\Columns;
 
 class SettingResource extends Resource
@@ -21,17 +21,18 @@ class SettingResource extends Resource
     // Configuração do Menu
     protected static ?string $navigationIcon = 'heroicon-o-cog-6-tooth';
     protected static ?string $navigationGroup = 'Configurações';
-    protected static ?string $navigationLabel = 'Configurações da Loja';
+    protected static ?string $navigationLabel = 'Personalização';
     protected static ?string $modelLabel = 'Configuração';
     protected static ?string $pluralModelLabel = 'Configurações';
     protected static ?int $navigationSort = 100;
-    protected static ?string $slug = 'configuracoes-da-loja'; // URL em português
+    protected static ?string $slug = 'personalizacao'; // URL mais limpa
+
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                
+
                 // --- Secção 1: Geral ---
                 Section::make('Geral')
                     ->description('Configurações principais da loja e contatos.')
@@ -71,7 +72,7 @@ class SettingResource extends Resource
                             ->helperText('Emails de relatórios automáticos. Separar por ponto e vírgula (;) se houver mais de um.')
                             ->required(),
                     ])->columns(2),
-                
+
                 // --- Secção 2: Gestão de Stock e Alertas ---
                 Section::make('Gestão de Stock e Alertas')
                     ->description('Definições para alertas automáticos de stock.')
@@ -124,21 +125,21 @@ class SettingResource extends Resource
             ->actions([])
             ->bulkActions([]);
     }
-    
+
     public static function getRelations(): array
     {
         return [];
     }
-    
+
     public static function getRecord(): \Illuminate\Database\Eloquent\Model
     {
-         return static::getModel()::firstOrCreate([], []);
+        return static::getModel()::firstOrCreate([], []);
     }
 
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListSettings::route('/'), 
+            'index' => Pages\ListSettings::route('/'),
             'edit' => Pages\EditSetting::route('/{record}/edit'),
         ];
     }

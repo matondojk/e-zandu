@@ -8,7 +8,7 @@ use App\Livewire\Pages\PrivacyPolicyPage;
 use App\Livewire\Pages\ProductDetailPage;
 
 // ✅ CORREÇÃO: Importar do namespace correto do Livewire 3
-use App\Livewire\SetupWizard; 
+use App\Livewire\SetupWizard;
 
 /*
 |--------------------------------------------------------------------------
@@ -37,6 +37,18 @@ Route::post('pagamento/{uuid}', [PaymentController::class, 'store'])->name('paym
 
 Route::get('/setup', SetupWizard::class)
     ->name('setup.index');
+
+Route::get('/subscription/notice', function () {
+    // Obter o status para mostrar ao utilizador
+    $sub = \App\Models\SubscriptionDetail::first();
+    return view('admin.subscription_notice', ['subscription' => $sub]);
+})->name('admin.subscription.notice');
+
+Route::get('/subscription/h', function () {
+    // Obter o status para mostrar ao utilizador
+    $sub = \App\Models\SubscriptionDetail::first();
+    return view('admin.subscription_notice', ['subscription' => $sub]);
+})->name('admin.subscription.history');
 
 // Route::get('/login', function () {
 //     return redirect()->route('filament.admin.auth.login');

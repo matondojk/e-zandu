@@ -69,14 +69,14 @@ class AdminPanelProvider extends PanelProvider
                 SubstituteBindings::class,
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
-                CheckSubscriptionStatus::class,
+                \App\Http\Middleware\CheckTenantSubscription::class,
             ])
             ->authMiddleware([
                 Authenticate::class,
             ])->plugins([
                 \CharrafiMed\GlobalSearchModal\GlobalSearchModalPlugin::make(),
-                FilamentLogViewer::make()->navigationGroup('Configurações')->navigationLabel('Logs do Sistema'),
-                \MixCode\FilamentMulti2fa\FilamentMulti2faPlugin::make(),
+                // FilamentLogViewer::make()->navigationGroup('Configurações')->navigationLabel('Logs do Sistema'),
+                // \MixCode\FilamentMulti2fa\FilamentMulti2faPlugin::make(),
                 // ->forceSetup2fa(),
             ]);
     }

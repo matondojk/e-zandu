@@ -10,6 +10,7 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Support\Facades\Auth; // Importar Auth
+use App\Services\SubscriptionManager;
 
 class SavedReportResource extends Resource
 {
@@ -23,6 +24,38 @@ class SavedReportResource extends Resource
     protected static ?int $navigationSort = 4;
     protected static ?string $slug = 'relatorios-guardados'; // URL em português
 
+    // --- 2. ADICIONAR OS MÉTODOS DE BADGE ---
+
+    /**
+     * Mostra um badge "ESSENCIAL" se o utilizador atual (Trial) não tiver acesso.
+     */
+    public static function getNavigationBadge(): ?string
+    {
+        $manager = app(SubscriptionManager::class);
+
+        // A feature key é 'analise-inteligente', como definido no Middleware/Manager
+        if (!$manager->canUse('analise-inteligente')) {
+            return 'ESSENCIAL'; // Retorna o badge para o plano "Trial"
+        }
+
+        // Se pode usar (É Essencial ou PRO), não mostra nada
+        return null;
+    }
+
+    /**
+     * Define a cor do badge (usamos 'warning' - laranja - para destaque).
+     */
+    public static function getNavigationBadgeColor(): ?string
+    {
+        if (!app(SubscriptionManager::class)->canUse('analise-inteligente')) {
+            return 'warning';
+        }
+        
+        return null;
+    }
+
+    // --- FIM DA ADIÇÃO ---
+    
     public static function form(Form $form): Form
     {
         return $form

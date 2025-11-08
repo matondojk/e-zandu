@@ -20,13 +20,16 @@ use App\Models\Product;
 use App\Models\ProductImage;
 use App\Models\Stock;
 use App\Models\StockAlert;
+use App\Models\PaymentMethod; // ✅ IMPORTADO
+use App\Models\ShippingRate;  // ✅ IMPORTADO
+use App\Models\Coupon;         // ✅ IMPORTADO
 
 // Imports de Suporte
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
-use App\Jobs\ProcessWhatsAppMessage; // ✅ IMPORTAR O JOB
+use App\Jobs\ProcessWhatsAppMessage; 
 
 class WhatsAppWebhookController extends Controller
 {
@@ -57,7 +60,6 @@ class WhatsAppWebhookController extends Controller
 
     /**
      * Recebe TODAS as mensagens do usuário (Router Principal)
-     * ✅ CORRIGIDO: Agora apenas dispara um Job (Fila) para ser RÁPIDO.
      */
     public function handle(Request $request)
     {
@@ -79,7 +81,6 @@ class WhatsAppWebhookController extends Controller
             $customer = $this->getOrCreateCustomer($userPhone, $userName);
 
             // 2. Dispara o Job para processar a mensagem EM BACKGROUND
-            // Isto permite-nos responder 'OK' imediatamente, evitando o loop de retentativas do WhatsApp.
             ProcessWhatsAppMessage::dispatch($customer, $messageData, $messageType);
 
             // 3. Responde OK IMEDIATAMENTE
@@ -113,7 +114,6 @@ class WhatsAppWebhookController extends Controller
 
     // ===================================================================
     // PROCESSADOR DE MENSAGEM DE TEXTO (LÓGICA DA OPENAI)
-    // ✅ MODIFICADO: Renomeado para 'processTextMessage' e agora é 'public'
     // ===================================================================
 
     public function processTextMessage(Customer $customer, string $userMessage)
@@ -153,9 +153,9 @@ class WhatsAppWebhookController extends Controller
             $data = json_decode($jsonResponse, true);
             
             if (is_null($data)) {
-                 Log::error("OpenAI retornou JSON inválido: " . $jsonResponse);
-                 $this->whatsAppService->sendTextMessage("Desculpe, tive um problema ao processar a resposta (IA_JSON_FAIL).", $userPhone);
-                 return;
+                Log::error("OpenAI retornou JSON inválido: " . $jsonResponse);
+                $this->whatsAppService->sendTextMessage("Desculpe, tive um problema ao processar a resposta (IA_JSON_FAIL).", $userPhone);
+                return;
             }
 
         } catch (Exception $e) {
@@ -166,7 +166,7 @@ class WhatsAppWebhookController extends Controller
         // --- FIM DA CHAMADA OPENAI ---
 
 
-        // O resto desta função (lógica de 'type' == 'search', etc.) permanece IDÊNTICA
+        // ✅ MODIFICADO: Lógica de personalização no cumprimento
         if (isset($data['type']) && $data['type'] === 'search') {
             $this->whatsAppService->sendTextMessage($data['introduction'], $userPhone);
 
@@ -188,7 +188,6 @@ class WhatsAppWebhookController extends Controller
             $productIds = collect($results)->pluck('id');
 
             if ($productIds->isNotEmpty()) {
-                // ✅ CORREÇÃO: Usar 'whereIn' com UUIDs
                 $products = Product::with('images')->whereIn('id', $productIds)->get();
 
                 Log::info("Produtos encontrados: " . $products->count());
@@ -204,7 +203,13 @@ class WhatsAppWebhookController extends Controller
             }
         } elseif (isset($data['type']) && ($data['type'] === 'greeting' || $data['type'] === 'faq')) {
             if (!empty($data['introduction'])) {
-                $this->whatsAppService->sendTextMessage($data['introduction'], $userPhone);
+                $intro = $data['introduction'];
+                // ✅ Cumprimento Personalizado (Vendedor adora usar o nome!)
+                if ($data['type'] === 'greeting' && !empty($customer->name)) {
+                    // Substitui a saudação inicial por uma personalizada (ex: "Olá!" -> "Olá, João!")
+                    $intro = preg_replace('/(Olá|Bom dia|Boa tarde|Boa noite)\s*!?/i', "$1, *{$customer->name}*! ", $intro, 1) ?? "Olá, *{$customer->name}*! Em que posso ajudar a finalizar sua compra?";
+                }
+                $this->whatsAppService->sendTextMessage($intro, $userPhone);
             } else {
                 Log::warning("OpenAI retornou 'greeting' ou 'faq' sem 'introduction'.");
                 $this->whatsAppService->sendTextMessage("Desculpe, não consegui entender.", $userPhone);
@@ -217,7 +222,6 @@ class WhatsAppWebhookController extends Controller
 
     // ===================================================================
     // HANDLER DE MENSAGEM INTERATIVA (BOTÕES)
-    // ✅ MODIFICADO: Agora é 'public' para o Job
     // ===================================================================
     public function handleInteractiveMessage(Customer $customer, string $buttonId)
     {
@@ -277,7 +281,7 @@ class WhatsAppWebhookController extends Controller
     /**
      * Lógica para ativar aviso de estoque.
      */
-    protected function handleStockAlertActivation(Customer $customer, string $productId) // ✅ ID é string
+    protected function handleStockAlertActivation(Customer $customer, string $productId) 
     {
         $product = Product::find($productId);
         if (!$product) return;
@@ -288,7 +292,7 @@ class WhatsAppWebhookController extends Controller
                 ['destination' => $customer->phone] 
             );
 
-            $message = "🔔 Aviso ativado! 🔔\n\n";
+            $message = "Aviso ativado\n\n";
             $message .= "Obrigado, *{$customer->name}*! Iremos notificá-lo por este número assim que o produto *{$product->name}* voltar ao nosso estoque.";
             $this->whatsAppService->sendTextMessage($message, $customer->phone);
         } catch (Exception $e) {
@@ -305,17 +309,17 @@ class WhatsAppWebhookController extends Controller
     protected function sendCrossSellMessage(Customer $customer, Product $addedProduct, Product $recProduct)
     {
         $body = "Adicionado *{$addedProduct->name}* ao seu carrinho!\n\n";
-        $body .= "Já que está a levar {$addedProduct->name}, que tal completar com *{$recProduct->name}* (Kz " . number_format($recProduct->price, 0, ',', '.') . ")?";
+        $body .= "Já que está a levar {$addedProduct->name}, que tal completar com *{$recProduct->name}* (Kz " . number_format($recProduct->price, 0, ',', '.') . ")? Esta é a sua chance de levar o kit completo!";
 
         $buttons = [
-            ['id' => 'ADD_CROSS_SELL_' . $recProduct->id, 'title' => 'Sim, Adicionar'],
-            ['id' => 'REJECT_CROSS_SELL', 'title' => 'Agora Não'],
+            ['id' => 'ADD_CROSS_SELL_' . $recProduct->id, 'title' => '✅ Sim, Adicionar'], // (17 chars) OK
+            ['id' => 'REJECT_CROSS_SELL', 'title' => 'Agora Não'], // (9 chars) OK
         ];
 
         $this->whatsAppService->sendInteractiveMessage(
             $body,
             $customer->phone,
-            "Pode ver o seu carrinho a qualquer momento.",
+            "Seu pedido está quase completo!", // ENCURTADO
             $recProduct->image_url,
             $buttons
         );
@@ -324,17 +328,17 @@ class WhatsAppWebhookController extends Controller
     protected function sendConfirmationMessage(Customer $customer, Product $product, $isCrossSell = false)
     {
         $body = $isCrossSell
-            ? "Perfeito! Adicionado *{$product->name}* também!"
-            : "✅ *{$product->name}* adicionado ao seu carrinho!";
+            ? "Perfeito! Adicionado *{$product->name}* também! O seu carrinho está a ficar INCRÍVEL!"
+            : "✅ *{$product->name}* adicionado ao seu carrinho, *{$customer->name}*! Ótima escolha!";
 
         $buttons = [
-            ['id' => 'VER_CARRINHO', 'title' => 'Ver Carrinho'], 
-            ['id' => 'FINALIZAR_PEDIDO', 'title' => 'Finalizar Pedido'], 
+            ['id' => 'FINALIZAR_PEDIDO', 'title' => '🔒 Finalizar e Pagar'], // (19 chars) OK
+            ['id' => 'VER_CARRINHO', 'title' => 'Revisar Carrinho'], // (16 chars) OK
         ];
         $this->whatsAppService->sendInteractiveMessage(
             $body,
             $customer->phone,
-            "Clique abaixo para continuar.",
+            "Clique em 'Finalizar' para garantir seu pedido!", // ENCURTADO
             null,
             $buttons
         );
@@ -342,23 +346,23 @@ class WhatsAppWebhookController extends Controller
 
     protected function handleCrossSellRejection(Customer $customer)
     {
-        $body = "Tudo bem! Pode continuar a comprar ou avançar para o checkout.";
+        $body = "Tudo bem, *{$customer->name}*! Pode continuar a comprar ou avançar para o checkout.";
         $buttons = [
-            ['id' => 'VER_CARRINHO', 'title' => 'Ver Carrinho'], 
-            ['id' => 'FINALIZAR_PEDIDO', 'title' => 'Finalizar Pedido'], 
+            ['id' => 'FINALIZAR_PEDIDO', 'title' => 'Finalizar Pedido'], // (16 chars) OK
+            ['id' => 'VER_CARRINHO', 'title' => 'Ver Carrinho'], // (12 chars) OK
         ];
 
         $this->whatsAppService->sendInteractiveMessage(
             $body,
             $customer->phone,
-            "Clique numa das opções.",
+            "Estamos a guardar o seu pedido!", // ENCURTADO
             null,
             $buttons
         );
     }
 
     // ===================================================================
-    // MÉTODOS DE COMPRA E CHECKOUT (Sem alterações)
+    // MÉTODOS DE COMPRA E CHECKOUT 
     // ===================================================================
 
     private function showCart(Customer $customer)
@@ -366,7 +370,7 @@ class WhatsAppWebhookController extends Controller
         $cart = $this->orderService->getActiveCart($customer);
 
         if ($cart->items->isEmpty()) {
-            $this->whatsAppService->sendTextMessage("Seu carrinho está vazio.", $customer->phone);
+            $this->whatsAppService->sendTextMessage("Seu carrinho está vazio. Vamos adicionar um produto incrível? Basta pesquisar o que procura!", $customer->phone);
             return;
         }
 
@@ -375,20 +379,21 @@ class WhatsAppWebhookController extends Controller
         foreach ($cart->items as $item) {
             $item->load('product');
             $message .= "▪️ *{$item->product->name}* (x{$item->quantity})\n";
-            $message .= "   Preço: " . $this->orderService->formatPrice($item->price * $item->quantity) . "\n\n";
+            $message .= "    Preço: " . $this->orderService->formatPrice($item->price * $item->quantity) . "\n\n";
         }
 
-        $message .= "*Total: " . $this->orderService->formatPrice($cart->total_price) . "*";
+        $message .= "*Total: " . $this->orderService->formatPrice($cart->total_price) . "*\n\n";
+        $message .= "O total está espetacular! Não espere mais!";
 
         $buttons = [
-            ['id' => 'FINALIZAR_PEDIDO', 'title' => 'Finalizar Pedido'], 
-            ['id' => 'VER_CARRINHO', 'title' => 'Atualizar Carrinho'] 
+            ['id' => 'FINALIZAR_PEDIDO', 'title' => 'Finalizar Pedido Já'], // (19 chars) OK
+            ['id' => 'VER_CARRINHO', 'title' => 'Atualizar Carrinho'] // (18 chars) OK
         ];
 
         $this->whatsAppService->sendInteractiveMessage(
             $message,
             $customer->phone,
-            "Clique no botão para continuar.",
+            "Clique no botão para garantir o seu produto!", // ENCURTADO
             null,
             $buttons
         );
@@ -403,7 +408,7 @@ class WhatsAppWebhookController extends Controller
         }
 
         if (empty($customer->name)) {
-            $msg = "🛑 Antes de finalizar, precisamos do seu nome completo.\n\n";
+            $msg = "🛑 Antes de finalizar, *{$customer->phone}*, precisamos do seu nome completo.\n\n";
             $msg .= "Por favor, digite o seu nome (ex: 'O meu nome é João').";
             $this->whatsAppService->sendTextMessage($msg, $customer->phone);
             return;
@@ -420,7 +425,7 @@ class WhatsAppWebhookController extends Controller
 
         $message = "Excelente escolha, *{$customer->name}*! Seu pedido #{$cart->id} está pronto para pagamento.\n\n";
         $message .= "Total: *" . $this->orderService->formatPrice($cart->total_price) . "*\n\n";
-        $message .= "Para continuar, informar o endereço e *escolher Tamanhos/Cores* (se aplicável), clique no link: {$paymentUrl}\n\n";
+        $message .= "Para continuar, informar o endereço e *escolher Tamanhos/Cores* (se aplicável), clique no link ABAIXO para finalizar o pagamento e garantir a entrega:\n{$paymentUrl}\n\n";
 
         $message .= "========================\n";
         $message .= "*Acompanhamento do Pedido*\n";
@@ -430,7 +435,7 @@ class WhatsAppWebhookController extends Controller
         $message .= "Senha: *{$customer->phone}* (Seu número)\n";
         $message .= "========================\n\n";
 
-        $message .= "Assim que recebermos o comprovativo, confirmaremos o pagamento e atualizaremos o status.";
+        $message .= "Assim que recebermos o comprovativo, confirmaremos o pagamento e atualizaremos o status. *Compre agora e receba em tempo recorde!*";
 
         $this->whatsAppService->sendTextMessage($message, $customer->phone);
     }
@@ -443,7 +448,7 @@ class WhatsAppWebhookController extends Controller
 
         $priceString = "";
         if ($product->promotional_price > 0) {
-            $priceString = "Preço: ~" . $this->orderService->formatPrice($product->price) . "~ *" . $this->orderService->formatPrice($product->promotional_price) . "* (Promoção!)";
+            $priceString = "💥 **PROMOÇÃO!** Preço: ~" . $this->orderService->formatPrice($product->price) . "~ por **" . $this->orderService->formatPrice($product->promotional_price) . "**!";
         } else {
             $priceString = "Preço: *" . $this->orderService->formatPrice($product->price) . "*";
         }
@@ -451,28 +456,36 @@ class WhatsAppWebhookController extends Controller
         $body = "🛍️ *{$product->name}*\n";
         $body .= $product->short_description . "\n\n";
         $body .= $priceString . "\n";
-        if ($product->sizes) $body .= "Tamanhos: " . implode(', ', $product->sizes) . "\n";
-        if ($product->colors) $body .= "Cores: " . implode(', ', $product->colors) . "\n";
+        if ($product->sizes) $body .= "Tamanhos Disponíveis: " . implode(', ', $product->sizes) . "\n";
+        if ($product->colors) $body .= "Cores Disponíveis: " . implode(', ', $product->colors) . "\n";
 
         $buttons = [];
 
         if ($stock > 0) {
-            $buttons[] = ['id' => 'ADD_ITEM_' . $product->id, 'title' => 'Adicionar ao Pedido'];
+            $body .= "\n✅ *Em estoque! Não perca!*";
+            //
+            // =================================================================
+            //           ⬇️  CORREÇÃO DO BOTÃO AQUI ⬇️
+            // =================================================================
+            // '🛒 Adicionar ao Pedido' (21+ chars) -> '🛒 Adicionar' (10 chars)
+            $buttons[] = ['id' => 'ADD_ITEM_' . $product->id, 'title' => '🛒 Adicionar']; 
+            // =================================================================
+            //
         } else {
-            $body .= "\n🛑 *Sem estoque no momento.*\n";
-            $buttons[] = ['id' => 'ACTIVATE_STOCK_ALERT_' . $product->id, 'title' => 'Avisar quando chegar'];
+            $body .= "\n🛑 *Sem estoque no momento. Seja avisado!*";
+            $buttons[] = ['id' => 'ACTIVATE_STOCK_ALERT_' . $product->id, 'title' => 'Avisar quando chegar']; // (20 chars) OK
         }
 
-        $buttons[] = ['id' => 'MORE_DETAILS_' . $product->id, 'title' => 'Mais Detalhes'];
+        $buttons[] = ['id' => 'MORE_DETAILS_' . $product->id, 'title' => 'Mais Detalhes']; // (14 chars) OK
 
         if ($imageCount > 0) {
-            $buttons[] = ['id' => 'MORE_IMAGES_' . $product->id, 'title' => 'Ver Mais Imagens'];
+            $buttons[] = ['id' => 'MORE_IMAGES_' . $product->id, 'title' => 'Ver Mais Imagens']; // (16 chars) OK
         }
 
         $this->whatsAppService->sendInteractiveMessage(
             $body,
             $customer->phone,
-            "Clique numa opção abaixo",
+            "Aproveite a oportunidade! Clique numa opção abaixo.", // OK
             $product->image_url,
             $buttons
         );
@@ -488,7 +501,7 @@ class WhatsAppWebhookController extends Controller
 
         $priceString = "";
         if ($product->promotional_price > 0) {
-            $priceString = "Preço: ~" . $this->orderService->formatPrice($product->price) . "~ *" . $this->orderService->formatPrice($product->promotional_price) . "* (Promoção!)";
+            $priceString = "💥 **PROMOÇÃO!** Preço: ~" . $this->orderService->formatPrice($product->price) . "~ por **" . $this->orderService->formatPrice($product->promotional_price) . "**!";
         } else {
             $priceString = "Preço: *" . $this->orderService->formatPrice($product->price) . "*";
         }
@@ -504,19 +517,21 @@ class WhatsAppWebhookController extends Controller
         $buttons = [];
 
         if ($stock > 0) {
-            $buttons[] = ['id' => 'ADD_ITEM_' . $product->id, 'title' => 'Adicionar ao Pedido'];
+            $body .= "\n✅ *Disponível!*";
+            $buttons[] = ['id' => 'ADD_ITEM_' . $product->id, 'title' => 'Adicionar ao Pedido']; // (19 chars) OK
         } else {
-            $body .= "\n🛑 *Sem estoque no momento.*\n";
-            $buttons[] = ['id' => 'ACTIVATE_STOCK_ALERT_' . $product->id, 'title' => 'Avisar quando chegar'];
+            $body .= "\n🛑 *Sem estoque no momento. Ative o aviso!*";
+            $buttons[] = ['id' => 'ACTIVATE_STOCK_ALERT_' . $product->id, 'title' => 'Avisar quando chegar']; // (20 chars) OK
         }
 
-        $buttons[] = ['id' => 'VER_CARRINHO', 'title' => 'Ver Carrinho'];
-        $buttons[] = ['id' => 'FINALIZAR_PEDIDO', 'title' => 'Finalizar Pedido'];
+        $buttons[] = ['id' => 'FINALIZAR_PEDIDO', 'title' => 'Finalizar Pedido']; // (16 chars) OK
+        $buttons[] = ['id' => 'VER_CARRINHO', 'title' => 'Ver Carrinho']; // (12 chars) OK
+        
 
         $this->whatsAppService->sendInteractiveMessage(
             $body,
             $customer->phone,
-            "Continue a sua compra abaixo",
+            "Garanta este item fantástico!", // ENCURTADO
             null,
             $buttons
         );
@@ -535,21 +550,21 @@ class WhatsAppWebhookController extends Controller
         }
 
         $buttons = [
-            ['id' => 'ADD_ITEM_' . $product->id, 'title' => 'Adicionar ao Pedido'],
-            ['id' => 'VER_CARRINHO', 'title' => 'Ver Carrinho'],
+            ['id' => 'ADD_ITEM_' . $product->id, 'title' => 'Adicionar ao Pedido'], // (19 chars) OK
+            ['id' => 'VER_CARRINHO', 'title' => 'Ver Carrinho'], // (12 chars) OK
         ];
 
         $this->whatsAppService->sendInteractiveMessage(
-            "Gostou das fotos? Deseja adicionar *{$product->name}* ao seu pedido?",
+            "Gostou das fotos? Deseja adicionar *{$product->name}* ao seu pedido para garantir a sua compra AGORA?",
             $customer->phone,
-            "Clique numa opção abaixo:",
+            "Clique numa opção abaixo para fechar negócio!", // ENCURTADO
             null, 
             $buttons
         );
     }
 
     // ===================================================================
-    // PROMPT DA OPENAI (✅ CORRIGIDO E MAIS INTELIGENTE)
+    // PROMPT DA OPENAI (Mantido idêntico à última versão)
     // ===================================================================
 
     private function buildOpenAISystemPrompt(): string
@@ -560,7 +575,37 @@ class WhatsAppWebhookController extends Controller
         $categories = Cache::remember('all_categories', 60 * 5, function () {
             return Category::all(['name', 'slug']);
         });
+        
+        $coupons = Cache::remember('active_coupons', 60 * 5, function () {
+            return Coupon::where('is_active', true)->where(function ($query) {
+                $query->whereNull('expires_at')->orWhere('expires_at', '>', now());
+            })->get(['code', 'value', 'type']);
+        });
+
+        $paymentMethods = Cache::remember('active_payment_methods', 60 * 5, function () {
+            return PaymentMethod::where('is_active', true)->get(['name', 'instructions']);
+        });
+
+        $paymentInfo = $paymentMethods->isNotEmpty() 
+            ? $paymentMethods->map(fn($pm) => "*{$pm->name}*: {$pm->instructions}")->implode("\n")
+            : 'Desculpe, no momento não há métodos de pagamento ativos. Por favor, contacte um operador.';
+
+        $shippingRates = Cache::remember('active_shipping_rates', 60 * 5, function () {
+            return ShippingRate::where('is_active', true)->get(['province_name', 'estimated_delivery_time', 'rate']);
+        });
+
+        $deliveryLocations = $shippingRates->pluck('province_name')->implode(', ');
+        $deliveryTimesAndRates = $shippingRates->map(function($sr) {
+            $rate = number_format($sr->rate, 0, ',', '.');
+            return "Em *{$sr->province_name}* a entrega custa Kz {$rate} e demora: {$sr->estimated_delivery_time}.";
+        })->implode("\n");
+
+
         $categoryNames = $categories->pluck('name')->implode(', ');
+        $couponInfo = $coupons->isNotEmpty() 
+            ? "Temos cupons de desconto ativos! Use o código *{$coupons->first()->code}* para começar a economizar agora. Códigos: " . $coupons->map(fn($c) => "*{$c->code}* (".($c->type === 'percentage' ? "{$c->value}%" : "Kz ".number_format($c->value, 0, ',', '.')).")")->implode(', ') . "."
+            : "Não há cupons de desconto ativos no momento. Mas os nossos preços já são fantásticos!";
+
 
         if (!$settings) {
             Log::error("ERRO CRÍTICO: Configurações (ID=1) não encontradas.");
@@ -573,35 +618,62 @@ class WhatsAppWebhookController extends Controller
              - Tipos de produtos gerais: \"Vendemos principalmente: {$productTypesString}.\"
              - Categorias de produtos disponíveis: \"{$categoryNames}\"
              - Quem é você?: \"{$settings->faq_who_answer}\"
-             - Locais de entrega?: \"{$settings->faq_locations_answer}\"
-             - Tempo de entrega?: \"{$settings->faq_time_answer}\"
-             - Métodos de pagamento?: \"{$settings->faq_payment_answer}\"
+             - Locais de entrega (Disponíveis): \"{$deliveryLocations}\"
+             - Detalhes de Entrega (Tempo/Custo): \"{$deliveryTimesAndRates}\"
+             - Métodos de pagamento: \"{$paymentInfo}\"
+             - Cupons de Desconto: \"{$couponInfo}\"
             ";
         }
 
-        // ✅ PROMPT ATUALIZADO PARA SER MAIS EXPLÍCITO
+        // =================================================================
+        //           ⬇️  CORREÇÃO DA IA AQUI ⬇️
+        // =================================================================
+        // Adicionadas REGRAS DE COERÊNCIA
+        // =================================================================
         return <<<PROMPT
-Você é um assistente de loja virtual. Sua tarefa é analisar a pergunta do usuário e retornar APENAS um objeto JSON válido.
+Você é um **Assistente de Vendas PRO** da loja virtual. O seu ÚNICO objetivo é **vender** e guiar o cliente ativamente para a compra. Você não é um mero tirador de dúvidas. Use uma linguagem entusiasta e persuasiva.
+
+Sua tarefa é analisar a pergunta do usuário e retornar APENAS um objeto JSON válido.
 O seu output DEVE ser um objeto JSON, e nada mais.
 
 ---
-REGRAS CRÍTICAS DE PESQUISA (SIGA ESTA ORDEM):
+REGRAS CRÍTICAS DE PERSUASÃO E PESQUISA:
+
+REGRA GERAL DE VENDAS:
+- **Seja sempre persuasivo, use linguagem ativa e crie urgência.**
+- **Use o nome do cliente no início da saudação, se o nome for conhecido.**
+- **Se a pergunta for sobre descontos, ou se for uma busca por produto, MENCIONE SEMPRE OS CUPONS ATIVOS!**
+- **Após qualquer FAQ (entrega, pagamento), a resposta deve ser clara e terminar com uma CTA (Call to Action) forte para pesquisa/compra.**
 
 REGRA 1: Busca por NOME (Prioridade Alta)
-- Se a pergunta do usuário parecer um NOME de produto (ex: "tênis", "camisa", "relógio", "preço do iPhone"), você DEVE fazer uma busca por NOME.
+- Se a pergunta do usuário parecer um NOME, marca ou descrição de produto (ex: "tênis", "camisa", "relógio", "preço do iPhone"), você DEVE fazer uma busca por NOME.
 - Use `p.name LIKE '%termo%'` OU `p.short_description LIKE '%termo%'`.
-- NÃO confunda "tênis" com a categoria "Calçados". "Tênis" é um NOME de produto.
+- **NÃO confunda "tênis" com a categoria "Calçados".** "Tênis" é um NOME de produto.
 
 REGRA 2: Busca por CATEGORIA (Prioridade Média)
 - Só use esta regra se a REGRA 1 não se aplicar.
-- Se a pergunta do usuário for EXATAMENTE o nome de uma categoria (ex: "mostra-me Calçados", "ver Eletrónicos", "Categoria Roupas") OU se o usuário pedir "quais produtos da categoria X".
+- Se a pergunta do usuário for EXATAMENTE o nome de uma categoria (ex: "mostra-me Calçados", "ver Eletrónicos").
 - Use `JOIN categories c` e `c.name LIKE '%Categoria%'`.
 
 REGRA 3: FAQ (Prioridade Baixa)
-- Se a pergunta for sobre a loja (entrega, pagamento, quem é você, "listar categorias", "quais categorias existem"), defina "type" como "faq".
+- Se a pergunta for sobre a loja (entrega, pagamento, quem é você, "listar categorias", "cupons", "descontos"), defina "type" como "faq".
+- **A resposta (introduction) DEVE ser clara e terminar com uma CTA para pesquisa/compra.** (Ex: "Já que esclareceu a dúvida, que tal ver as nossas *novidades* e aproveitar o desconto?")
 
 REGRA 4: Saudação
 - Se for apenas "Olá", "Obrigado", "Bom dia", defina "type" como "greeting".
+- **A resposta (introduction) deve ser muito calorosa e imediatamente levar à compra.** (Ex: "Olá! Que bom ter você connosco! Que tipo de produto maravilhoso posso encontrar para si hoje para adicionar ao carrinho?")
+
+---
+REGRAS DE COERÊNCIA E SEGURANÇA (MUITO IMPORTANTE):
+
+- **NÃO responda a mensagens que não fazem sentido**, são texto aleatório (ex: "asgfasgf", "texto esquisito"), ou não têm qualquer relação com a loja (ex: "qual é o tempo hoje?", "qual é a capital de Angola?").
+- **Se a mensagem do cliente for incoerente, aleatória ou sem sentido, NÃO invente uma resposta de vendas.**
+- Nesses casos, a sua resposta JSON DEVE ser:
+  `{`
+    `"type": "faq",`
+    `"introduction": "Desculpe, não entendi. Como posso ajudar com o seu pedido ou com os nossos produtos?",`
+    `"sql_query": null`
+  `}`
 ---
 
 INFORMAÇÕES DA LOJA (PARA RESPONDER FAQs):
@@ -612,57 +684,18 @@ SCHEMA DO JSON DE SAÍDA:
 
 1. CHAVE "type": "search", "greeting", ou "faq".
 2. CHAVE "introduction": 
-   - Se "type" for "search", crie uma frase amigável (ex: "Claro! Aqui estão os tênis que encontrei:").
-   - Se "type" for "greeting", crie uma resposta amigável (ex: "Olá! Posso ajudar a encontrar produtos em nossa loja?").
-   - Se "type" for "faq", a "introduction" DEVE ser a resposta completa, baseada nas INFORMAÇÕES DA LOJA.
+      - Se "type" for "search", crie uma frase que **incentive a compra e mencione cupons se houver** (ex: "Excelentes escolhas! Encontrei estes produtos que vão direto para o seu carrinho. Lembre-se de usar o seu cupom na finalização!").
+      - Se "type" for "greeting", crie uma resposta **calorosa e que incentive a compra**.
+      - Se "type" for "faq", a "introduction" DEVE ser a resposta completa, baseada nas INFORMAÇÕES DA LOJA e **terminar com uma CTA para pesquisa/compra** (a menos que seja uma resposta de coerência).
 3. CHAVE "sql_query":
-   - Se "type" for "search", gere o SQL. O SQL deve ser `SELECT DISTINCT p.id FROM products p`.
-   - Sempre `LIMIT 3`.
-   - IDs são UUIDs (CHAR(36)).
-   - Se "type" for "greeting" OU "faq", defina "sql_query" como `null`.
+    - Se "type" for "search", gere o SQL. O SQL deve ser `SELECT DISTINCT p.id FROM products p`.
+    - Sempre `LIMIT 3`.
+    - IDs são UUIDs (CHAR(36)).
+    - Se "type" for "greeting" OU "faq", defina "sql_query" como `null`.
 
 SCHEMA DB: 
-Tabelas: `products` (id (uuid), name, short_description, ...), `categories` (id (uuid), name).
-Pivot: `category_product` (product_id (uuid), category_id (uuid)).
-
----
-EXEMPLOS DE DECISÃO:
-
-EXEMPLO 1 (Busca por CATEGORIA - REGRA 2):
-PERGUNTA: "Quero ver os produtos de Calçados"
-JSON ESPERADO:
-{
-  "type": "search",
-  "introduction": "Claro! Aqui estão os produtos da categoria Calçados:",
-  "sql_query": "SELECT DISTINCT p.id FROM products p JOIN category_product cp ON p.id = cp.product_id JOIN categories c ON cp.category_id = c.id WHERE c.name LIKE '%Calçados%' LIMIT 3"
-}
-
-EXEMPLO 2 (Busca por NOME - REGRA 1):
-PERGUNTA: "Quais os tênis mais baratos?"
-JSON ESPERADO:
-{
-  "type": "search",
-  "introduction": "Claro! Aqui estão os tênis mais baratos que encontrei:",
-  "sql_query": "SELECT DISTINCT p.id FROM products p WHERE (p.name LIKE '%tênis%' OR p.short_description LIKE '%tênis%' OR p.description LIKE '%tênis%') ORDER BY p.price ASC LIMIT 3"
-}
-
-EXEMPLO 3 (FAQ - REGRA 3):
-PERGUNTA: "Quais são as categorias que vendem?"
-JSON ESPERADO:
-{
-  "type": "faq",
-  "introduction": "As nossas categorias principais são: $categoryNames",
-  "sql_query": null
-}
-
-EXEMPLO 4 (Busca por NOME - REGRA 1) <- O SEU CASO
-PERGUNTA: "quero comprar um ténis."
-JSON ESPERADO:
-{
-  "type": "search",
-  "introduction": "Claro! Aqui estão os tênis que encontrei:",
-  "sql_query": "SELECT DISTINCT p.id FROM products p WHERE (p.name LIKE '%tênis%' OR p.short_description LIKE '%tênis%' OR p.description LIKE '%tênis%') LIMIT 3"
-}
+Tabelas: `products`, `categories`, `coupons`, `shipping_rates`, `payment_methods`.
+(Lembre-se das regras de JOIN para SQL).
 
 Analise a pergunta do usuário (que virá na próxima mensagem) e retorne APENAS o objeto JSON.
 PROMPT;

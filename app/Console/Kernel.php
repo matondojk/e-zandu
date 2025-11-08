@@ -13,6 +13,7 @@ class Kernel extends ConsoleKernel
     protected function schedule(Schedule $schedule)
     {
         $schedule->command('stock:process-alerts')->everyTenMinutes();
+        $schedule->command('campaign:dispatch-scheduled')->everyMinute();
 
         $schedule->command('app:send-scheduled-reports --frequency=daily')
             ->daily()

@@ -8,6 +8,7 @@ use Exception;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms;
+use App\Services\SubscriptionManager;
 
 class ChatAnalysis extends Page implements HasForms
 {
@@ -22,6 +23,38 @@ class ChatAnalysis extends Page implements HasForms
     protected static ?string $title = 'Chat de Análise (IA Conversacional)';
     protected static ?int $navigationSort = 2; // Coloca abaixo do Assistente
     protected static ?string $slug = 'chat-de-analise'; // URL em português
+
+    // --- 2. ADICIONAR OS MÉTODOS DE BADGE ---
+
+    /**
+     * Mostra um badge "ESSENCIAL" se o utilizador atual (Trial) não tiver acesso.
+     */
+    public static function getNavigationBadge(): ?string
+    {
+        $manager = app(SubscriptionManager::class);
+
+        // A feature key é 'analise-inteligente', como definido no Middleware/Manager
+        if (!$manager->canUse('analise-inteligente')) {
+            return 'ESSENCIAL'; // Retorna o badge para o plano "Trial"
+        }
+
+        // Se pode usar (É Essencial ou PRO), não mostra nada
+        return null;
+    }
+
+    /**
+     * Define a cor do badge (usamos 'warning' - laranja - para destaque).
+     */
+    public static function getNavigationBadgeColor(): ?string
+    {
+        if (!app(SubscriptionManager::class)->canUse('analise-inteligente')) {
+            return 'warning';
+        }
+        
+        return null;
+    }
+
+    // --- FIM DA ADIÇÃO ---
 
     // --- Estado do Chat ---
     public string $currentMessage = ''; // O que o utilizador está a digitar

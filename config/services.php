@@ -32,10 +32,10 @@ return [
     ],
 
     'whatsapp' => [
-        'token'        => env('WHATSAPP_API_TOKEN'),
-        'phone_id'     => env('WHATSAPP_PHONE_ID'),
-        'verify_token' => env('WHATSAPP_VERIFY_TOKEN'),
-        'admin_phone'  => env('ADMIN_WHATSAPP_NUMBER'),
+        'token'        => env('WHATSAPP_API_TOKEN', null),
+        'phone_id'     => env('WHATSAPP_PHONE_ID', null),
+        'verify_token' => env('WHATSAPP_VERIFY_TOKEN', null),
+        'admin_phone'  => env('ADMIN_WHATSAPP_NUMBER', null),
     ],
 
     'openai' => [
