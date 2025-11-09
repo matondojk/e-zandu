@@ -43,7 +43,19 @@ class AdminPanelProvider extends PanelProvider
             ->passwordReset()
             ->emailVerification()
             ->colors([
-                'primary' => Color::Orange,
+                'primary' => [
+                    '50' => '#fffbeb',
+                    '100' => '#fef3c7',
+                    '200' => '#fde68a',
+                    '300' => '#fcd34d',
+                    '400' => '#f0b91a',
+                    '500' => '#e59d02', // <-- A SUA COR EXATA "GOLD"
+                    '600' => '#d97706', // (Os tons à volta são ajustados)
+                    '700' => '#b45309',
+                    '800' => '#92400e',
+                    '900' => '#78350f',
+                    '950' => '#451a03',
+                ],
             ])
             ->profile(EditProfile::class)
             // ->brandLogo('https://matondojoao.com/wp-content/uploads/2025/10/tanga-wa-icon-2.png')

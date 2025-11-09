@@ -34,22 +34,22 @@ class AppServiceProvider extends ServiceProvider
             return;
         }
 
-        try {
-            if (Schema::hasTable('whatsapp_settings')) {
-                $settings = WhatsAppSetting::first();
+        // try {
+        //     if (Schema::hasTable('whatsapp_settings')) {
+        //         $settings = WhatsAppSetting::first();
 
-                if ($settings) {
-                    config([
-                        'services.whatsapp.token' => $settings->token,
-                        'services.whatsapp.phone_id' => $settings->phone_id,
-                        'services.whatsapp.verify_token' => $settings->verify_token,
-                        'services.whatsapp.admin_phone' => $settings->admin_phone,
-                    ]);
-                }
-            }
-        } catch (\Exception $e) {
-            Log::error('Falha ao carregar configurações do WhatsApp da BD: ' . $e->getMessage());
-        }
+        //         if ($settings) {
+        //             config([
+        //                 'services.whatsapp.token' => $settings->token,
+        //                 'services.whatsapp.phone_id' => $settings->phone_id,
+        //                 'services.whatsapp.verify_token' => $settings->verify_token,
+        //                 'services.whatsapp.admin_phone' => $settings->admin_phone,
+        //             ]);
+        //         }
+        //     }
+        // } catch (\Exception $e) {
+        //     Log::error('Falha ao carregar configurações do WhatsApp da BD: ' . $e->getMessage());
+        // }
 
         Cart::observe(CartObserver::class);
         Stock::observe(StockObserver::class);
