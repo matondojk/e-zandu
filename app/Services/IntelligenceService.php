@@ -347,6 +347,8 @@ PROMPT;
                 'products',
                 'categories',
                 'category_product',
+                'brands',
+                'brand_product',
                 'product_images',
                 'product_cross_sell',
                 'users',
