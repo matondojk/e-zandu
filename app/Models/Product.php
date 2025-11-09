@@ -71,6 +71,11 @@ class Product extends Model
         return $this->belongsToMany(Category::class);
     }
 
+    public function brands()
+    {
+        return $this->belongsToMany(Brand::class);
+    }
+
     public function movements()
     {
         return $this->hasMany(StockMovement::class);

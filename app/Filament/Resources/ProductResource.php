@@ -91,6 +91,16 @@ class ProductResource extends Resource
                                     ->searchable()
                                     ->required()
                                     ->columnSpanFull(),
+
+                                // ✅ NOVO: Seletor de Marcas
+                                Forms\Components\Select::make('brands')
+                                    ->label('Marcas')
+                                    ->relationship('brands', 'name')
+                                    ->multiple()
+                                    ->preload()
+                                    ->searchable()
+                                    // ->required() // Pode ser opcional, ao contrário da categoria
+                                    ->columnSpanFull(),
                             ]),
 
                         // SECÇÃO 2: IMAGEM PRINCIPAL (Mantida)
@@ -143,49 +153,37 @@ class ProductResource extends Resource
                                     ])->columnSpanFull(),
                             ]),
                             
-                        // ✅ SECÇÃO 3: GALERIA DE IMAGENS (USANDO REPEATER + BULK UPLOAD)
+                        // SECÇÃO 3: GALERIA DE IMAGENS
                         Section::make('Galeria de Imagens Secundárias')
                             ->description('Use o campo "Upload em Massa" para selecionar várias imagens de uma só vez. Use a grelha abaixo para reordenar/apagar.')
                             ->schema([
-                                // 1. CAMPO AUXILIAR DE UPLOAD EM MASSA (Não persistido)
                                 Forms\Components\FileUpload::make('bulk_gallery_upload')
                                     ->label('Upload em Massa (Selecione Vários Ficheiros)')
                                     ->multiple()->image()->directory('products/gallery')->disk('public')
                                     ->helperText('Os ficheiros serão adicionados automaticamente à galeria abaixo.')
-                                    ->dehydrated(false) // NUNCA SALVAR NO MODEL PRINCIPAL
+                                    ->dehydrated(false)
                                     ->afterStateUpdated(function (?array $state, Forms\Get $get, Forms\Set $set) {
                                         if (empty($state)) return;
-
                                         $currentRepeaterItems = $get('images') ?? [];
-                                        
-                                        // Processa cada caminho do upload em massa
                                         foreach ($state as $path) {
                                             if (is_string($path) && !Str::contains($path, ['/tmp/'])) {
-                                                // Cria um novo item para o Repeater
                                                 $currentRepeaterItems[] = [
-                                                    // O FileUpload retorna o caminho relativo do disco (ex: products/gallery/hash.jpg)
                                                     'url' => $path, 
                                                     'sort_order' => 0,
                                                 ];
                                             }
                                         }
-
-                                        // Atualiza o estado do Repeater
                                         $set('images', $currentRepeaterItems);
-                                        // Limpa o campo de upload em massa
                                         $set('bulk_gallery_upload', null); 
                                     })
                                     ->columnSpanFull(),
                                     
-                                // 2. REPEATER PARA GESTÃO DA RELAÇÃO
-                                Repeater::make('images') // ✅ Mapeia diretamente para a relação 'images'
+                                Repeater::make('images')
                                     ->label('Itens da Galeria')
                                     ->relationship() 
                                     ->schema([
                                         Forms\Components\FileUpload::make('url') 
                                             ->label('Visualização da Imagem')
-                                            // ✅ Deixe o FileUpload fazer seu trabalho natural: salvar e ler o caminho relativo.
-                                            // O Observer se encarregará de transformar em URL completo na BD.
                                             ->image()->directory('products/gallery')->disk('public')
                                             ->required()
                                             ->disableLabel()
@@ -195,14 +193,11 @@ class ProductResource extends Resource
                                             ->label('Ordem')
                                             ->numeric()
                                             ->default(0)
-                                            ->hidden(), // Ocultar, pois a reordenação é visual
-
+                                            ->hidden(),
                                     ])
-                                    // ❌ REMOVEMOS TODOS OS MUTATORS AQUI (mutateRelationshipDataBeforeFill, dehydrateStateUsing, etc.)
-                                    // Confiamos no Eloquent Observer (Passo 1) para a conversão de URL.
                                     ->defaultItems(0)
                                     ->minItems(0)
-                                    ->reorderable('sort_order') // Usa o campo sort_order para a reordenação
+                                    ->reorderable('sort_order')
                                     ->addActionLabel('Adicionar 1 Imagem (Manual)'),
                             ]),
                     ]),
@@ -240,14 +235,14 @@ class ProductResource extends Resource
                                     ->default('Unidade')->required()->searchable(),
                             ]),
 
-                        // SECÇÃO 5: VARIAÇÕES (Mantida)
+                        // SECÇÃO 5: VARIAÇÕES
                         Section::make('Variações')
                             ->schema([
                                 TagsInput::make('colors')->label('Cores Disponíveis')->placeholder('Ex: Vermelho...'),
                                 TagsInput::make('sizes')->label('Tamanhos Disponíveis')->placeholder('Ex: S, M, L...'),
                             ]),
                             
-                        // SECÇÃO 6: LOGÍSTICA (Mantida)
+                        // SECÇÃO 6: LOGÍSTICA
                         Section::make('Logística e Atributos Físicos')
                             ->schema([
                                 Forms\Components\TextInput::make('drawing')->label('Desenho/Código de Projeto')->maxLength(100),
@@ -256,7 +251,7 @@ class ProductResource extends Resource
                                 Forms\Components\TextInput::make('dimension')->label('Dimensões (LxAxP)')->placeholder('Ex: 10x20x30 cm')->maxLength(100),
                             ]),
                             
-                        // SECÇÃO 7: RECOMENDAÇÕES (Mantida)
+                        // SECÇÃO 7: RECOMENDAÇÕES
                         Section::make('Recomendações (Cross-Sell)')
                             ->collapsible()
                             ->schema([
@@ -269,14 +264,6 @@ class ProductResource extends Resource
                     ]),
             ]);
     }
-
-    // --- HOOKS DO RESOURCE AGORA VAZIOS/REMOVIDOS ---
-    public static function mutateFormDataBeforeCreate(array $data): array { return $data; }
-    public static function mutateFormDataBeforeSave(array $data, ?Model $record = null): array { return $data; }
-    public static function afterCreate(Model $record): void {}
-    public static function afterSave(Model $record): void {}
-    
-    // --- FIM DOS HOOKS ---
     
     public static function table(Table $table): Table
     {
@@ -297,7 +284,6 @@ class ProductResource extends Resource
                 
                 TextColumn::make('current_stock')
                     ->label('Estoque Atual')
-                    // ->state(fn (Product $record): int => $record->movements()->sum('quantity')) // Ajuste para decimal
                     ->state(fn (Product $record): float => (float) $record->movements()->sum('quantity')) // Usa float
                     ->formatStateUsing(fn ($state, Product $record) => number_format($state, 0, ',', '.') . ' ' . $record->unit)
                     ->alignEnd()
@@ -306,6 +292,12 @@ class ProductResource extends Resource
                 Tables\Columns\TextColumn::make('categories.name')
                     ->label('Categorias')
                     ->badge()->wrap(),
+
+                // ✅ NOVO: Coluna de Marcas
+                Tables\Columns\TextColumn::make('brands.name')
+                    ->label('Marcas')
+                    ->badge()->color('success')->wrap()
+                    ->toggleable(isToggledHiddenByDefault: true), // Oculto por padrão para não poluir
 
                 Tables\Columns\TextColumn::make('price')
                     ->label('Preço Normal')
@@ -336,6 +328,12 @@ class ProductResource extends Resource
                     ->multiple()->preload()
                     ->label('Filtrar por Categoria'),
 
+                // ✅ NOVO: Filtro de Marcas
+                SelectFilter::make('brands')
+                    ->relationship('brands', 'name')
+                    ->multiple()->preload()
+                    ->label('Filtrar por Marca'),
+
                 Tables\Filters\Filter::make('price_range')
                     ->form([
                         Forms\Components\TextInput::make('min_price')->numeric()->label('Preço Mínimo (Kz)'),
@@ -348,28 +346,20 @@ class ProductResource extends Resource
                     })
                     ->label('Filtrar por Preço'),
                 
-                // ✅ --- INÍCIO DA CORREÇÃO ---
-                // O erro `Argument #2 ($label) must be of type string, null given`
-                // acontece se `pluck('unit', 'unit')` encontrar um valor NULL.
                 SelectFilter::make('unit')
                     ->label('Filtrar por Unidade')
                     ->options(function () {
-                        // Usamos uma função para buscar os dados e formatá-los.
                         return Product::query()
                             ->select('unit')
                             ->distinct()
                             ->get()
                             ->mapWithKeys(function ($product) {
                                 $unitValue = $product->unit;
-                                // Se unit for NULL, usamos o rótulo 'Sem Unidade'.
                                 $unitLabel = $product->unit ?? 'Sem Unidade'; 
-                                
-                                // O valor (key) pode ser null, mas o rótulo (value) DEVE ser um string.
                                 return [$unitValue => $unitLabel];
                             });
                     })
                     ->multiple(),
-                // ✅ --- FIM DA CORREÇÃO ---
                 
                 Tables\Filters\TernaryFilter::make('on_sale')
                     ->label('Em Promoção')
@@ -410,7 +400,7 @@ class ProductResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()->with(['categories', 'movements', 'images']); 
+        // ✅ ALTERADO: Adicionado 'brands' ao eager loading
+        return parent::getEloquentQuery()->with(['categories', 'brands', 'movements', 'images']); 
     }
 }
-
