@@ -28,7 +28,7 @@ class BrandResource extends Resource
     protected static ?string $model = Brand::class;
 
     // Configurações de Navegação
-    protected static ?string $navigationIcon = 'heroicon-o-building-storefront';
+    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
     protected static ?string $navigationLabel = 'Marcas';
     protected static ?string $modelLabel = 'Marca';
     protected static ?string $pluralModelLabel = 'Marcas';
@@ -114,7 +114,7 @@ class BrandResource extends Resource
                     ->label('Slug')
                     ->copyable()
                     ->toggleable(isToggledHiddenByDefault: true),
-                
+
                 Tables\Columns\TextColumn::make('updated_at')
                     ->label('Última Atualização')
                     ->dateTime('d/m/Y H:i')
@@ -164,14 +164,14 @@ class BrandResource extends Resource
             ])
             ->defaultSort('name', 'asc');
     }
-    
+
     public static function getRelations(): array
     {
         return [
             //
         ];
     }
-    
+
     public static function getPages(): array
     {
         return [
@@ -179,8 +179,8 @@ class BrandResource extends Resource
             'create' => Pages\CreateBrand::route('/create'),
             'edit' => Pages\EditBrand::route('/{record}/edit'),
         ];
-    }    
-    
+    }
+
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()->withCount('products');
