@@ -5,7 +5,7 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use App\Models\Product;
 use App\Models\Category;
-use App\Models\Brand; // ✅ NOVO: Importar o Model Brand
+use App\Models\Brand; // ✅ Model Brand mantido
 use App\Models\ProductReview;
 use App\Models\User;
 use App\Models\ProductImage;
@@ -24,8 +24,8 @@ class ProductSeeder extends Seeder
         DB::table('products')->truncate();
         DB::table('category_product')->truncate();
         DB::table('categories')->truncate();
-        DB::table('brand_product')->truncate(); // ✅ NOVO: Limpar pivot de marcas
-        DB::table('brands')->truncate(); // ✅ NOVO: Limpar marcas
+        DB::table('brand_product')->truncate(); // Limpar pivot de marcas
+        DB::table('brands')->truncate(); // Limpar marcas
         DB::statement('SET FOREIGN_KEY_CHECKS=1;');
         // --- FIM DA LIMPEZA ---
 
@@ -37,27 +37,29 @@ class ProductSeeder extends Seeder
             $this->command->warn("Aviso: Não foi possível encontrar um utilizador para atribuir reviews.");
         }
 
-        // 2. Criar Categorias
+        // 2. ✅ NOVO: Criar Categorias (em Português)
         $categoriesData = [
-            'Camisetas e Blusas' => ['icon' => 'heroicon-o-user-circle'],
-            'Casacos e Moletons' => ['icon' => 'heroicon-o-user-group'],
-            'Calçados' => ['icon' => 'heroicon-o-hand-thumb-up'],
+            'Iluminação' => ['icon' => 'heroicon-o-light-bulb'],
+            'Decoração' => ['icon' => 'heroicon-o-sparkles'],
+            'Mobiliário' => ['icon' => 'heroicon-o-home'], // heroicon-o-archive-box ou similar
         ];
         $categoryIds = [];
         foreach ($categoriesData as $name => $data) {
             $category = Category::create([
                 'name' => $name,
-                'slug' => Str::slug($name), // Adicionado slug para consistência
+                'slug' => Str::slug($name), 
                 'description' => "Produtos relacionados à categoria {$name}.",
                 'icon' => $data['icon']
             ]);
             $categoryIds[$name] = $category->id;
         }
 
-        // 3. ✅ NOVO: Criar Marcas
+        // 3. Criar Marcas (Mantido, embora os novos produtos não as usem)
         $brandsData = [
             'Superdry', 'Converse', 'Designers Remix', 'Woo', 'Jack & Jones', 
-            'Lee Jeans', 'Diesel', 'VANS', 'New Balance', 'NLY Trend'
+            'Lee Jeans', 'Diesel', 'VANS', 'New Balance', 'NLY Trend',
+            // Adicionar marcas genéricas de mobiliário se necessário
+            'CasaChique', 'DecorArt', 'Luz&Forma'
         ];
         $brandIds = [];
         foreach ($brandsData as $name) {
@@ -69,163 +71,152 @@ class ProductSeeder extends Seeder
             $brandIds[$name] = $brand->id;
         }
 
-        // 4. ✅ NOVO: Lista de Produtos (com 'brands' adicionada)
+        // 4. ✅ NOVO: Lista de Produtos (com dados em PT e preços em KZ)
+        // Nota: Usei uma taxa de conversão aproximada e arredondei os valores.
         $productsData = [
             [
-                'name' => 'T-Shirt Osaka Entry Superdry',
-                'description' => 'Uma t-shirt clássica da Superdry com a icónica estampa Osaka. Feita em algodão macio de alta qualidade, é perfeita para um look casual, confortável e cheio de estilo. Essencial para o dia-a-dia.',
-                'short_description' => 'T-shirt clássica Superdry em algodão com estampa Osaka.',
-                'price' => 7990.00,
-                'image_url' => 'https://demos.flatsome.com/wp-content/uploads/2013/08/538228-0286_2.jpeg',
-                'categories' => ['Camisetas e Blusas'],
-                'brands' => ['Superdry'], // ✅
-                'sizes' => ['P', 'M', 'G', 'GG'],
-                'colors' => ['Preto', 'Branco'],
+                'name' => 'Candeeiro de Mesa "Petite"',
+                'description' => 'Um candeeiro de mesa pequeno e elegante, ideal para secretárias, mesas de cabeceira ou como ponto de luz decorativo. O seu design minimalista em metal adapta-se facilmente a qualquer estilo de decoração, proporcionando uma luz suave e acolhedora.',
+                'short_description' => 'Candeeiro de mesa compacto e elegante.',
+                'price' => 34000.00, // Preço estimado
+                'image_url' => 'https://portotheme.com/html/molla/assets/images/demos/demo-2/products/product-7-1.jpg',
+                'categories' => ['Iluminação'],
                 'additional_images' => [
-                    'https://demos.flatsome.com/wp-content/uploads/2013/08/538228-0286_3.jpeg',
-                    'https://demos.flatsome.com/wp-content/uploads/2013/08/538228-0286_2.jpeg',
+                    'https://portotheme.com/html/molla/assets/images/demos/demo-2/products/product-7-2.jpg',
                 ]
             ],
             [
-                'name' => 'Tênis All Star Canvas Hi Converse',
-                'description' => 'O lendário tênis de cano alto da Converse (Hi). Com um design intemporal em lona resistente e solado de borracha vulcanizada, é um item essencial e versátil em qualquer guarda-roupa.',
-                'short_description' => 'O lendário tênis de cano alto da Converse em lona.',
-                'price' => 12990.00,
-                'image_url' => 'https://demos.flatsome.com/wp-content/uploads/2013/08/282004-0286_2.jpeg',
-                'categories' => ['Calçados'],
-                'brands' => ['Converse'], // ✅
-                'sizes' => ['37', '38', '39', '40', '41', '42'],
-                'colors' => ['Preto', 'Branco', 'Vermelho', 'Azul'],
+                'name' => 'Suporte de Lenha "Madra"',
+                'description' => 'Mantenha a sua lenha organizada e acessível com o Suporte de Lenha Madra. Feito com materiais metálicos robustos e um design industrial moderno, é uma peça funcional e decorativa para a sua lareira ou sala de estar.',
+                'short_description' => 'Suporte de lenha robusto com design industrial.',
+                'price' => 340900.00, // $401,00 * ~850
+                'image_url' => 'https://portotheme.com/html/molla/assets/images/demos/demo-2/products/product-8-1.jpg',
+                'categories' => ['Decoração'],
                 'additional_images' => [
-                    'https://demos.flatsome.com/wp-content/uploads/2013/08/282004-0427_2.jpeg',
-                    'https://demos.flatsome.com/wp-content/uploads/2013/08/282004-0046_2.jpeg',
+                    'https://portotheme.com/html/molla/assets/images/demos/demo-2/products/product-8-2.jpg',
                 ]
             ],
             [
-                'name' => 'Pulôver Fluro Big Designers Remix',
-                'description' => 'Um pulôver oversized da Designers Remix com uma cor flúor vibrante. Perfeito para se destacar na multidão, combinando o máximo de conforto com um estilo urbano e arrojado.',
-                'short_description' => 'Pulôver oversized em cor flúor vibrante.',
-                'price' => 14500.00,
-                'image_url' => 'https://demos.flatsome.com/wp-content/uploads/2013/08/252678-0029_1.jpeg?style=layout-grid-style-2',
-                'categories' => ['Casacos e Moletons'],
-                'brands' => ['Designers Remix'], // ✅
-                'sizes' => ['P', 'M', 'G'],
-                'colors' => ['Verde Flúor'],
+                'name' => 'Poltrona de Jardim (Verde)',
+                'description' => 'Desfrute do ar livre com esta poltrona de jardim. Construída com uma estrutura metálica resistente e um assento confortável, é ideal para varandas, terraços ou jardins. O seu design moderno em verde adiciona um toque de frescura ao seu espaço exterior.',
+                'short_description' => 'Poltrona de jardim confortável e resistente.',
+                'price' => 79900.00, // $94,00 * ~850
+                'image_url' => 'https://portotheme.com/html/molla/assets/images/demos/demo-2/products/product-9-1.jpg',
+                'categories' => ['Mobiliário'],
                 'additional_images' => [
-                    'https://demos.flatsome.com/wp-content/uploads/2013/08/252678-0029_2.jpeg',
+                    'https://portotheme.com/html/molla/assets/images/demos/demo-2/products/product-9-2.jpg',
                 ]
             ],
             [
-                'name' => 'T-Shirt Premium Happy Ninja',
-                'description' => 'Mostre o seu lado ninja com esta t-shirt premium. Feita com 100% algodão, apresenta um design \'Happy Ninja\' exclusivo na frente e nas costas. Conforto e atitude num só produto.',
-                'short_description' => 'T-shirt 100% algodão com design exclusivo \'Happy Ninja\'.',
-                'price' => 6990.00,
-                'image_url' => 'https://demos.flatsome.com/wp-content/uploads/2013/06/T_7_front.jpg',
-                'categories' => ['Camisetas e Blusas'],
-                'brands' => ['Woo'], // ✅
-                'sizes' => ['M', 'G', 'GG'],
-                'colors' => ['Preto'],
+                'name' => 'Candeeiro de Suspensão Grande "Carronade"',
+                'description' => 'O candeeiro de suspensão Carronade é uma peça de iluminação impressionante. Com um design industrial moderno, inspirado em canhões, e de grande dimensão, torna-se o ponto focal de qualquer sala de jantar ou de estar. Estrutura em metal de alta qualidade.',
+                'short_description' => 'Candeeiro de suspensão de grande porte, estilo industrial.',
+                'price' => 340900.00, // $401,00 * ~850
+                'image_url' => 'https://portotheme.com/html/molla/assets/images/demos/demo-2/products/product-10-1.jpg',
+                'categories' => ['Iluminação'],
                 'additional_images' => [
-                    'https://demos.flatsome.com/wp-content/uploads/2013/06/T_7_back.jpg?style=layout-grid-style-2',
+                    'https://portotheme.com/html/molla/assets/images/demos/demo-2/products/product-10-2.jpg',
                 ]
             ],
             [
-                'name' => 'Moletom com Capuz Ninja (Preto)',
-                'description' => 'Conforto e estilo se encontram neste moletom com capuz. O design minimalista \'Ninja\' em preto torna-o uma peça versátil e essencial para dias mais frios. Possui bolso canguru e capuz ajustável.',
-                'short_description' => 'Moletom com capuz e design minimalista \'Ninja\'.',
-                'price' => 17990.00,
-                'image_url' => 'https://demos.flatsome.com/wp-content/uploads/2013/06/hoodie_4_front.jpg',
-                'categories' => ['Casacos e Moletons'],
-                'brands' => ['Woo'], // ✅
-                'sizes' => ['P', 'M', 'G', 'GG'],
-                'colors' => ['Preto'],
-                'additional_images' => []
-            ],
-            [
-                'name' => 'T-Shirt Bjorn SS Jack & Jones',
-                'description' => 'T-shirt de manga curta (SS) da Jack & Jones, modelo Bjorn. Apresenta uma estampa gráfica moderna e arrojada no peito, ideal para looks urbanos e descontraídos.',
-                'short_description' => 'T-shirt de manga curta Jack & Jones com estampa gráfica.',
-                'price' => 7200.00,
-                'image_url' => 'https://demos.flatsome.com/wp-content/uploads/2013/08/634021-5326_1.jpeg',
-                'categories' => ['Camisetas e Blusas'],
-                'brands' => ['Jack & Jones'], // ✅
-                'sizes' => ['P', 'M', 'G', 'GG'],
-                'colors' => ['Branco', 'Preto'],
+                'name' => 'Puff (Beanbag) de Exterior Original',
+                'description' => 'Relaxe no seu jardim, terraço ou à beira da piscina com este confortável puff de exterior. Feito com tecido resistente às intempéries e à água, molda-se perfeitamente ao seu corpo para um conforto inigualável. Leve e fácil de mover.',
+                'short_description' => 'Puff de exterior confortável e resistente à água.',
+                'price' => 220000.00, // $259,00 * ~850
+                'image_url' => 'https://portotheme.com/html/molla/assets/images/demos/demo-2/products/product-11-1.jpg',
+                'categories' => ['Decoração', 'Mobiliário'],
                 'additional_images' => [
-                    'https://demos.flatsome.com/wp-content/uploads/2013/08/634021-5326_5.jpeg',
+                    'https://portotheme.com/html/molla/assets/images/demos/demo-2/products/product-11-2.jpg',
                 ]
             ],
             [
-                'name' => 'T-Shirt Jeansmaker Lee Jeans',
-                'description' => 'Uma homenagem à tradição da Lee Jeans. Esta t-shirt \'Jeansmaker\' celebra a herança da marca com um design vintage e confortável em algodão premium.',
-                'short_description' => 'T-shirt Lee Jeans com design \'Jeansmaker\' vintage.',
-                'price' => 8100.00,
-                'image_url' => 'https://demos.flatsome.com/wp-content/uploads/2013/08/863232-6132_5.jpeg',
-                'categories' => ['Camisetas e Blusas'],
-                'brands' => ['Lee Jeans'], // ✅
-                'sizes' => ['M', 'G', 'GG'],
-                'colors' => ['Cinza', 'Azul Marinho'],
+                'name' => 'Sofá de 2 Lugares (Cinzento)',
+                'description' => 'Este sofá de 2 lugares combina design contemporâneo e conforto excepcional. Com linhas simples, estofamento em tecido cinzento de qualidade e pés de madeira robustos, é perfeito para salas de estar pequenas, escritórios ou como complemento.',
+                'short_description' => 'Sofá compacto e moderno de dois lugares em tecido.',
+                'price' => 2640000.00, // $3.107,00 * ~850
+                'image_url' => 'https://portotheme.com/html/molla/assets/images/demos/demo-2/products/product-12-1.jpg',
+                'categories' => ['Mobiliário'],
                 'additional_images' => [
-                    'https://demos.flatsome.com/wp-content/uploads/2013/08/863232-6132_3.jpeg?style=layout-grid-style-2',
+                    'https://portotheme.com/html/molla/assets/images/demos/demo-2/products/product-12-2.jpg',
                 ]
             ],
             [
-                'name' => 'Tênis Magnete Exposure Diesel',
-                'description' => 'Tênis de cano alto da Diesel, modelo Magnete Exposure. Design arrojado em denim (jeans) com o branding icónico da Diesel. Perfeito para um look urbano e moderno.',
-                'short_description' => 'Tênis de cano alto Diesel em denim com design arrojado.',
-                'price' => 21990.00,
-                'image_url' => 'https://demos.flatsome.com/wp-content/uploads/2013/08/217212-0001_2-494x593.jpeg',
-                'categories' => ['Calçados'],
-                'brands' => ['Diesel'], // ✅
-                'sizes' => ['40', '41', '42'],
-                'colors' => ['Jeans'],
+                'name' => 'Poltrona "Wingback" (de Orelhas)',
+                'description' => 'Uma poltrona clássica "Wingback" que adiciona um toque de elegância e sofisticação a qualquer espaço. O seu design icónico com "orelhas" laterais e estofamento de alta qualidade oferece um conforto superior e um excelente apoio, ideal para leitura.',
+                'short_description' => 'Poltrona clássica de "orelhas" com design intemporal.',
+                'price' => 2113000.00, // $2.486,00 * ~850
+                'image_url' => 'https://portotheme.com/html/molla/assets/images/demos/demo-2/products/product-13-2.jpg',
+                'categories' => ['Mobiliário'],
                 'additional_images' => [
-                    'https://demos.flatsome.com/wp-content/uploads/2013/08/217212-0001_1-494x593.jpeg',
+                    'https://portotheme.com/html/molla/assets/images/demos/demo-2/products/product-13-1.jpg',
                 ]
             ],
             [
-                'name' => 'Tênis U Old Skool VANS',
-                'description' => 'O icónico tênis de skate da VANS com a sidestripe lateral. O Old Skool nunca sai de moda, oferecendo durabilidade, conforto e um estilo inconfundível.',
-                'short_description' => 'Icónico tênis de skate VANS com a sidestripe lateral.',
-                'price' => 14990.00,
-                'image_url' => 'https://demos.flatsome.com/wp-content/uploads/2013/08/282245-0286_2-494x593.jpeg',
-                'categories' => ['Calçados'],
-                'brands' => ['VANS'], // ✅
-                'sizes' => ['38', '39', '40', '41', '42'],
-                'colors' => ['Preto/Branco'],
+                'name' => 'Conjunto de 3 Almofadas (Tons Neutros)',
+                'description' => 'Renove a sua sala ou quarto com este elegante conjunto de 3 almofadas. Com padrões e texturas complementares em tons neutros, adicionam conforto e estilo instantaneamente ao seu sofá ou cama. Inclui capas e enchimentos.',
+                'short_description' => 'Conjunto de 3 almofadas decorativas em tons neutros.',
+                'price' => 169000.00, // $199,00 * ~850
+                'image_url' => 'https://portotheme.com/html/molla/assets/images/demos/demo-2/products/product-14-2.jpg',
+                'categories' => ['Decoração'],
                 'additional_images' => [
-                    'https://demos.flatsome.com/wp-content/uploads/2013/08/282245-0286_1-494x593.jpeg',
+                    'https://portotheme.com/html/molla/assets/images/demos/demo-2/products/product-14-1.jpg',
                 ]
             ],
             [
-                'name' => 'Tênis U420GKW New Balance',
-                'description' => 'O modelo U420 da New Balance combina um design retro-running com conforto moderno. Leve, estiloso e com materiais premium, é ideal para o uso diário.',
-                'short_description' => 'Tênis New Balance com design retro-running, leve e estiloso.',
-                'price' => 16500.00,
-                'image_url' => 'https://demos.flatsome.com/wp-content/uploads/2013/08/741227-0076_2-494x593.jpeg',
-                'categories' => ['Calçados'],
-                'brands' => ['New Balance'], // ✅
-                'sizes' => ['39', '40', '41'],
-                'colors' => ['Cinza/Branco'],
+                'name' => 'Conjunto de 3 Almofadas (Padrão Geométrico)',
+                'description' => 'Um conjunto versátil de 3 almofadas decorativas. Este trio apresenta um design moderno com padrões geométricos e texturas contrastantes, ideal para dar um toque de personalidade e cor ao seu sofá, poltrona ou cama.',
+                'short_description' => 'Conjunto de 3 almofadas com padrão geométrico moderno.',
+                'price' => 169000.00, // $199,00 * ~850
+                'image_url' => 'https://portotheme.com/html/molla/assets/images/demos/demo-2/products/product-15-2.jpg',
+                'categories' => ['Decoração'],
                 'additional_images' => [
-                    'https://demos.flatsome.com/wp-content/uploads/2013/08/741227-0076_1-494x593.jpeg',
+                    'https://portotheme.com/html/molla/assets/images/demos/demo-2/products/product-15-1.jpg',
                 ]
             ],
             [
-                'name' => 'Top Beyond NLY Trend',
-                'description' => 'Um top moderno da NLY Trend, modelo Beyond. Com um corte elegante, costas abertas e tecido leve, é perfeito para compor looks de verão ou para a noite.',
-                'short_description' => 'Top moderno da NLY Trend com corte elegante e costas abertas.',
-                'price' => 8990.00,
-                'image_url' => 'https://demos.flatsome.com/wp-content/uploads/2013/08/917542-0001_1.jpeg',
-                'categories' => ['Camisetas e Blusas'],
-                'brands' => ['NLY Trend'], // ✅
-                'sizes' => ['P', 'M'],
-                'colors' => ['Preto'],
+                'name' => 'Candeeiro de Mesa "Carronade"',
+                'description' => 'Inspirado no design do candeeiro de suspensão, esta versão de mesa Carronade é perfeita para secretárias, aparadores ou mesas de cabeceira. Oferece luz direcional com um estilo industrial marcante, combinando madeira e metal.',
+                'short_description' => 'Candeeiro de mesa com design industrial (madeira e metal).',
+                'price' => 424000.00, // $499,00 * ~850
+                'image_url' => 'https://portotheme.com/html/molla/assets/images/demos/demo-2/products/product-16-2.jpg',
+                'categories' => ['Iluminação'],
                 'additional_images' => [
-                    'https://demos.flatsome.com/wp-content/uploads/2013/08/917542-0001_5.jpeg',
+                    'https://portotheme.com/html/molla/assets/images/demos/demo-2/products/product-16-1.jpg',
                 ]
             ],
-            // ... (restantes produtos sem marca definida)
+            [
+                'name' => 'Poltrona Slim "Flow" (Branca)',
+                'description' => 'A poltrona "Flow" destaca-se pelo seu design slim e minimalista, de inspiração nórdica. Com um assento curvo em polipropileno branco e pernas de madeira robustas, é uma peça de mobiliário elegante e confortável para qualquer canto da casa.',
+                'short_description' => 'Poltrona de design "Flow" com assento branco e pernas de madeira.',
+                'price' => 110000.00, // Preço estimado
+                'image_url' => 'https://portotheme.com/html/molla/assets/images/demos/demo-2/products/product-3-1.jpg',
+                'categories' => ['Mobiliário'],
+                'additional_images' => [
+                    'https://portotheme.com/html/molla/assets/images/demos/demo-2/products/product-3-2.jpg',
+                ]
+            ],
+            [
+                'name' => 'Sofá-Cama "Roots"',
+                'description' => 'O sofá-cama "Roots" é a solução perfeita para espaços multifuncionais. De dia é um sofá estiloso e moderno em madeira, e de noite transforma-se facilmente numa cama confortável para visitas. Inclui futon (colchão).',
+                'short_description' => 'Sofá-cama versátil e funcional em madeira com futon.',
+                'price' => 320000.00, // Preço estimado
+                'image_url' => 'https://portotheme.com/html/molla/assets/images/demos/demo-2/products/product-4-1.jpg',
+                'categories' => ['Mobiliário'],
+                'additional_images' => [
+                    'https://portotheme.com/html/molla/assets/images/demos/demo-2/products/product-4-2.jpg',
+                ]
+            ],
+            [
+                'name' => 'Banco-Escadote "Butler"',
+                'description' => 'O "Butler" é um item indispensável em qualquer casa. Funciona como um banco robusto para o dia-a-dia e transforma-se num pequeno escadote de dois degraus, ideal para alcançar prateleiras altas na cozinha, despensa ou escritório. Feito em madeira.',
+                'short_description' => 'Banco/escadote multiusos 2-em-1 em madeira.',
+                'price' => 45000.00, // Preço estimado
+                'image_url' => 'https://portotheme.com/html/molla/assets/images/demos/demo-2/products/product-1-1.jpg',
+                'categories' => ['Mobiliário', 'Decoração'],
+                'additional_images' => [
+                    'https://portotheme.com/html/molla/assets/images/demos/demo-2/products/product-1-2.jpg',
+                ]
+            ],
         ];
         
         $createdProducts = [];
@@ -233,20 +224,21 @@ class ProductSeeder extends Seeder
         // 5. Criar Produtos, Associar Categorias, Marcas e Imagens
         foreach ($productsData as $data) {
             $categoriesToAttach = $data['categories'];
-            $brandsToAttach = $data['brands'] ?? []; // ✅ NOVO: Pega as marcas
+            // Os novos produtos não têm marcas, mas a lógica está pronta se adicionar
+            $brandsToAttach = $data['brands'] ?? []; 
             $additionalImages = $data['additional_images'];
             $sizes = $data['sizes'] ?? null;
             $colors = $data['colors'] ?? null;
 
             // Remove os dados aninhados antes de criar o produto
-            unset($data['categories'], $data['brands'], $data['additional_images'], $data['sizes'], $data['colors']); // ✅ 'brands' removida
+            unset($data['categories'], $data['brands'], $data['additional_images'], $data['sizes'], $data['colors']);
 
             $product = Product::create(array_merge($data, [
                 'slug' => Str::slug($data['name']),
                 'sku' => 'SKU-' . rand(10000, 99999),
                 'unit' => 'Unidade',
-                'sizes' => $sizes,
-                'colors' => $colors,
+                'sizes' => $sizes, // Será null para estes produtos
+                'colors' => $colors, // Será null para estes produtos
             ]));
             
             $createdProducts[] = $product;
@@ -257,13 +249,11 @@ class ProductSeeder extends Seeder
             })->filter()->all();
             $product->categories()->attach($ids);
 
-            // ✅ NOVO: Anexar Marcas
+            // Anexar Marcas (Se existirem no array $data)
             $brandIdsToAttach = collect($brandsToAttach)->map(function ($brandName) use ($brandIds) {
                 return $brandIds[$brandName] ?? null;
             })->filter()->all();
 
-            // Isto assume que o seu modelo Product tem a relação brands()
-            // definida (belongsToMany) como fizemos no BrandResource
             if (!empty($brandIdsToAttach)) {
                 $product->brands()->attach($brandIdsToAttach);
             }
@@ -288,6 +278,8 @@ class ProductSeeder extends Seeder
                 'approved' => [
                     "Excelente produto! Chegou antes do prazo.",
                     "Adorei! Cinco estrelas merecidas.",
+                    "Material de boa qualidade, recomendo.",
+                    "Exactamente como na descrição. Satisfeito."
                 ],
                 'pending' => [
                     "Ainda estou a testar, mas a primeira impressão é boa.",
@@ -298,9 +290,11 @@ class ProductSeeder extends Seeder
             ];
 
             foreach ($createdProducts as $product) {
-                $numberOfReviews = rand(1, 2); // Reduzido para ser mais rápido
+                // Criar 1 ou 2 reviews por produto
+                $numberOfReviews = rand(1, 2); 
                 for ($i = 0; $i < $numberOfReviews; $i++) {
-                    $statusOptions = ['approved', 'approved', 'pending'];
+                    // Maior probabilidade de ser aprovado
+                    $statusOptions = ['approved', 'approved', 'approved', 'pending'];
                     $status = $statusOptions[array_rand($statusOptions)];
                     $commentArray = $comments[$status];
                     
