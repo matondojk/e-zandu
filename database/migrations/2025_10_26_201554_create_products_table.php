@@ -18,8 +18,8 @@ return new class extends Migration
             $table->string('name');
             $table->text('description');
             $table->text('short_description');
-            $table->decimal('price');
-            
+            $table->decimal('price', 15, 2);
+
             $table->string('image_url');
             $table->string('slug')->unique();
 
