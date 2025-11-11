@@ -13,8 +13,10 @@ class SettingSeeder extends Seeder
         Setting::updateOrCreate(
             ['id' => '00000000-0000-0000-0000-000000000001'],
             [
-                'store_name' => 'E-Zandu Loja',
+                'store_name' => 'E-Zandu',
                 'admin_phone' => '9XXXXXXXX',
+                'logo_dark_path' => 'https://e-zandu.com/default/logo-dark.png',
+                'icon_path' => 'https://e-zandu.com/default/apple-touch-icon.png',
                 'support_email' => 'suporte@e-zandu.com',
                 'faq_who_answer' => 'Eu sou um assistente virtual de IA da E-Zandu, desenvolvido por Matondo João.',
                 'faq_time_answer' => 'Para Luanda, a entrega leva em média 24 horas úteis após a confirmação do pagamento.',

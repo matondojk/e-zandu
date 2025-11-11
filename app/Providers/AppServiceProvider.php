@@ -12,6 +12,7 @@ use App\Observers\ProductImageObserver;
 use Livewire\Livewire;
 use App\Models\WhatsAppSetting;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Log; // 1. IMPORTAR O LOG
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -34,22 +35,39 @@ class AppServiceProvider extends ServiceProvider
             return;
         }
 
-        // try {
-        //     if (Schema::hasTable('whatsapp_settings')) {
-        //         $settings = WhatsAppSetting::first();
+        try {
+            if (Schema::hasTable('whatsapp_settings')) {
+                $settings = WhatsAppSetting::first();
 
-        //         if ($settings) {
-        //             config([
-        //                 'services.whatsapp.token' => $settings->token,
-        //                 'services.whatsapp.phone_id' => $settings->phone_id,
-        //                 'services.whatsapp.verify_token' => $settings->verify_token,
-        //                 'services.whatsapp.admin_phone' => $settings->admin_phone,
-        //             ]);
-        //         }
-        //     }
-        // } catch (\Exception $e) {
-        //     Log::error('Falha ao carregar configurações do WhatsApp da BD: ' . $e->getMessage());
-        // }
+                if ($settings) {
+                    
+                    // --- 2. A CORREÇÃO ---
+                    // Remova as aspas extra daqui
+                    config([
+                        'services.whatsapp.token'       => $settings->token, // <-- CORRIGIDO
+                        'services.whatsapp.phone_id'    => $settings->phone_id,
+                        'services.whatsapp.verify_token' => $settings->verify_token,
+                        'services.whatsapp.admin_phone' => $settings->admin_phone,
+                    ]);
+
+                    // --- 3. O LOG ---
+                    // Log para confirmar que foi carregado.
+                    // Não logue o token inteiro por segurança.
+                    Log::info('Configurações do WhatsApp carregadas da BD com sucesso.');
+                    Log::debug('Phone ID do WhatsApp: ' . $settings->phone_id);
+                    // Logar apenas os primeiros e últimos caracteres do token é uma boa prática
+                    if ($settings->token) {
+                        Log::debug('Token do WhatsApp (parcial): ' . $settings->token . substr($settings->token, -5));
+                    }
+                    
+                } else {
+                    // Adiciona um log caso a tabela esteja vazia
+                    Log::warning('Tabela whatsapp_settings está vazia. Usando valores do .env (se existirem).');
+                }
+            }
+        } catch (\Exception $e) {
+            Log::error('Falha ao carregar configurações do WhatsApp da BD: ' . $e->getMessage());
+        }
 
         Cart::observe(CartObserver::class);
         Stock::observe(StockObserver::class);

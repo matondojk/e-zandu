@@ -21,13 +21,21 @@ return new class extends Migration
             $table->text('faq_time_answer')->nullable();
 
             $table->string('nif')->nullable();
-            $table->string('logo_path')->nullable();
+
+            $table->string('logo_light_path')
+                ->nullable();
+
+            $table->string('logo_dark_path')
+                ->nullable();
+
             $table->string('icon_path')->nullable();
+
             $table->decimal('shipping_rate', 8, 2)->default(0);
 
             $table->timestamps();
         });
     }
+
 
     public function down(): void
     {

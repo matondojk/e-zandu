@@ -56,11 +56,17 @@ class WhatsappResource extends Resource
                 Forms\Components\Section::make('Credenciais da API')
                     ->description('Tokens e IDs fornecidos pela Meta.')
                     ->schema([
-                        Forms\Components\TextInput::make('token')
+                        
+                        // --- INÍCIO DA ALTERAÇÃO ---
+                        Forms\Components\Textarea::make('token')
                             ->label('Token da API')
-                            ->password()
+                            ->rows(8) // Define uma altura (ex: 8 linhas)
                             ->required()
-                            ->maxLength(255),
+                            // O método ->password() foi removido pois Textarea não o suporta
+                            // O método ->maxLength(255) foi removido para permitir tokens longos
+                            ->columnSpanFull(), // Faz o textarea ocupar a largura total
+                        // --- FIM DA ALTERAÇÃO ---
+
                         Forms\Components\TextInput::make('phone_id')
                             ->label('ID do Número de Telefone')
                             ->required()

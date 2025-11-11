@@ -15,6 +15,8 @@ class Setting extends Model
         'store_name',
         'admin_phone',
         'support_email',
+        'logo_light_path',
+        'logo_dark_path',
 
         // ✅ NOVOS CAMPOS DE PAGAMENTO
         'enable_bank_transfer',

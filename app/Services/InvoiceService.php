@@ -42,7 +42,7 @@ class InvoiceService
         // 3. Converter Logo para Base64
         $logoBase64 = null;
         $logoMime = null;
-        if ($settings->logo_path && Storage::disk('public')->exists($settings->logo_path)) {
+        if ($settings->logo_dark_path && Storage::disk('public')->exists($settings->logo_path)) {
             try {
                 $path = Storage::disk('public')->path($settings->logo_path);
                 $contents = file_get_contents($path);

@@ -13,19 +13,20 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TagsInput;
 use Filament\Forms\Components\FileUpload;
 use Filament\Tables\Columns;
+// Não precisamos do 'use Illuminate\Http\UploadedFile;'
 
 class SettingResource extends Resource
 {
     protected static ?string $model = Setting::class;
 
-    // Configuração do Menu
+    // ... (configuração do menu) ...
     protected static ?string $navigationIcon = 'heroicon-o-cog-6-tooth';
     protected static ?string $navigationGroup = 'Configurações';
     protected static ?string $navigationLabel = 'Personalização';
     protected static ?string $modelLabel = 'Configuração';
     protected static ?string $pluralModelLabel = 'Configurações';
     protected static ?int $navigationSort = 100;
-    protected static ?string $slug = 'personalizacao'; // URL mais limpa
+    protected static ?string $slug = 'personalizacao';
 
 
     public static function form(Form $form): Form
@@ -47,22 +48,50 @@ class SettingResource extends Resource
                             ->placeholder('Ex: 5000000000')
                             ->maxLength(50)
                             ->required(),
-                        FileUpload::make('logo_path')
-                            ->label('Logotipo da Loja')
+
+                        // --- INÍCIO DA CORREÇÃO FINAL ---
+
+                        FileUpload::make('logo_light_path')
+                            ->label('Logo Claro (Modo Dia)')
                             ->disk('public')
-                            ->directory('settings')
+                            ->directory('branding') // 1. Define o diretório
                             ->visibility('public')
                             ->image()
                             ->maxSize(1024)
-                            ->columnSpan(1),
-                        FileUpload::make('icon_path')
-                            ->label('Ícone (Favicon)')
+                            ->columnSpan(1)
+                            // 2. Define o nome do ficheiro
+                            ->getUploadedFileNameForStorageUsing(function () {
+                                return 'logo-light.png';
+                            }),
+
+                        FileUpload::make('logo_dark_path')
+                            ->label('Logo Escuro (Modo Noite)')
                             ->disk('public')
-                            ->directory('settings')
+                            ->directory('branding') // 1. Define o diretório
+                            ->visibility('public')
+                            ->image()
+                            ->maxSize(1024)
+                            ->columnSpan(1)
+                            // 2. Define o nome do ficheiro
+                            ->getUploadedFileNameForStorageUsing(function () {
+                                return 'logo-dark.png';
+                            }),
+
+                        FileUpload::make('icon_path')
+                            ->label('Favicon (.png)')
+                            ->disk('public')
+                            ->directory('branding') // 1. Define o diretório
                             ->visibility('public')
                             ->image()
                             ->maxSize(512)
-                            ->columnSpan(1),
+                            ->columnSpan(2)
+                            // 2. Define o nome do ficheiro
+                            ->getUploadedFileNameForStorageUsing(function () {
+                                return 'favicon.png';
+                            }),
+
+                        // --- FIM DA CORREÇÃO FINAL ---
+
                         TextInput::make('admin_phone')
                             ->label('Nº WhatsApp Admin (Notificações)')
                             ->helperText('Ex: 244932932532. Usado para enviar alertas de novos pedidos.')
@@ -75,6 +104,7 @@ class SettingResource extends Resource
 
                 // --- Secção 2: Gestão de Stock e Alertas ---
                 Section::make('Gestão de Stock e Alertas')
+                    // ... (resto do seu formulário - sem alterações) ...
                     ->description('Definições para alertas automáticos de stock.')
                     ->icon('heroicon-o-archive-box')
                     ->collapsible()
@@ -93,6 +123,7 @@ class SettingResource extends Resource
 
                 // --- Secção 3: IA / Respostas do Bot (FAQs) ---
                 Section::make('IA / Respostas do Bot (FAQs)')
+                    // ... (resto do seu formulário - sem alterações) ...
                     ->description('Contexto e respostas que o bot de IA usará para perguntas comuns.')
                     ->icon('heroicon-o-cpu-chip')
                     ->collapsible()
@@ -103,21 +134,15 @@ class SettingResource extends Resource
                             ->helperText('O que é a empresa? Qual a vossa missão? A IA usará isto para "O que vocês fazem?".')
                             ->required()
                             ->columnSpanFull(),
-                        TagsInput::make('product_types')
-                            ->label('Tipos de Produtos Vendidos (para IA)')
-                            ->suggestions(['Roupas', 'Calçados', 'Acessórios', 'Electrónicos', 'Cosméticos'])
-                            ->placeholder('Adicione categorias (Ex: Roupas) e pressione Enter')
-                            ->helperText('Adicione os tipos de produtos que a IA deve mencionar.')
-                            ->required()
-                            ->columnSpanFull(),
+
                         Textarea::make('faq_who_answer')
                             ->label('Resposta: Quem é você?')
                             ->rows(3)->required(),
-                        // Os campos 'Locais de entrega', 'Tempo de entrega' e 'Métodos de pagamento' foram removidos.
                     ]),
             ]);
     }
 
+    // ... (resto do ficheiro: table(), getRelations(), getRecord(), getPages() - sem alterações) ...
     public static function table(Table $table): Table
     {
         return $table
@@ -133,7 +158,7 @@ class SettingResource extends Resource
 
     public static function getRecord(): \Illuminate\Database\Eloquent\Model
     {
-        return static::getModel()::firstOrCreate([], []);
+        return static::getModel()::first([]);
     }
 
     public static function getPages(): array
