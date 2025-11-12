@@ -70,7 +70,10 @@ class AdminPanelProvider extends PanelProvider
             // --- FIM DA CORREÇÃO ---
 
             ->colors([
-               'primary' => Color::Orange,
+                'danger' => [ // Você manteve a cor 'danger'
+                    '500' => '#FF0000',
+                ]
+                // O array 'primary' foi removido, então ele voltará ao padrão (Amber)
             ])
             ->profile(EditProfile::class)
             ->databaseNotifications()

@@ -4,33 +4,36 @@ namespace App\Filament\Widgets;
 
 use App\Models\Cart;
 use Filament\Widgets\ChartWidget;
-use Filament\Widgets\Concerns\InteractsWithPageFilters; // ⭐️ NOVO
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class DeliveryLocationsChartWidget extends ChartWidget
 {
-    use InteractsWithPageFilters; // ⭐️ NOVO
-
     protected static ?string $heading = 'Locais de Entrega (Pedidos Concluídos)';
-    protected static ?string $maxHeight = '300px'; 
-    protected static ?int $sort = 5; 
-    // protected int | string | array $columnSpan = 6; // Pode ser removido
+    protected static ?string $maxHeight = '300px'; // Manter a altura padrão
+    protected static ?int $sort = 5; // Ordem no dashboard
 
-    // ❗️ REMOVIDO: $startDate, $endDate, $listeners, updateDateRange()
+    // Props e Listener para o filtro
+    public ?string $startDate = null;
+    public ?string $endDate = null;
+    protected $listeners = ['dateRangeUpdated' => 'updateDateRange'];
+
+    public function updateDateRange($data): void
+    {
+        $this->startDate = $data['startDate'];
+        $this->endDate = $data['endDate'];
+        $this->dispatch('$refresh');
+    }
 
     protected function getData(): array
     {
-        // ⭐️ ACESSO AOS FILTROS VIA $this->filters
-        $start = $this->filters['startDate'] ?? Carbon::now()->subDays(30)->toDateString();
-        $end = $this->filters['endDate'] ?? Carbon::now()->toDateString();
-        
-        $start = Carbon::parse($start)->startOfDay();
-        $end = Carbon::parse($end)->endOfDay();
+        $start = Carbon::parse($this->startDate ?? Carbon::now()->subDays(30)->toDateString())->startOfDay();
+        $end = Carbon::parse($this->endDate ?? Carbon::now()->toDateString())->endOfDay();
 
+        // Consulta que junta Carts com ShippingRates
         $data = Cart::query()
             ->join('shipping_rates', 'carts.shipping_rate_id', '=', 'shipping_rates.id')
-            ->whereIn('carts.status', ['completed', 'paid']) 
+            ->whereIn('carts.status', ['completed', 'paid']) // Apenas pedidos pagos/concluídos
             ->whereBetween('carts.updated_at', [$start, $end])
             ->select(
                 'shipping_rates.province_name',
@@ -53,6 +56,7 @@ class DeliveryLocationsChartWidget extends ChartWidget
 
     protected function getType(): string
     {
+        // 'doughnut' (rosquinha) fica bem ao lado do 'pie' (pizza)
         return 'doughnut'; 
     }
 }

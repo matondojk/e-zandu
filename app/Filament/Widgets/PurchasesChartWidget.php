@@ -2,30 +2,32 @@
 
 namespace App\Filament\Widgets;
 
-use App\Models\Purchase; 
+use App\Models\Purchase;
 use Filament\Widgets\ChartWidget;
-use Filament\Widgets\Concerns\InteractsWithPageFilters; // ⭐️ NOVO
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class PurchasesChartWidget extends ChartWidget
 {
-    use InteractsWithPageFilters; // ⭐️ NOVO
-
     protected static ?string $heading = 'Valor de Compras (Entradas de Estoque)';
     protected static ?int $sort = 4;
-    // protected int | string | array $columnSpan = 6; // Pode ser removido
+    
+    // ✅ Props e Listener para o filtro
+    public ?string $startDate = null;
+    public ?string $endDate = null;
+    protected $listeners = ['dateRangeUpdated' => 'updateDateRange'];
 
-    // ❗️ REMOVIDO: $startDate, $endDate, $listeners, updateDateRange()
+    public function updateDateRange($data): void
+    {
+        $this->startDate = $data['startDate'];
+        $this->endDate = $data['endDate'];
+        $this->dispatch('$refresh');
+    }
 
     protected function getData(): array
     {
-        // ⭐️ ACESSO AOS FILTROS VIA $this->filters
-        $start = $this->filters['startDate'] ?? Carbon::now()->subDays(30)->toDateString();
-        $end = $this->filters['endDate'] ?? Carbon::now()->toDateString();
-
-        $start = Carbon::parse($start)->startOfDay();
-        $end = Carbon::parse($end)->endOfDay();
+        $start = Carbon::parse($this->startDate ?? Carbon::now()->subDays(30)->toDateString())->startOfDay();
+        $end = Carbon::parse($this->endDate ?? Carbon::now()->toDateString())->endOfDay();
         $period = Carbon::parse($start)->daysUntil($end);
         
         $dates = [];
@@ -35,12 +37,12 @@ class PurchasesChartWidget extends ChartWidget
             $labels[] = $date->format('d/m');
         }
 
-        // Consulta de Compras
+        // ❗️ CORREÇÃO AQUI: Usar 'document_date' em vez de 'created_at'
         $purchases = Purchase::query()
-            ->whereBetween('document_date', [$start, $end]) // Uso correto do document_date
+            ->whereBetween('document_date', [$start, $end]) // <-- Corrigido
             ->select(
-                DB::raw('DATE(document_date) as purchase_date'), 
-                DB::raw('SUM(total_amount) as total') 
+                DB::raw('DATE(document_date) as purchase_date'), // <-- Corrigido
+                DB::raw('SUM(total_amount) as total')
             )
             ->groupBy('purchase_date')
             ->get()

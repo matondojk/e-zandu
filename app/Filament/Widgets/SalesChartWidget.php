@@ -4,29 +4,34 @@ namespace App\Filament\Widgets;
 
 use App\Models\Cart;
 use Filament\Widgets\ChartWidget;
-use Filament\Widgets\Concerns\InteractsWithPageFilters; // ⭐️ NOVO
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class SalesChartWidget extends ChartWidget
 {
-    use InteractsWithPageFilters; // ⭐️ NOVO
-    
     protected static ?string $heading = 'Vendas por Dia';
     protected static ?int $sort = 1;
-    // protected int | string | array $columnSpan = 6; // Pode ser removido, pois o layout é manual
+    // protected int | string | array $columnSpan = 'full';
+
+    // ✅ A SOLUÇÃO: Definir uma altura máxima para o gráfico
     protected static ?string $maxHeight = '300px';
 
-    // ❗️ REMOVIDO: $startDate, $endDate, $listeners, updateDateRange()
+    // Props e Listener para o filtro
+    public ?string $startDate = null;
+    public ?string $endDate = null;
+    protected $listeners = ['dateRangeUpdated' => 'updateDateRange'];
+
+    public function updateDateRange($data): void
+    {
+        $this->startDate = $data['startDate'];
+        $this->endDate = $data['endDate'];
+        $this->dispatch('$refresh'); // Atualiza o widget
+    }
 
     protected function getData(): array
     {
-        // ⭐️ ACESSO AOS FILTROS VIA $this->filters
-        $start = $this->filters['startDate'] ?? Carbon::now()->subDays(30)->toDateString();
-        $end = $this->filters['endDate'] ?? Carbon::now()->toDateString();
-        
-        $start = Carbon::parse($start)->startOfDay();
-        $end = Carbon::parse($end)->endOfDay();
+        $start = Carbon::parse($this->startDate ?? Carbon::now()->subDays(30)->toDateString())->startOfDay();
+        $end = Carbon::parse($this->endDate ?? Carbon::now()->toDateString())->endOfDay();
         $period = Carbon::parse($start)->daysUntil($end);
         
         // Inicializa arrays com datas no período

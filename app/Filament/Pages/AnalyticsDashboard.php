@@ -2,19 +2,18 @@
 
 namespace App\Filament\Pages;
 
+use Filament\Pages\Page;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Section;
+use Filament\Forms\Concerns\InteractsWithForms;
+use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Form;
-use Filament\Pages\Dashboard as BaseDashboard;
-use Filament\Pages\Dashboard\Concerns\HasFiltersForm;
 use Illuminate\Support\Carbon;
 use Filament\Forms;
 
-// Estende BaseDashboard e usa HasFiltersForm para gerenciamento automático do filtro
-class AnalyticsDashboard extends BaseDashboard
+class AnalyticsDashboard extends Page implements HasForms
 {
-    use HasFiltersForm;
-    // O Livewire Forms está implícito no BaseDashboard.
+    use InteractsWithForms;
 
     protected static string $view = 'filament.pages.analytics-dashboard';
 
@@ -24,34 +23,66 @@ class AnalyticsDashboard extends BaseDashboard
     protected static ?string $title = 'Análise Geral da Loja';
     protected static bool $shouldRegisterNavigation = true;
 
-    // Método oficial para definir os campos de filtro
-    public function filtersForm(Form $form): Form
+    
+    // ------------------------------------------------
+    // Global State for Date Filtering (USADO NA VIEW)
+    // ------------------------------------------------
+
+    public ?array $data = [
+        'start_date' => null,
+        'end_date' => null,
+    ];
+
+    public function mount(): void
+    {
+        // Define o padrão: Últimos 30 dias
+        $this->data['start_date'] = Carbon::now()->subDays(30)->toDateString();
+        $this->data['end_date'] = Carbon::now()->toDateString();
+        $this->form->fill($this->data);
+    }
+
+    public function form(Form $form): Form
     {
         return $form
             ->schema([
                 Section::make('Filtro de Período')
                     ->description('Selecione um intervalo de datas para aplicar a todos os gráficos e cards abaixo.')
                     ->schema([
-                        DatePicker::make('startDate') // Chave usada no $this->filters
+                        DatePicker::make('start_date')
                             ->label('Data Inicial')
-                            ->default(Carbon::now()->subDays(30)->toDateString()),
+                            ->default(Carbon::now()->subDays(30)->toDateString())
+                            ->live(onBlur: true)
+                            ->afterStateUpdated(fn () => $this->updatedData()), // Aciona a atualização
 
-                        DatePicker::make('endDate') // Chave usada no $this->filters
+                        DatePicker::make('end_date')
                             ->label('Data Final')
                             ->default(Carbon::now()->toDateString())
-                            ->minDate(fn (Forms\Get $get) => $get('startDate') ?: null),
+                            ->live(onBlur: true)
+                            ->afterStateUpdated(fn () => $this->updatedData()) // Aciona a atualização
+                            ->minDate(fn (Forms\Get $get) => $get('start_date') ?: null),
 
                     ])
                     ->columns(2)
-                    ->compact(),
-            ]);
+                    ->compact()
+            ])
+            ->statePath('data');
+    }
+
+    // Método chamado quando o estado do filtro muda
+    public function updatedData(): void
+    {
+        // ✅ Emite um evento global que todos os widgets Livewire escutam
+        $this->dispatch('dateRangeUpdated', [
+            'startDate' => $this->data['start_date'],
+            'endDate' => $this->data['end_date'],
+        ]);
+        
+        $this->form->fill($this->data);
     }
     
-    // Força o uso da view customizada (para o layout de grelha manual)
+    // Força o uso da view customizada
     protected function getContentView(): string
     {
         return 'filament.pages.analytics-dashboard';
     }
-
-    // mount(), updatedData(), makeForm() foram removidos. HasFiltersForm gere isso.
 }
