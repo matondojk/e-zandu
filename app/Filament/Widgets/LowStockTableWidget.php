@@ -17,7 +17,7 @@ class LowStockTableWidget extends BaseWidget
 {
     protected static ?string $heading = 'Alerta de Estoque Baixo';
     protected static ?int $sort = 3;
-    protected int | string | array $columnSpan = 1;
+    // protected int | string | array $columnSpan = 1;
 
     protected function getTableQuery(): Builder
     {

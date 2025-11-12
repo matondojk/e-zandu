@@ -49,48 +49,37 @@ class SettingResource extends Resource
                             ->maxLength(50)
                             ->required(),
 
-                        // --- INÍCIO DA CORREÇÃO FINAL ---
+                        // --- INÍCIO DA CORREÇÃO ---
+                        // O método ->getUploadedFileNameForStorageUsing(...) foi removido
 
                         FileUpload::make('logo_light_path')
                             ->label('Logo Claro (Modo Dia)')
                             ->disk('public')
-                            ->directory('branding') // 1. Define o diretório
+                            ->directory('branding')
                             ->visibility('public')
                             ->image()
                             ->maxSize(1024)
-                            ->columnSpan(1)
-                            // 2. Define o nome do ficheiro
-                            ->getUploadedFileNameForStorageUsing(function () {
-                                return 'logo-light.png';
-                            }),
+                            ->columnSpan(1),
 
                         FileUpload::make('logo_dark_path')
                             ->label('Logo Escuro (Modo Noite)')
                             ->disk('public')
-                            ->directory('branding') // 1. Define o diretório
+                            ->directory('branding')
                             ->visibility('public')
                             ->image()
                             ->maxSize(1024)
-                            ->columnSpan(1)
-                            // 2. Define o nome do ficheiro
-                            ->getUploadedFileNameForStorageUsing(function () {
-                                return 'logo-dark.png';
-                            }),
+                            ->columnSpan(1),
 
                         FileUpload::make('icon_path')
                             ->label('Favicon (.png)')
                             ->disk('public')
-                            ->directory('branding') // 1. Define o diretório
+                            ->directory('branding')
                             ->visibility('public')
                             ->image()
                             ->maxSize(512)
-                            ->columnSpan(2)
-                            // 2. Define o nome do ficheiro
-                            ->getUploadedFileNameForStorageUsing(function () {
-                                return 'favicon.png';
-                            }),
+                            ->columnSpan(2),
 
-                        // --- FIM DA CORREÇÃO FINAL ---
+                        // --- FIM DA CORREÇÃO ---
 
                         TextInput::make('admin_phone')
                             ->label('Nº WhatsApp Admin (Notificações)')
@@ -104,7 +93,6 @@ class SettingResource extends Resource
 
                 // --- Secção 2: Gestão de Stock e Alertas ---
                 Section::make('Gestão de Stock e Alertas')
-                    // ... (resto do seu formulário - sem alterações) ...
                     ->description('Definições para alertas automáticos de stock.')
                     ->icon('heroicon-o-archive-box')
                     ->collapsible()
@@ -123,7 +111,6 @@ class SettingResource extends Resource
 
                 // --- Secção 3: IA / Respostas do Bot (FAQs) ---
                 Section::make('IA / Respostas do Bot (FAQs)')
-                    // ... (resto do seu formulário - sem alterações) ...
                     ->description('Contexto e respostas que o bot de IA usará para perguntas comuns.')
                     ->icon('heroicon-o-cpu-chip')
                     ->collapsible()

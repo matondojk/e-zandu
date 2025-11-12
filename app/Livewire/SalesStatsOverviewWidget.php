@@ -2,54 +2,41 @@
 
 namespace App\Livewire;
 
+use Filament\Widgets\StatsOverviewWidget as BaseWidget;
+use Filament\Widgets\StatsOverviewWidget\Stat;
+use Filament\Widgets\Concerns\InteractsWithPageFilters; // ⭐️ NOVO
+
 use App\Models\Cart;
 use App\Models\Product;
 use App\Models\Purchase; 
-use App\Models\StockMovement; 
 use App\Models\Setting;
 use App\Models\Expense;
-use Filament\Widgets\StatsOverviewWidget\Stat;
 use Illuminate\Support\Carbon;
-use Livewire\Component;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB; 
 use Illuminate\Database\Query\Builder as QueryBuilder;
 
-class SalesStatsOverviewWidget extends Component
+class SalesStatsOverviewWidget extends BaseWidget
 {
-    public ?string $startDate = null;
-    public ?string $endDate = null;
-
-    protected $listeners = [
-        'dateRangeUpdated' => 'updateDateRange',
-    ];
-
-    public function mount(?string $startDate = null, ?string $endDate = null): void
-    {
-        $this->startDate = $startDate ?? Carbon::now()->subDays(30)->toDateString();
-        $this->endDate = $endDate ?? Carbon::now()->toDateString();
-    }
-
-    public function updateDateRange($data): void
-    {
-        $this->startDate = $data['startDate'];
-        $this->endDate = $data['endDate'];
-    }
+    use InteractsWithPageFilters; // ⭐️ NOVO: Uso do filtro oficial
     
+    // ❗️ REMOVIDO: $startDate, $endDate, $listeners, mount(), updateDateRange()
+
     protected function getStats(): array
     {
-        $start = Carbon::parse($this->startDate)->startOfDay();
-        $end = Carbon::parse($this->endDate)->endOfDay();
+        // ⭐️ ACESSO AOS FILTROS VIA $this->filters
+        $start = $this->filters['startDate'] ?? Carbon::now()->subDays(30)->toDateString();
+        $end = $this->filters['endDate'] ?? Carbon::now()->toDateString();
+
+        $start = Carbon::parse($start)->startOfDay();
+        $end = Carbon::parse($end)->endOfDay();
 
         // 1. Lógica de Vendas (Receita)
         $salesQuery = Cart::whereIn('status', ['completed', 'paid'])
             ->whereBetween('updated_at', [$start, $end]);
             
-        // ✅ CORREÇÃO FINAL: Usar COALESCE para garantir que todos os campos da soma
-        // (total_price, shipping_amount, discount_amount) são tratados como 0 se forem NULL.
         $revenueExpression = 'COALESCE(total_price, 0) + COALESCE(shipping_amount, 0) - COALESCE(discount_amount, 0)';
         $totalRevenue = $salesQuery->sum(DB::raw($revenueExpression));
-
         $totalOrders = $salesQuery->count();
 
         // 2. Lógica de Compras (Custos de Mercadoria)
@@ -81,15 +68,12 @@ class SalesStatsOverviewWidget extends Component
             // CARD 1: Receita Total (Vendas)
             Stat::make('Receita Total', number_format($totalRevenue, 0, ',', '.') . ' Kz')
                 ->description('Total de vendas concluídas no período')
-                ->descriptionIcon('heroicon-m-arrow-trending-up')
-                ->color('success'),
+                ->descriptionIcon('heroicon-m-arrow-trending-up'),
             
             // CARD 2: Custos Totais (Mercadoria + Operacional)
             Stat::make('Custos Totais', number_format($totalPurchases + $totalExpenses, 0, ',', '.') . ' Kz')
-                // ✅ CORRIGIDO: Formatação para Kz no description
                 ->description("Compras (Kz " . number_format($totalPurchases, 0, ',', '.') . ") + Despesas (Kz " . number_format($totalExpenses, 0, ',', '.') . ")")
-                ->descriptionIcon('heroicon-m-arrow-trending-down')
-                ->color('warning'),
+                ->descriptionIcon('heroicon-m-arrow-trending-down'),
 
             // CARD 3: Lucro Líquido (O MAIS IMPORTANTE)
             Stat::make('Lucro Líquido', number_format($netProfit, 0, ',', '.') . ' Kz')
@@ -103,12 +87,5 @@ class SalesStatsOverviewWidget extends Component
                 ->descriptionIcon('heroicon-m-shopping-cart')
                 ->color('gray'),
         ];
-    }
-    
-    public function render()
-    {
-        return view('filament.widgets.stats-overview-widget', [
-            'stats' => $this->getStats(), 
-        ]);
     }
 }

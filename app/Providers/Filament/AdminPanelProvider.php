@@ -30,7 +30,7 @@ use App\Filament\Pages\AnalyticsDashboard;
 use AchyutN\FilamentLogViewer\FilamentLogViewer;
 use CWSPS154\UsersRolesPermissions\UsersRolesPermissionsPlugin;
 // --- ADICIONADO ---
-use App\Models\Setting; 
+use App\Models\Setting;
 use Illuminate\Support\Facades\Storage;
 
 class AdminPanelProvider extends PanelProvider
@@ -41,17 +41,17 @@ class AdminPanelProvider extends PanelProvider
         $settings = Setting::first();
 
         // Obtém os caminhos (ou os defaults externos)
-        $logoLight = $settings?->logo_light_path 
-            ? Storage::disk('public')->url($settings->logo_light_path) 
+        $logoLight = $settings?->logo_light_path
+            ? Storage::disk('public')->url($settings->logo_light_path)
             : 'https://e-zandu.com/default/logo-light.png';
 
-        $logoDark  = $settings?->logo_dark_path  
-            ? Storage::disk('public')->url($settings->logo_dark_path)  
+        $logoDark  = $settings?->logo_dark_path
+            ? Storage::disk('public')->url($settings->logo_dark_path)
             : 'https://e-zandu.com/default/logo-dark.png';
-        
-        $favicon   = $settings?->icon_path       
-            ? Storage::disk('public')->url($settings->icon_path) 
-            : 'https://e-zandu.com/default/apple-touch-icon.png';
+
+        $favicon   = $settings?->icon_path
+            ? Storage::disk('public')->url($settings->icon_path)
+            : 'https://e-zandu.com/default/icon-default.png';
         // --- FIM DA LÓGICA ---
 
         return $panel
@@ -63,27 +63,14 @@ class AdminPanelProvider extends PanelProvider
             ->passwordReset()
             ->emailVerification()
 
-            // --- CORREÇÃO APLICADA (VARIÁVEIS TROCADAS) ---
-            ->brandLogo($logoDark)          // Logo principal (para modo claro) é o $logoDark
-            ->darkModeBrandLogo($logoLight) // Logo do modo escuro é o $logoLight
-            ->favicon($favicon)
+            ->brandLogo($logoDark)
+            ->darkModeBrandLogo($logoLight)
+            ->favicon('https://e-zandu.com/default/icon-default.png')
             ->brandLogoHeight('2.9rem')
             // --- FIM DA CORREÇÃO ---
 
             ->colors([
-                'primary' => [
-                    '50' => '#FEF2F2',
-                    '100' => '#FEE2E2',
-                    '200' => '#FECACA',
-                    '300' => '#FCA5A5',
-                    '400' => '#F87171',
-                    '500' => '#EF4444',
-                    '600' => '#DC2626', // <-- O tom principal do seu logo
-                    '700' => '#B91C1C',
-                    '800' => '#991B1B',
-                    '900' => '#7F1D1D',
-                    '950' => '#450A0A',
-                ],
+               'primary' => Color::Orange,
             ])
             ->profile(EditProfile::class)
             ->databaseNotifications()
