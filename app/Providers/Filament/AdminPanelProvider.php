@@ -18,14 +18,8 @@ use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
-use App\Filament\Widgets\StatsOverviewWidget;
-use App\Filament\Widgets\OrdersChart;
-use App\Filament\Widgets\LatestPendingOrders;
-use App\Filament\Pages\IntelligentAnalysis;
 use Filament\Support\Assets\Js;
 use Filament\Support\Facades\FilamentAsset;
-use App\Models\User;
-use App\Http\Middleware\CheckSubscriptionStatus;
 use App\Filament\Pages\AnalyticsDashboard;
 use AchyutN\FilamentLogViewer\FilamentLogViewer;
 use CWSPS154\UsersRolesPermissions\UsersRolesPermissionsPlugin;
@@ -65,12 +59,12 @@ class AdminPanelProvider extends PanelProvider
 
             ->brandLogo($logoDark)
             ->darkModeBrandLogo($logoLight)
-            // ->favicon('https://e-zandu.com/default/icon-default.png')
-            ->brandLogoHeight('2.9rem')
+            ->favicon($favicon)
+            ->brandLogoHeight('2.5rem')
             // --- FIM DA CORREÇÃO ---
 
             ->colors([
-                'danger' => Color::Amber,
+                'danger' => Color::Red,
             ])
             ->profile(EditProfile::class)
             ->databaseNotifications()

@@ -57,7 +57,7 @@ class CartSeeder extends Seeder
         }
         // --- Fim da Verificação ---
 
-        $statuses = ['active', 'paid', 'paid', 'completed', 'cancelled'];
+        $statuses = ['active', 'paid', 'paid', 'completed'];
         $cartsToCreate = 20;
 
         for ($i = 0; $i < $cartsToCreate; $i++) {

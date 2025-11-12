@@ -97,6 +97,7 @@ class OrderResource extends Resource
                     ])
                     ->formatStateUsing(fn(string $state): string => match ($state) {
                         'active' => 'Pendente',
+                        'cancelled' => 'Cancelado',
                         'paid' => 'Pago',
                         'completed' => 'Concluído',
                         default => ucfirst($state),
@@ -123,6 +124,7 @@ class OrderResource extends Resource
                         'active' => 'Pendente',
                         'paid' => 'Pago',
                         'completed' => 'Concluído',
+                        'cancelled' => 'Cancelado',
                     ])
                     ->label('Status Pagamento'),
 
@@ -151,7 +153,7 @@ class OrderResource extends Resource
                     ->action(function (Cart $record) {
                         $record->load(['items.product', 'user', 'shippingRate', 'paymentMethod']);
                         $settings = Setting::first();
-                        
+
                         // Certifique-se de criar a view: resources/views/pdfs/order-details.blade.php
                         $pdf = Pdf::loadView('pdfs.order-details', [
                             'record' => $record,

@@ -18,16 +18,29 @@
         .container {
             width: 100%;
         }
+        .header-table {
+            width: 100%;
+            border-bottom: 1px solid #555;
+            margin-bottom: 10px;
+        }
+        .header-table td {
+            padding: 5px 0;
+            vertical-align: top;
+        }
+        .company-details {
+            text-align: right;
+            font-size: 11px;
+        }
+        .logo {
+            max-width: 150px;
+            max-height: 40px;
+            /* Nota: É crucial que public_path funcione e o caminho esteja acessível */
+        }
         h1 {
             text-align: center;
             font-size: 18px;
-            border-bottom: 1px solid #555;
             padding-bottom: 5px;
-            margin-bottom: 0;
-        }
-        .header-info {
-            text-align: center;
-            font-size: 11px;
+            margin-top: 0;
             margin-bottom: 20px;
         }
         .report-table {
@@ -66,7 +79,7 @@
         }
         .footer {
             position: fixed;
-            bottom: -60px; /* Ajuste conforme a margem da página */
+            bottom: -60px;
             left: 0;
             right: 0;
             text-align: center;
@@ -81,9 +94,25 @@
     </div>
 
     <div class="container">
+        <table class="header-table">
+            <tr>
+                <td style="width: 50%; padding-left: 0;">
+                    @if($settings && $settings->logo_dark_path)
+                        <img src="{{ public_path($settings->logo_dark_path) }}" alt="Logo" class="logo">
+                    @else
+                        <h2 style="margin:0; font-size: 14px;">{{ $settings->company_name ?? 'E-Zandu' }}</h2>
+                    @endif
+                </td>
+                <td class="company-details" style="width: 50%; padding-right: 0;">
+                    <strong>{{ $settings->company_name ?? 'E-Zandu' }}</strong><br>
+                    NIF: {{ $settings->company_nif ?? 'N/A' }}<br>
+                    Telefone: {{ $settings->company_phone ?? '' }}
+                </td>
+            </tr>
+        </table>
+
         <h1>Relatório de Vendas</h1>
-        <p class="header-info">
-            {{ $settings->company_name ?? 'E-Zandu' }}<br>
+        <p class="header-info" style="margin-bottom: 10px;">
             Período do Relatório (Baseado nos filtros aplicados)
         </p>
 
@@ -140,7 +169,6 @@
             </tbody>
         </table>
 
-        <!-- Sumário -->
         <table class="summary">
             <tr>
                 <td class="label">Total de Pedidos</td>
