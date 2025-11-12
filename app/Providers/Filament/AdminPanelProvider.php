@@ -65,15 +65,12 @@ class AdminPanelProvider extends PanelProvider
 
             ->brandLogo($logoDark)
             ->darkModeBrandLogo($logoLight)
-            ->favicon('https://e-zandu.com/default/icon-default.png')
+            // ->favicon('https://e-zandu.com/default/icon-default.png')
             ->brandLogoHeight('2.9rem')
             // --- FIM DA CORREÇÃO ---
 
             ->colors([
-                'danger' => [ // Você manteve a cor 'danger'
-                    '500' => '#FF0000',
-                ]
-                // O array 'primary' foi removido, então ele voltará ao padrão (Amber)
+                'danger' => Color::Amber,
             ])
             ->profile(EditProfile::class)
             ->databaseNotifications()

@@ -6,30 +6,30 @@ use App\Models\Purchase;
 use Filament\Widgets\ChartWidget;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Filament\Widgets\Concerns\InteractsWithPageFilters; 
 
 class PurchasesChartWidget extends ChartWidget
 {
+    use InteractsWithPageFilters; 
+
     protected static ?string $heading = 'Valor de Compras (Entradas de Estoque)';
     protected static ?int $sort = 4;
     
-    // ✅ Props e Listener para o filtro
-    public ?string $startDate = null;
-    public ?string $endDate = null;
-    protected $listeners = ['dateRangeUpdated' => 'updateDateRange'];
-
-    public function updateDateRange($data): void
-    {
-        $this->startDate = $data['startDate'];
-        $this->endDate = $data['endDate'];
-        $this->dispatch('$refresh');
-    }
+    // As props e listeners foram corretamente removidos graças ao InteractsWithPageFilters
 
     protected function getData(): array
     {
-        $start = Carbon::parse($this->startDate ?? Carbon::now()->subDays(30)->toDateString())->startOfDay();
-        $end = Carbon::parse($this->endDate ?? Carbon::now()->toDateString())->endOfDay();
+        // ⭐️ CORREÇÃO APLICADA: Usar valores padrão (fallback)
+        $startDate = $this->filters['start_date'] ?? Carbon::now()->subDays(30)->toDateString();
+        $endDate = $this->filters['end_date'] ?? Carbon::now()->toDateString();
+
+        $start = Carbon::parse($startDate)->startOfDay();
+        $end = Carbon::parse($endDate)->endOfDay();
+
         $period = Carbon::parse($start)->daysUntil($end);
         
+        // (Restante da lógica do método getData() permanece igual)
+        // ...
         $dates = [];
         $labels = [];
         foreach ($period as $date) {
@@ -37,11 +37,10 @@ class PurchasesChartWidget extends ChartWidget
             $labels[] = $date->format('d/m');
         }
 
-        // ❗️ CORREÇÃO AQUI: Usar 'document_date' em vez de 'created_at'
         $purchases = Purchase::query()
-            ->whereBetween('document_date', [$start, $end]) // <-- Corrigido
+            ->whereBetween('expected_delivery_date', [$start, $end]) 
             ->select(
-                DB::raw('DATE(document_date) as purchase_date'), // <-- Corrigido
+                DB::raw('DATE(expected_delivery_date) as purchase_date'), 
                 DB::raw('SUM(total_amount) as total')
             )
             ->groupBy('purchase_date')
@@ -55,7 +54,7 @@ class PurchasesChartWidget extends ChartWidget
                 [
                     'label' => 'Compras (Kz)',
                     'data' => array_values($data),
-                    'backgroundColor' => '#3b82f6', // Azul
+                    'backgroundColor' => '#3b82f6',
                     'borderColor' => '#3b82f6',
                 ],
             ],

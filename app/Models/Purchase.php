@@ -7,41 +7,35 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Support\Str;
 
 class Purchase extends Model
 {
     use HasFactory, HasUuids;
 
-    /**
-     * ✅ CORREÇÃO CRÍTICA:
-     * Adicionar todos os campos que o Trigger atualiza.
-     */
-    protected $fillable = [
-        'supplier_id',
-        'stock_id',
-        'document_date',
-        'document_number',
-        'is_delivered',
-        'discount_total', // Essencial
-        'total_amount',   // Essencial
-        'freight_cost',   // Essencial
-        'iva_amount',     // Essencial
-        'total_payable',  // Essencial
+    protected $guarded = [];
+
+    protected $casts = [
+        'issue_date' => 'date',
+        'expected_delivery_date' => 'date',
+        // 'attachments' => 'array',
+        'is_delivered' => 'boolean',
+        'calculate_iva' => 'boolean',
     ];
 
-    // /**
-    //  * ✅ CORREÇÃO CRÍTICA:
-    //  * Definir os 'casts' para que o Filament saiba que são números.
-    //  */
-    // protected $casts = [
-    //     'document_date' => 'date',
-    //     'is_delivered' => 'boolean',
-    //     'discount_total' => 'float',
-    //     'total_amount' => 'float',
-    //     'freight_cost' => 'float',
-    //     'iva_amount' => 'float',
-    //     'total_payable' => 'float',
-    // ];
+    protected static function booted(): void
+    {
+        static::creating(function ($purchase) {
+            if (empty($purchase->purchase_number)) {
+                $purchase->purchase_number = 'PO-' . strtoupper(Str::random(8));
+            }
+        });
+    }
+
+    public function attachments()
+    {
+        return $this->hasMany(PurchaseAttachment::class);
+    }
 
     public function supplier(): BelongsTo
     {
@@ -51,6 +45,11 @@ class Purchase extends Model
     public function stock(): BelongsTo
     {
         return $this->belongsTo(Stock::class);
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
     }
 
     public function items(): HasMany

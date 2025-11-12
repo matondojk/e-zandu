@@ -5,16 +5,26 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 class Cart extends Model
 {
     use HasFactory, HasUuids;
 
-    protected $fillable = ['user_id', 'coupon_id', 'status', 'total_price', 'delivery_status', 'order_notes'];
+    protected $guarded = [];
 
     public function items()
     {
         return $this->hasMany(CartItem::class);
+    }
+
+    protected static function booted(): void
+    {
+        static::creating(function ($cart) {
+            if (empty($cart->cart_number)) {
+                $cart->cart_number = 'CRT-' . strtoupper(Str::random(8));
+            }
+        });
     }
 
     public function user()

@@ -6,35 +6,36 @@ use App\Models\Cart;
 use Filament\Widgets\ChartWidget;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Filament\Widgets\Concerns\InteractsWithPageFilters; // Garanta que isto está aqui
 
 class SalesChartWidget extends ChartWidget
 {
+    use InteractsWithPageFilters; // Garanta que isto está aqui
+
     protected static ?string $heading = 'Vendas por Dia';
     protected static ?int $sort = 1;
-    // protected int | string | array $columnSpan = 'full';
-
-    // ✅ A SOLUÇÃO: Definir uma altura máxima para o gráfico
     protected static ?string $maxHeight = '300px';
 
-    // Props e Listener para o filtro
-    public ?string $startDate = null;
-    public ?string $endDate = null;
-    protected $listeners = ['dateRangeUpdated' => 'updateDateRange'];
-
-    public function updateDateRange($data): void
-    {
-        $this->startDate = $data['startDate'];
-        $this->endDate = $data['endDate'];
-        $this->dispatch('$refresh'); // Atualiza o widget
-    }
+    // Se existirem estas linhas, REMOVA-AS, pois agora usará InteractsWithPageFilters:
+    // public ?string $startDate = null;
+    // public ?string $endDate = null;
+    // protected $listeners = ['dateRangeUpdated' => 'updateDateRange'];
+    // public function updateDateRange($data): void { /* ... */ }
 
     protected function getData(): array
     {
-        $start = Carbon::parse($this->startDate ?? Carbon::now()->subDays(30)->toDateString())->startOfDay();
-        $end = Carbon::parse($this->endDate ?? Carbon::now()->toDateString())->endOfDay();
+        // ⭐️ CORREÇÃO: Adicionar valores padrão (fallback)
+        $startDate = $this->filters['start_date'] ?? Carbon::now()->subDays(30)->toDateString();
+        $endDate = $this->filters['end_date'] ?? Carbon::now()->toDateString();
+        
+        // Usar as variáveis seguras
+        $start = Carbon::parse($startDate)->startOfDay();
+        $end = Carbon::parse($endDate)->endOfDay();
+        
         $period = Carbon::parse($start)->daysUntil($end);
         
-        // Inicializa arrays com datas no período
+        // (Restante da lógica do método getData() permanece igual)
+        // ...
         $dates = [];
         $labels = [];
         foreach ($period as $date) {
@@ -42,10 +43,10 @@ class SalesChartWidget extends ChartWidget
             $labels[] = $date->format('d/m');
         }
 
-        // Consulta de Vendas
         $sales = Cart::query()
             ->whereIn('status', ['completed', 'paid'])
             ->whereBetween('updated_at', [$start, $end])
+            // ... (restante da query)
             ->select(
                 DB::raw('DATE(updated_at) as sale_date'),
                 DB::raw('SUM(total_price) as total')
@@ -61,7 +62,7 @@ class SalesChartWidget extends ChartWidget
                 [
                     'label' => 'Receita (Kz)',
                     'data' => array_values($data),
-                    'backgroundColor' => '#f97316', // Laranja
+                    'backgroundColor' => '#f97316', 
                     'borderColor' => '#f97316',
                 ],
             ],

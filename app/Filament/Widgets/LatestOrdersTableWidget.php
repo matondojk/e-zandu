@@ -10,39 +10,34 @@ use Filament\Widgets\TableWidget as BaseWidget;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Number;
+use Filament\Widgets\Concerns\InteractsWithPageFilters; 
 
 class LatestOrdersTableWidget extends BaseWidget
 {
-    protected static ?string $heading = 'Pedidos em Trânsito/Entregues'; // Título atualizado
+    use InteractsWithPageFilters; 
+
+    protected static ?string $heading = 'Pedidos em Trânsito/Entregues';
     protected static ?int $sort = 2;
 
-    // Props e Listener para o filtro
-    public ?string $startDate = null;
-    public ?string $endDate = null;
-    protected $listeners = ['dateRangeUpdated' => 'updateDateRange'];
-
-    public function updateDateRange($data): void
-    {
-        $this->startDate = $data['startDate'];
-        $this->endDate = $data['endDate'];
-        $this->dispatch('$refresh');
-    }
+    // A propriedade $filters, usada pelo trait, é definida internamente.
 
     protected function getTableQuery(): Builder
     {
+        // ⭐️ CORREÇÃO ESSENCIAL: Usar valores padrão (fallback) para evitar o erro "array offset on value of type null"
+        // Para uma tabela de "Últimos Pedidos", definimos null como padrão para não filtrar a data na carga inicial
+        $startDate = $this->filters['start_date'] ?? null; 
+        $endDate = $this->filters['end_date'] ?? null;
+
         $query = Cart::query()
-            // Mantém os status de pagamento
             ->whereIn('status', ['paid', 'completed']) 
-            
-            // ✅ CORREÇÃO: Filtrar como pedido (diferente de 'pending')
             ->where('delivery_status', '!=', 'pending') 
-            
             ->orderByDesc('created_at');
         
-        if ($this->startDate && $this->endDate) {
-            $start = Carbon::parse($this->startDate)->startOfDay();
-            $end = Carbon::parse($this->endDate)->endOfDay();
-            $query->whereBetween('created_at', [$start, $end]);
+        // Aplicar filtro de data APENAS se ambas as datas forem fornecidas (após a primeira atualização do filtro)
+        if ($startDate && $endDate) {
+            $start = Carbon::parse($startDate)->startOfDay();
+            $end = Carbon::parse($endDate)->endOfDay();
+            $query->whereBetween('created_at', [$start, $end]); 
         }
         
         return $query->limit(10);
@@ -51,16 +46,15 @@ class LatestOrdersTableWidget extends BaseWidget
     protected function getTableColumns(): array
     {
         return [
-            Tables\Columns\TextColumn::make('id')
-                ->label('Pedido #')
-                ->sortable()
-                ->url(fn (Cart $record): string => OrderResource::getUrl('view', ['record' => $record])),
-                
+            Tables\Columns\TextColumn::make('created_at')
+                ->label('Data do Pedido')
+                ->date('d/m/Y')
+                ->sortable(),
+
             Tables\Columns\TextColumn::make('user.name')
                 ->label('Cliente')
                 ->searchable(),
 
-            // ✅ NOVA COLUNA: Para vermos o status da entrega
             Tables\Columns\TextColumn::make('delivery_status')
                 ->label('Entrega')
                 ->badge()
@@ -71,10 +65,10 @@ class LatestOrdersTableWidget extends BaseWidget
                     'failed' => 'danger',
                     default => 'gray',
                 })
-                ->formatStateUsing(fn (string $state): string => ucfirst($state)), // Ex: 'Shipped'
+                ->formatStateUsing(fn (string $state): string => ucfirst($state)),
 
             Tables\Columns\TextColumn::make('status')
-                ->label('Pagamento') // Renomeado para clareza
+                ->label('Pagamento') 
                 ->badge()
                 ->color(fn (string $state): string => match ($state) {
                     'completed' => 'success',

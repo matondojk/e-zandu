@@ -8,12 +8,15 @@ use Filament\Resources\Pages\ViewRecord;
 use Filament\Infolists\Infolist;
 use Filament\Infolists\Components\Section;
 use Filament\Infolists\Components\TextEntry;
-// use Illuminate\Support\Number; // ✅ REMOVIDO
+use Filament\Infolists\Components\IconEntry;
 use App\Filament\Resources\PurchaseResource\RelationManagers; 
 
 class ViewPurchase extends ViewRecord
 {
     protected static string $resource = PurchaseResource::class;
+
+    // ✅ ESTA LINHA É OBRIGATÓRIA PARA REMOVER AS GUIAS EM ALGUNS CASOS
+    protected static bool $hasRelationManagerTabsWithContent = false;
 
     protected function getHeaderActions(): array
     {
@@ -22,93 +25,112 @@ class ViewPurchase extends ViewRecord
         ];
     }
     
+    // ✅ Mantemos este método também por segurança
+    public function getRelationManagersConfiguration(): array
+    {
+        return [
+            'tabs' => false,
+        ];
+    }
+    
     public function infolist(Infolist $infolist): Infolist
     {
         return $infolist
             ->schema([
+                // --- CABEÇALHO DO DOCUMENTO ---
                 Section::make('Detalhes da Compra')
-                    // ✅ CORRIGIDO: De columns(3) para responsivo
-                    ->columns(['default' => 1, 'md' => 3])
+                    ->columns(['default' => 1, 'md' => 4])
                     ->schema([
-                        TextEntry::make('document_date')
-                            ->label('Data da Fatura/Doc.')
-                            ->date('d/m/Y')
-                            ->size('lg'), 
-                        TextEntry::make('document_number')
-                            ->label('Nº Documento')
-                            ->size('lg') 
-                            ->weight('bold'),
-                        TextEntry::make('is_delivered')
-                            ->label('Estado da Entrega')
+                        TextEntry::make('purchase_number')
+                            ->label('Nº Compra')
+                            ->weight('bold')
+                            ->size('lg')
+                            ->icon('heroicon-o-hashtag'),
+
+                        TextEntry::make('status')
+                            ->label('Status')
                             ->badge()
-                            ->formatStateUsing(fn (bool $state) => $state ? 'Entregue' : 'Pendente')
-                            ->color(fn (bool $state) => $state ? 'success' : 'warning'),
+                            ->color(fn (string $state): string => match ($state) {
+                                'Aberta' => 'gray',
+                                'Confirmada' => 'info',
+                                'Recebida' => 'success',
+                                'Cancelada' => 'danger',
+                                default => 'gray',
+                            }),
+
+                        TextEntry::make('issue_date')
+                            ->label('Emissão')
+                            ->date('d/m/Y'),
+
+                        TextEntry::make('expected_delivery_date')
+                            ->label('Entrega Prevista')
+                            ->date('d/m/Y')
+                            ->placeholder('Não definido'),
+
+                        TextEntry::make('user.name')
+                            ->label('Responsável')
+                            ->icon('heroicon-o-user'),
+                        
+                        TextEntry::make('payment_terms')
+                            ->label('Condições'),
+                            
+                        TextEntry::make('payment_method')
+                            ->label('Pagamento'),
+
+                        IconEntry::make('is_delivered')
+                            ->label('Entregue?')
+                            ->boolean(),
                     ]),
 
-                Section::make('Resumo Financeiro e Armazém')
-                    // ✅ CORRIGIDO: De columns(4) para responsivo
+                // --- FINANCEIRO ---
+                Section::make('Resumo Financeiro')
                     ->columns(['default' => 1, 'md' => 4]) 
                     ->schema([
                         TextEntry::make('stock.name')
                             ->label('Armazém Destino')
                             ->icon('heroicon-o-cube')
-                            ->size('lg')
-                            // ✅ CORRIGIDO: De columnSpan(4) para columnSpanFull() (que é responsivo)
                             ->columnSpanFull(), 
 
                         TextEntry::make('total_amount') 
                             ->label('Subtotal (Itens)')
-                            ->formatStateUsing(fn ($state): string => 'Kz ' . number_format($state ?? 0, 2, ',', '.'))
-                            ->icon('heroicon-o-archive-box')
-                            ->weight('medium'),
+                            ->formatStateUsing(fn ($state) => 'Kz ' . number_format($state ?? 0, 2, ',', '.')),
 
                         TextEntry::make('discount_total')
-                            ->label('Desconto Total (Itens)')
-                            ->formatStateUsing(fn ($state): string => 'Kz ' . number_format($state ?? 0, 2, ',', '.'))
+                            ->label('Desconto')
                             ->color('danger')
-                            ->icon('heroicon-o-minus'),
+                            ->formatStateUsing(fn ($state) => '- Kz ' . number_format($state ?? 0, 2, ',', '.')),
 
                         TextEntry::make('freight_cost') 
-                            ->label('Custo do Frete')
-                            ->formatStateUsing(fn ($state): string => 'Kz ' . number_format($state ?? 0, 2, ',', '.'))
-                            ->icon('heroicon-o-truck'),
+                            ->label('Frete')
+                            ->formatStateUsing(fn ($state) => '+ Kz ' . number_format($state ?? 0, 2, ',', '.')),
 
                         TextEntry::make('iva_amount') 
                             ->label('IVA (14%)')
-                            ->formatStateUsing(fn ($state): string => 'Kz ' . number_format($state ?? 0, 2, ',', '.'))
-                            ->icon('heroicon-o-receipt-percent'),
+                            ->formatStateUsing(fn ($state) => '+ Kz ' . number_format($state ?? 0, 2, ',', '.')),
 
                         TextEntry::make('total_payable') 
-                            ->label('Total Final (c/ IVA e Frete)')
-                            ->formatStateUsing(fn ($state): string => 'Kz ' . number_format($state ?? 0, 2, ',', '.'))
+                            ->label('TOTAL FINAL')
+                            ->formatStateUsing(fn ($state) => 'Kz ' . number_format($state ?? 0, 2, ',', '.'))
                             ->color('success')
                             ->weight('bold')
-                            ->size('lg')
-                            ->icon('heroicon-o-currency-dollar')
+                            ->size('xl')
                             ->columnSpanFull(),
+                            
+                        TextEntry::make('internal_notes')
+                            ->label('Observações Internas')
+                            ->columnSpanFull()
+                            ->markdown(),
                     ]),
                 
-                Section::make('Informações do Fornecedor')
-                    // ✅ CORRIGIDO: De columns(3) para responsivo
+                Section::make('Dados do Fornecedor')
                     ->columns(['default' => 1, 'md' => 3])
+                    ->collapsed()
                     ->schema([
-                        TextEntry::make('supplier.name')
-                            ->label('Nome da Empresa')
-                            ->size('lg')
-                            ->weight('bold'),
-                        TextEntry::make('supplier.contact_name')
-                            ->label('Pessoa de Contacto'),
-                        TextEntry::make('supplier.nif')
-                            ->label('NIF/Contribuinte'),
-                        TextEntry::make('supplier.phone')
-                            ->label('Telefone/WhatsApp')
-                            ->icon('heroicon-o-phone'),
-                        TextEntry::make('supplier.email')
-                            ->label('E-mail')
-                            ->icon('heroicon-o-envelope'),
-                        TextEntry::make('supplier.address')
-                            ->label('Endereço')
-                            ->columnSpanFull(), // columnSpanFull() já é responsivo
+                        TextEntry::make('supplier.name')->label('Empresa')->weight('bold'),
+                        TextEntry::make('supplier.nif')->label('NIF'),
+                        TextEntry::make('supplier.email')->label('Email')->icon('heroicon-o-envelope'),
+                        TextEntry::make('supplier.phone')->label('Telefone')->icon('heroicon-o-phone'),
+                        TextEntry::make('supplier.address')->label('Endereço')->columnSpanFull(),
                     ]),
             ]);
     }
@@ -117,6 +139,7 @@ class ViewPurchase extends ViewRecord
     {
         return [
             RelationManagers\PurchaseItemsRelationManager::class,
+            RelationManagers\PurchaseAttachmentsRelationManager::class,
         ];
     }
 }

@@ -13,7 +13,7 @@ return new class extends Migration
         DB::unprepared('DROP TRIGGER IF EXISTS trg_after_purchase_item_delete');
         DB::unprepared('DROP PROCEDURE IF EXISTS sp_update_purchase_data');
 
-        // 2. Criar a NOVA Stored Procedure
+        // 2. Criar a NOVA Stored Procedure (com lógica de 'calculate_iva')
         DB::unprepared("
             CREATE PROCEDURE sp_update_purchase_data(IN p_purchase_id CHAR(36))
             BEGIN
@@ -25,11 +25,9 @@ return new class extends Migration
                 
                 DECLARE v_stock_id CHAR(36); 
                 DECLARE v_is_delivered BOOLEAN;
+                DECLARE v_calculate_iva BOOLEAN; -- NOVO: Variável para o toggle
 
                 -- 1. Calcular Totais dos Itens
-                -- ✅ LÓGICA CORRIGIDA:
-                -- v_subtotal é o subtotal BRUTO (SUM(qty * cost))
-                -- v_discount é o desconto total (SUM(discount))
                 SELECT
                     SUM(quantity * unit_cost), 
                     SUM(discount)
@@ -42,40 +40,46 @@ return new class extends Migration
                 SET v_subtotal = COALESCE(v_subtotal, 0);
                 SET v_discount = COALESCE(v_discount, 0);
 
-                -- 2. Obter o Frete
-                SELECT freight_cost
-                INTO v_freight
+                -- 2. Obter Frete, Status de Entrega e Configuração do IVA
+                SELECT 
+                    freight_cost, 
+                    stock_id, 
+                    is_delivered,
+                    calculate_iva -- NOVO: Obter o valor do toggle
+                INTO 
+                    v_freight, 
+                    v_stock_id, 
+                    v_is_delivered,
+                    v_calculate_iva -- NOVO: Armazenar o valor
                 FROM purchases
                 WHERE id = p_purchase_id;
                 
                 SET v_freight = COALESCE(v_freight, 0);
 
-                -- 3. Calcular IVA (SOBRE O TOTAL LÍQUIDO)
-                -- ✅ LÓGICA CORRIGIDA: IVA é (Subtotal - Desconto) * 0.14
-                -- Usamos ROUND() para garantir 2 casas decimais.
-                SET v_iva_items = ROUND((v_subtotal - v_discount) * 0.14, 2);
+                -- 3. Calcular IVA (Condicionalmente)
+                SET v_iva_items = 0; -- Valor padrão é 0
+
+                IF v_calculate_iva = 1 THEN
+                    -- Só calcula se o toggle (calculate_iva) for verdadeiro
+                    SET v_iva_items = ROUND((v_subtotal - v_discount) * 0.14, 2);
+                END IF;
 
                 -- 4. Calcular Total Final
-                -- ✅ LÓGICA CORRIGIDA: (Subtotal - Desconto) + Frete + IVA
+                -- (Subtotal - Desconto) + Frete + IVA (que será 0 se desabilitado)
                 SET v_total_payable = (v_subtotal - v_discount) + v_freight + v_iva_items;
 
                 -- 5. Atualizar a tabela 'purchases'
                 UPDATE purchases
                 SET
-                    total_amount = v_subtotal,      -- total_amount agora é o subtotal BRUTO
-                    discount_total = v_discount,    -- discount_total é o desconto
+                    total_amount = v_subtotal,      -- Subtotal Bruto
+                    discount_total = v_discount,    
                     freight_cost = v_freight,
-                    iva_amount = v_iva_items,       -- iva_amount é o valor calculado
-                    total_payable = v_total_payable -- total_payable é o valor final
+                    iva_amount = v_iva_items,       -- Valor do IVA (0 ou calculado)
+                    total_payable = v_total_payable 
                 WHERE
                     id = p_purchase_id;
 
                 -- 6. Lógica de Estoque (permanece igual)
-                SELECT stock_id, is_delivered
-                INTO v_stock_id, v_is_delivered
-                FROM purchases
-                WHERE id = p_purchase_id;
-
                 IF v_is_delivered = 1 THEN
                     DELETE FROM stock_movements
                     WHERE reference_type = 'App\\\\Models\\\\Purchase' AND reference_id = p_purchase_id;
@@ -95,7 +99,7 @@ return new class extends Migration
             END
         ");
 
-        // 3. Re-criar os Triggers
+        // 3. Re-criar os Triggers (estes não mudam)
         DB::unprepared('CREATE TRIGGER trg_after_purchase_item_insert AFTER INSERT ON purchase_items FOR EACH ROW BEGIN CALL sp_update_purchase_data(NEW.purchase_id); END');
         DB::unprepared('CREATE TRIGGER trg_after_purchase_item_update AFTER UPDATE ON purchase_items FOR EACH ROW BEGIN CALL sp_update_purchase_data(NEW.purchase_id); END');
         DB::unprepared('CREATE TRIGGER trg_after_purchase_item_delete AFTER DELETE ON purchase_items FOR EACH ROW BEGIN CALL sp_update_purchase_data(OLD.purchase_id); END');
