@@ -37,15 +37,15 @@ class AdminPanelProvider extends PanelProvider
         // Obtém os caminhos (ou os defaults externos)
         $logoLight = $settings?->logo_light_path
             ? Storage::disk('public')->url($settings->logo_light_path)
-            : 'https://e-zandu.com/default/logo-light.png';
+            : '';//'https://e-zandu.com/default/logo-light.png';
 
         $logoDark  = $settings?->logo_dark_path
             ? Storage::disk('public')->url($settings->logo_dark_path)
-            : 'https://e-zandu.com/default/logo-dark.png';
+            : '';//'https://e-zandu.com/default/logo-dark.png';
 
         $favicon   = $settings?->icon_path
             ? Storage::disk('public')->url($settings->icon_path)
-            : 'https://e-zandu.com/default/icon-default.png';
+            : '';//'https://e-zandu.com/default/icon-default.png';
         // --- FIM DA LÓGICA ---
 
         return $panel
@@ -63,9 +63,21 @@ class AdminPanelProvider extends PanelProvider
             ->brandLogoHeight('2.5rem')
             // --- FIM DA CORREÇÃO ---
 
-            ->colors([
-                'danger' => Color::Red,
-            ])
+           ->colors([
+    'danger' => [
+        50  => '#fff5f5',
+        100 => '#fee2e2',
+        200 => '#fecaca',
+        300 => '#fca5a5',
+        400 => '#f87171',
+        500 => '#ef4444',  // vermelho principal
+        600 => '#dc2626',
+        700 => '#b91c1c',
+        800 => '#991b1b',
+        900 => '#7f1d1d',
+        950 => '#450a0a',
+    ],
+])
             ->profile(EditProfile::class)
             ->databaseNotifications()
             ->databaseNotificationsPolling('30s')
