@@ -19,6 +19,8 @@ use Filament\Forms\Components\Group;
 use Filament\Forms\Components\Section;
 use Filament\Tables\Filters\Filter; // Para o filtro de data
 use Forms\Components\DatePicker; // Para o filtro de data
+use App\Models\Setting; // Para obter detalhes da empresa no PDF
+use Barryvdh\DomPDF\Facade\Pdf; // Para gerar o PDF
 
 class SupplierResource extends Resource
 {
@@ -156,7 +158,49 @@ class SupplierResource extends Resource
                             );
                     }),
             ])
+            ->headerActions([
+                // ✅ AÇÃO 1: Botão para Download da Lista de Fornecedores
+                Tables\Actions\Action::make('export_pdf_list')
+                    ->label('Baixar Lista (PDF)')
+                    ->icon('heroicon-o-document-arrow-down')
+                    ->color('gray')
+                    ->iconButton()
+                    ->action(function ($livewire) {
+                        $query = $livewire->getFilteredTableQuery();
+                        $records = $query->get();
+                        $settings = Setting::first();
+
+                        // ROTA: resources/views/pdfs/suppliers-list.blade.php (Você precisará criar esta view)
+                        $pdf = Pdf::loadView('pdfs.suppliers-list', [
+                            'records' => $records,
+                            'settings' => $settings
+                        ])->setPaper('a4', 'portrait'); // Use portrait para lista de contactos
+
+                        return response()->streamDownload(function () use ($pdf) {
+                            echo $pdf->output();
+                        }, 'lista-fornecedores-' . date('Y-m-d') . '.pdf');
+                    }),
+            ])
             ->actions([
+
+                Tables\Actions\Action::make('download_pdf_details')
+                ->label('Detalhes (PDF)')
+                ->icon('heroicon-o-document-arrow-down')
+                ->color('info') // Cor diferente para diferenciar de editar/apagar
+                ->iconButton()
+                ->action(function (Supplier $record) {
+                    $settings = Setting::first();
+
+                    // ROTA: resources/views/pdfs/supplier-details.blade.php (Você precisará criar esta view)
+                    $pdf = Pdf::loadView('pdfs.supplier-details', [
+                        'record' => $record,
+                        'settings' => $settings
+                    ]);
+
+                    return response()->streamDownload(function () use ($pdf) {
+                        echo $pdf->output();
+                    }, 'fornecedor-' . $record->name . '.pdf');
+                }),
                 // Ações como ícones para um look mais limpo
                 Tables\Actions\EditAction::make()->iconButton(),
                 Tables\Actions\DeleteAction::make()->iconButton(),

@@ -58,7 +58,7 @@ class PurchaseSeeder extends Seeder
                 'payment_method' => $faker->randomElement(['Transferência Bancária', 'Pagamento na Entrega']
 ),
                 'internal_notes' => $faker->sentence(),
-                'calculate_iva' => $faker->boolean(90), // 90% das compras calculam IVA
+                'calculate_iva' => $faker->boolean(5), // 90% das compras calculam IVA
                 'status' => $status,
                 'is_delivered' => $isDelivered,
 

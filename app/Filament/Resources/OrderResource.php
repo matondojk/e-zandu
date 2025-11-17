@@ -5,7 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\OrderResource\Pages;
 use App\Filament\Resources\OrderResource\RelationManagers;
 use App\Models\Cart;
-use App\Models\Setting; // ✅ Necessário para o PDF
+use App\Models\Setting;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Infolists;
@@ -14,7 +14,9 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Barryvdh\DomPDF\Facade\Pdf; // ✅ Necessário para o PDF
+use Barryvdh\DomPDF\Facade\Pdf;
+use App\Exports\OrderExport;
+use Maatwebsite\Excel\Facades\Excel;
 
 class OrderResource extends Resource
 {
@@ -46,17 +48,32 @@ class OrderResource extends Resource
             ->defaultSort('created_at', 'desc')
             // ✅ NOVO: Botão de Relatório no Topo
             ->headerActions([
+                // ✅ AÇÃO 1: Exportar Excel (CUSTOMIZADO)
+                Tables\Actions\Action::make('export_excel_custom')
+                    ->label('Exportar Excel')
+                    ->icon('heroicon-o-table-cells')
+                    ->color('gray')
+                    ->iconButton()
+                    ->action(function ($livewire) {
+                        $query = $livewire->getFilteredTableQuery();
+
+                        return Excel::download(
+                            new OrderExport($query), // Chama o exportador com a query filtrada
+                            'relatorio-vendas-' . date('Y-m-d') . '.xlsx'
+                        );
+                    }),
+
+                // ✅ AÇÃO 2: Download do Relatório PDF (Mantida)
                 Tables\Actions\Action::make('export_pdf_list')
-                    ->label('Baixar Relatório')
+                    ->label('Baixar Relatório (PDF)')
                     ->icon('heroicon-o-document-arrow-down')
-                    ->color('gray') // Cor discreta
+                    ->color('gray')
                     ->iconButton()
                     ->action(function ($livewire) {
                         $query = $livewire->getFilteredTableQuery();
                         $records = $query->get();
                         $settings = Setting::first();
 
-                        // Certifique-se de criar a view: resources/views/pdfs/orders-list.blade.php
                         $pdf = Pdf::loadView('pdfs.orders-list', [
                             'records' => $records,
                             'settings' => $settings

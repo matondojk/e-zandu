@@ -4,23 +4,29 @@
     <meta charset="UTF-8">
     <title>Relatório de Compras</title>
     <style>
-        @page { margin: 20px 30px; }
-        body { font-family: 'Helvetica', 'Arial', sans-serif; font-size: 11px; color: #333; }
+        /* Seus estilos CSS */
+        @page { 
+            margin: 20px 30px; 
+            /* ✅ Garantir que o PurchaseResource está definindo o Paper como 'landscape' */
+        }
+        body { font-family: 'Helvetica', 'Arial', sans-serif; font-size: 10px; /* Reduzindo fonte para caber */ color: #333; }
         
-        /* Header Layout */
         .header-table { width: 100%; margin-bottom: 20px; border-bottom: 2px solid #000; padding-bottom: 10px; }
         .logo { max-height: 60px; max-width: 200px; }
         .company-info { text-align: right; line-height: 1.4; }
         .title-row { text-align: center; margin-top: 15px; margin-bottom: 15px; }
         .report-title { font-size: 18px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
 
-        /* Data Table */
         .data-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        .data-table th { background-color: #333; color: #fff; padding: 8px; text-align: left; font-weight: bold; font-size: 10px; text-transform: uppercase; }
-        .data-table td { border-bottom: 1px solid #ddd; padding: 8px; vertical-align: middle; }
+        .data-table th { background-color: #333; color: #fff; padding: 6px; /* Menor padding */ text-align: left; font-weight: bold; font-size: 9px; /* Menor fonte no header */ text-transform: uppercase; }
+        .data-table td { border-bottom: 1px solid #ddd; padding: 6px; vertical-align: middle; }
         .data-table tr:nth-child(even) { background-color: #f9f9f9; }
         
-        /* Utilities */
+        .data-table tfoot td { padding: 6px 8px; font-weight: bold; background-color: #f0f0f0; }
+        .data-table tfoot .total-label { text-align: right; }
+        .data-table tfoot .total-value { text-align: right; }
+        .data-table tfoot .grand-total { font-size: 1.1em; border-top: 2px solid #000; }
+        
         .text-right { text-align: right; }
         .text-center { text-align: center; }
         .badge { padding: 3px 6px; border-radius: 3px; color: #fff; font-size: 9px; font-weight: bold; }
@@ -64,7 +70,11 @@
                 <th>Emissão</th>
                 <th>Status</th>
                 <th>Entregue</th>
-                <th class="text-right">Total</th>
+                <th class="text-right">Subtotal</th>
+                <th class="text-right">Desconto</th>
+                <th class="text-right">Frete</th>
+                <th class="text-right">IVA (14%)</th>
+                <th class="text-right">Total Geral</th>
             </tr>
         </thead>
         <tbody>
@@ -79,16 +89,39 @@
                     </span>
                 </td>
                 <td>{{ $record->is_delivered ? 'Sim' : 'Não' }}</td>
+                
+                <td class="text-right">{{ number_format($record->total_amount, 2, ',', '.') }}</td>
+                <td class="text-right">{{ number_format($record->discount_total, 2, ',', '.') }}</td>
+                <td class="text-right">{{ number_format($record->freight_cost, 2, ',', '.') }}</td>
+                <td class="text-right">{{ number_format($record->iva_amount, 2, ',', '.') }}</td>
+                
                 <td class="text-right">
-                    {{ number_format($record->total_payable, 2, ',', '.') }} Kz
+                    <strong>{{ number_format($record->total_payable, 2, ',', '.') }} Kz</strong>
                 </td>
             </tr>
             @endforeach
         </tbody>
+
         <tfoot>
-            <tr style="background-color: #eee;">
-                <td colspan="5" class="text-right"><strong>TOTAL GERAL:</strong></td>
-                <td class="text-right"><strong>{{ number_format($records->sum('total_payable'), 2, ',', '.') }} Kz</strong></td>
+            @php $colspan = 9; @endphp <tr>
+                <td colspan="{{ $colspan }}" class="total-label">Subtotal (Itens):</td>
+                <td class="total-value">{{ number_format($records->sum('total_amount'), 2, ',', '.') }} Kz</td>
+            </tr>
+            <tr>
+                <td colspan="{{ $colspan }}" class="total-label">Total Descontos:</td>
+                <td class="total-value" style="color: red;">- {{ number_format($records->sum('discount_total'), 2, ',', '.') }} Kz</td>
+            </tr>
+            <tr>
+                <td colspan="{{ $colspan }}" class="total-label">Total Frete:</td>
+                <td class="total-value">+ {{ number_format($records->sum('freight_cost'), 2, ',', '.') }} Kz</td>
+            </tr>
+            <tr>
+                <td colspan="{{ $colspan }}" class="total-label">Total IVA (14%):</td>
+                <td class="total-value">+ {{ number_format($records->sum('iva_amount'), 2, ',', '.') }} Kz</td>
+            </tr>
+            <tr class="grand-total">
+                <td colspan="{{ $colspan }}" class="total-label">TOTAL GERAL:</td>
+                <td class="total-value">{{ number_format($records->sum('total_payable'), 2, ',', '.') }} Kz</td>
             </tr>
         </tfoot>
     </table>

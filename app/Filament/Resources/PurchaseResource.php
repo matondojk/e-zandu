@@ -22,6 +22,8 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Blade;
 use App\Models\Setting;
 use Filament\Forms\Components\Repeater;
+use App\Exports\PurchaseExport;
+use Maatwebsite\Excel\Facades\Excel;
 
 class PurchaseResource extends Resource
 {
@@ -153,7 +155,7 @@ class PurchaseResource extends Resource
                             ->label('Observações Internas')
                             ->rows(3)
                             ->columnSpan(2),
-                        
+
                         // Se você mudou para RelationManager, pode remover este Repeater daqui também
                         // para não ficar duplicado (no form e na relação)
                         // Mas se quiser manter para o momento da criação, deixe como está.
@@ -196,8 +198,23 @@ class PurchaseResource extends Resource
         return $table
             ->defaultSort('created_at', 'desc')
             ->headerActions([
+
+                Tables\Actions\Action::make('export_excel_custom')
+                    ->label('Exportar Excel')
+                    ->icon('heroicon-o-table-cells') 
+                    ->color('gray')
+                    ->iconButton()
+                    ->action(function ($livewire) {
+                        $query = $livewire->getFilteredTableQuery();
+
+                        return Excel::download(
+                            new PurchaseExport($query), 
+                            'relatorio-compras-' . date('Y-m-d') . '.xlsx'
+                        );
+                    }),
+
                 Tables\Actions\Action::make('export_pdf_list')
-                    ->label('Baixar Relatório')
+                    ->label('Baixar Relatório (PDF)')
                     ->icon('heroicon-o-document-arrow-down')
                     ->color('gray')
                     ->iconButton()

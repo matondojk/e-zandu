@@ -12,6 +12,12 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Filament\Tables\Filters\Filter; // Para o filtro de data
+use App\Models\Setting; // Adicionado para detalhes da empresa no PDF
+use Barryvdh\DomPDF\Facade\Pdf; // Adicionado para geração de PDF
+use Filament\Tables\Actions\ExportAction; // Adicionado para exportação de Excel
+use App\Filament\Exports\ExpenseExporter; // Certifique-se de criar esta classe
+use App\Exports\ExpenseExport; // 👈 NOVA CLASSE DE EXPORTAÇÃO (Você deve criá-la) 
+use Maatwebsite\Excel\Facades\Excel; // 👈 Adicionado para exportar no Action
 
 class ExpenseResource extends Resource
 {
@@ -83,6 +89,49 @@ class ExpenseResource extends Resource
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
+            ->headerActions([
+                // ✅ AÇÃO 1: Exportar Excel (Apenas ícone, cor do PDF)
+                Tables\Actions\Action::make('export_excel_custom')
+                ->label('Exportar Excel')
+                ->icon('heroicon-o-table-cells')
+                ->color('gray')
+                ->iconButton()
+                ->action(function ($livewire) {
+                    // Obtém a query filtrada da tabela
+                    $query = $livewire->getFilteredTableQuery(); 
+                    
+                    // Retorna a exportação usando o Laravel Excel/Maatwebsite
+                    // Chama a classe de exportação customizada com a query
+                    return Excel::download(
+                        new ExpenseExport($query), // Sua classe de exportação customizada
+                        'lista-despesas-' . date('Y-m-d') . '.xlsx'
+                    );
+                }),
+
+                // ✅ AÇÃO 2: Download da Lista em PDF (Apenas ícone, cor do PDF)
+                Tables\Actions\Action::make('export_pdf_list')
+                    ->label('Baixar Lista (PDF)')
+                    ->icon('heroicon-o-document-arrow-down') // Ícone de documento
+                    ->color('gray')
+                    ->iconButton() // Transforma em botão de ícone
+                    ->action(function ($livewire) {
+                        // ... (sua lógica de geração de PDF)
+                        $query = $livewire->getFilteredTableQuery();
+                        $records = $query->get();
+                        $settings = Setting::first();
+                        $totalExpenses = $records->sum('amount');
+
+                        $pdf = Pdf::loadView('pdfs.expenses-list', [
+                            'records' => $records,
+                            'settings' => $settings,
+                            'totalExpenses' => $totalExpenses
+                        ])->setPaper('a4', 'portrait');
+
+                        return response()->streamDownload(function () use ($pdf) {
+                            echo $pdf->output();
+                        }, 'lista-despesas-' . date('Y-m-d') . '.pdf');
+                    }),
+            ])
             ->filters([
                 // Filtro para o Dashboard (embora o dashboard tenha o seu próprio filtro global)
                 Filter::make('expense_date')
@@ -103,6 +152,24 @@ class ExpenseResource extends Resource
                     }),
             ])
             ->actions([
+                Tables\Actions\Action::make('download_pdf_details')
+                    ->label('PDF')
+                    ->icon('heroicon-o-document-arrow-down')
+                    ->color('info')
+                    ->iconButton()
+                    ->action(function (Expense $record) {
+                        $settings = Setting::first();
+
+                        // ROTA: resources/views/pdfs/expense-details.blade.php
+                        $pdf = Pdf::loadView('pdfs.expense-details', [
+                            'record' => $record,
+                            'settings' => $settings
+                        ]);
+
+                        return response()->streamDownload(function () use ($pdf) {
+                            echo $pdf->output();
+                        }, 'despesa-' . $record->id . '.pdf');
+                    }),
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
             ])

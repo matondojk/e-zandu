@@ -13,6 +13,8 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Filament\Tables\Filters;
+use App\Models\Setting;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class StockResource extends Resource
 {
@@ -98,7 +100,48 @@ class StockResource extends Resource
                     ->falseLabel('Apenas Não-Padrão')
                     ->native(false),
             ])
+            ->headerActions([
+                // ✅ AÇÃO 1: Botão para Download da Lista de Armazéns
+                Tables\Actions\Action::make('export_pdf_list')
+                    ->label('Baixar Lista (PDF)')
+                    ->icon('heroicon-o-document-arrow-down')
+                    ->color('gray')
+                    ->iconButton()
+                    ->action(function ($livewire) {
+                        $query = $livewire->getFilteredTableQuery();
+                        $records = $query->get();
+                        $settings = Setting::first();
+
+                        $pdf = Pdf::loadView('pdfs.stocks-list', [
+                            'records' => $records,
+                            'settings' => $settings
+                        ])->setPaper('a4', 'portrait');
+
+                        return response()->streamDownload(function () use ($pdf) {
+                            echo $pdf->output();
+                        }, 'lista-armazens-' . date('Y-m-d') . '.pdf');
+                    }),
+            ])
             ->actions([
+
+                Tables\Actions\Action::make('download_pdf_details')
+                    ->label('Detalhes (PDF)')
+                    ->icon('heroicon-o-document-arrow-down')
+                    ->color('info')
+                    ->iconButton()
+                    ->action(function (Stock $record) {
+                        $settings = Setting::first();
+
+                        $pdf = Pdf::loadView('pdfs.stock-details', [
+                            'record' => $record,
+                            'settings' => $settings
+                        ]);
+
+                        return response()->streamDownload(function () use ($pdf) {
+                            echo $pdf->output();
+                        }, 'armazem-' . $record->name . '.pdf');
+                    }),
+
                 Tables\Actions\EditAction::make()
                     ->iconButton(),
                 Tables\Actions\DeleteAction::make()

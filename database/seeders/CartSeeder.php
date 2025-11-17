@@ -4,7 +4,7 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use App\Models\Cart;
-use App\Models\Customer; // ✅ CORREÇÃO: Usar o modelo Customer
+use App\Models\Customer;
 use App\Models\Product;
 use App\Models\Coupon;
 use App\Models\User;
@@ -19,11 +19,7 @@ class CartSeeder extends Seeder
     public function run(): void
     {
         $products = Product::all();
-        // ✅ CORREÇÃO: Você está a usar a tabela 'customers'
         $customers = Customer::all(); 
-        // Se você renomeou o modelo User para Customer, o seu User::where('role', 'customer')->get() está certo.
-        // Mas a sua migração chama-se 'create_customers_table', então vou usar o modelo Customer.
-        
         $coupons = Coupon::where('is_active', true)->where(function ($query) {
             $query->whereNull('expires_at')
                   ->orWhere('expires_at', '>', now());
@@ -72,7 +68,7 @@ class CartSeeder extends Seeder
                 // ✅ CORREÇÃO 2: 'customer_id' (O BUG)
                 // =================================================================
                 //
-                'user_id' => $customer->id, // A sua tabela carts usa 'customer_id'
+                'user_id' => $customer->id, // Assumindo que a coluna é 'user_id' e refere-se a 'Customer'
                 'status' => $status,
                 'uuid' => (string) Str::uuid(),
                 'shipping_rate_id' => $shippingRate->id,
@@ -80,7 +76,7 @@ class CartSeeder extends Seeder
             ]);
 
             $totalPrice = 0;
-            $items = $products->random(rand(1, 3)); // Isto agora é seguro
+            $items = $products->random(rand(1, 3)); 
 
             foreach ($items as $product) {
                 $quantity = rand(1, 2);
@@ -116,6 +112,19 @@ class CartSeeder extends Seeder
             $cart->discount_amount = $discountAmount;
             $cart->coupon_id = $couponId;
 
+            //
+            // =================================================================
+            // ✅ CORREÇÃO 3: DATAS DE CRIAÇÃO VARIÁVEIS (O SEU PEDIDO)
+            // =================================================================
+            //
+            // Gera uma data/hora aleatória desde o início do ano (1 de Jan) até agora.
+            $randomDate = $faker->dateTimeBetween(now()->startOfYear(), now());
+
+            // Define manualmente os timestamps antes de salvar
+            $cart->created_at = $randomDate;
+            $cart->updated_at = $randomDate; // É boa prática definir ambos para o mesmo valor inicial
+
+            // Agora, ao salvar, o Laravel usará estas datas em vez de "agora"
             $cart->save();
         }
     }

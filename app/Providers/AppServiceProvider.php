@@ -12,7 +12,8 @@ use App\Observers\ProductImageObserver;
 use Livewire\Livewire;
 use App\Models\WhatsAppSetting;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Facades\Log; // 1. IMPORTAR O LOG
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -30,6 +31,13 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot()
     {
+        if (config('app.demo_mode')) {
+            DB::beginTransaction();
+
+            app()->terminating(function () {
+                DB::rollBack();
+            });
+        }
 
         if ($this->app->runningInConsole()) {
             return;
@@ -40,7 +48,7 @@ class AppServiceProvider extends ServiceProvider
                 $settings = WhatsAppSetting::first();
 
                 if ($settings) {
-                    
+
                     // --- 2. A CORREÇÃO ---
                     // Remova as aspas extra daqui
                     config([
@@ -59,7 +67,6 @@ class AppServiceProvider extends ServiceProvider
                     if ($settings->token) {
                         Log::debug('Token do WhatsApp (parcial): ' . $settings->token . substr($settings->token, -5));
                     }
-                    
                 } else {
                     // Adiciona um log caso a tabela esteja vazia
                     Log::warning('Tabela whatsapp_settings está vazia. Usando valores do .env (se existirem).');
