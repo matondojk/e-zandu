@@ -7,7 +7,7 @@ use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Mail\Mailables\Attachment; // ✅ Importar Attachment
+use Illuminate\Mail\Mailables\Attachment;
 
 class AutomatedInsightMail extends Mailable
 {
@@ -15,18 +15,13 @@ class AutomatedInsightMail extends Mailable
 
     public string $analysisText;
     public string $subjectText;
-    public ?string $attachmentPath; // ✅ Adicionar caminho do anexo
+    public ?string $attachmentPath;
 
-    /**
-     * @param string $subjectText
-     * @param string $analysisText
-     * @param string|null $attachmentPath Caminho completo para o ficheiro a anexar
-     */
     public function __construct(string $subjectText, string $analysisText, ?string $attachmentPath = null)
     {
         $this->subjectText = $subjectText;
         $this->analysisText = $analysisText;
-        $this->attachmentPath = $attachmentPath; // ✅ Atribuir
+        $this->attachmentPath = $attachmentPath;
     }
 
     public function envelope(): Envelope
@@ -44,18 +39,15 @@ class AutomatedInsightMail extends Mailable
         );
     }
 
-    /**
-     * ✅ Atualizar attachments()
-     */
     public function attachments(): array
     {
-        // Se um caminho de anexo foi fornecido E o ficheiro existe, anexa-o.
         if ($this->attachmentPath && file_exists($this->attachmentPath)) {
             return [
-                Attachment::fromPath($this->attachmentPath),
+                Attachment::fromPath($this->attachmentPath)
+                    ->as('Resumo-Performance.pdf')
+                    ->withMime('application/pdf'),
             ];
         }
-        
         return [];
     }
 }

@@ -6,16 +6,18 @@ use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\Route; // Importante
 use App\Models\User;
 use Illuminate\Support\Str;
 
 class Login extends Component
 {
-    // Estado (Login ou Registo)
-    public $isRegister = false;
+    // Estado da Visualização: 'login', 'register', 'forgot', 'reset'
+    public $viewState = 'login';
 
     // Dados de Login
-    public $loginInput = ''; // Pode ser email ou telefone
+    public $loginInput = ''; 
     public $password = '';
 
     // Dados de Registo
@@ -25,27 +27,37 @@ class Login extends Component
     public $regPassword = '';
     public $regPassword_confirmation = '';
 
-    // Captura o parâmetro da URL ?register=true
-    public $queryString = ['register' => ['except' => false]];
+    // Dados de Recuperação (Forgot)
+    public $forgotEmail = '';
+    public $forgotStatus = null;
 
-    public function mount()
+    // Dados de Redefinição (Reset - Passo final vindo do email)
+    public $token = '';
+    public $resetEmail = '';
+    public $resetPassword = '';
+    public $resetPassword_confirmation = '';
+    public $resetStatus = null;
+
+    public function mount($token = null)
     {
-        // Se o utilizador já estiver logado, redirecionar
         if (Auth::check()) {
             $this->redirectUser();
         }
 
-        // Se na URL vier ?register=true ou 1, ativa o modo registo
-        if (request()->query('register')) {
-            $this->isRegister = true;
-        }
-    }
+        // Determina o estado baseado na Rota atual
+        $route = Route::currentRouteName();
 
-    public function toggleMode()
-    {
-        $this->isRegister = !$this->isRegister;
-        $this->resetValidation();
-        $this->reset(['password', 'regPassword', 'regPassword_confirmation']);
+        if ($route === 'register') {
+            $this->viewState = 'register';
+        } elseif ($route === 'password.request') {
+            $this->viewState = 'forgot';
+        } elseif ($route === 'password.reset') {
+            $this->viewState = 'reset';
+            $this->token = $token; // Captura o token da URL
+            $this->resetEmail = request()->query('email'); // Captura o email da URL se houver
+        } else {
+            $this->viewState = 'login';
+        }
     }
 
     public function login()
@@ -58,14 +70,13 @@ class Login extends Component
             'password.required' => 'Informe a sua senha.'
         ]);
 
-        // Determinar se é email ou telefone
         $fieldType = filter_var($this->loginInput, FILTER_VALIDATE_EMAIL) ? 'email' : 'phone';
 
         if (Auth::attempt([$fieldType => $this->loginInput, 'password' => $this->password])) {
             session()->regenerate();
             $this->redirectUser();
         } else {
-            $this->addError('loginInput', 'Credenciais incorretas. Verifique seus dados.');
+            $this->addError('loginInput', 'Credenciais incorretas.');
         }
     }
 
@@ -76,46 +87,94 @@ class Login extends Component
             'regEmail' => 'required|email|unique:users,email',
             'regPhone' => 'required|unique:users,phone',
             'regPassword' => 'required|min:6|confirmed',
-        ], [
-            'name.required' => 'O nome é obrigatório.',
-            'regEmail.unique' => 'Este email já está registado.',
-            'regPhone.unique' => 'Este WhatsApp já está registado.',
-            'regPassword.confirmed' => 'As senhas não coincidem.',
-            'regPassword.min' => 'A senha deve ter pelo menos 6 caracteres.'
         ]);
 
-        // Criação do utilizador
         $user = User::create([
             'id' => (string) Str::uuid(),
             'name' => $this->name,
             'email' => $this->regEmail,
             'phone' => $this->regPhone,
             'password' => Hash::make($this->regPassword),
-            'role' => 'customer', // Role padrão
+            'role' => 'customer',
         ]);
 
-        // Login automático
         Auth::login($user);
-
         $this->redirectUser();
+    }
+
+    // Enviar o link por email
+    public function sendResetLink()
+    {
+        $this->validate(['forgotEmail' => 'required|email|exists:users,email']);
+
+        $status = Password::sendResetLink(['email' => $this->forgotEmail]);
+
+        if ($status === Password::RESET_LINK_SENT) {
+            $this->forgotStatus = __($status);
+            $this->forgotEmail = '';
+        } else {
+            $this->addError('forgotEmail', __($status));
+        }
+    }
+
+    // Efetivar a troca de senha (Novo método)
+    public function resetNewPassword()
+    {
+        $this->validate([
+            'token' => 'required',
+            'resetEmail' => 'required|email',
+            'resetPassword' => 'required|min:6|confirmed',
+        ], [
+            'resetPassword.confirmed' => 'As senhas não coincidem.',
+            'resetEmail.required' => 'O email é obrigatório.'
+        ]);
+
+        $status = Password::reset(
+            [
+                'email' => $this->resetEmail,
+                'password' => $this->resetPassword,
+                'password_confirmation' => $this->resetPassword_confirmation,
+                'token' => $this->token,
+            ],
+            function ($user, $password) {
+                $user->forceFill([
+                    'password' => Hash::make($password)
+                ])->setRememberToken(Str::random(60));
+                $user->save();
+
+                event(new \Illuminate\Auth\Events\PasswordReset($user));
+            }
+        );
+
+        if ($status === Password::PASSWORD_RESET) {
+            // Sucesso: Faz login e redireciona
+            $user = User::where('email', $this->resetEmail)->first();
+            Auth::login($user);
+            $this->redirectUser();
+        } else {
+            $this->addError('resetEmail', __($status));
+        }
     }
 
     public function redirectUser()
     {
-        // Se existir carrinho na sessão (vindo do Checkout.php), vai para checkout
-        // Baseado no arquivo Checkout.php fornecido, a sessão chama-se 'cart'
         if (Session::has('cart') && count(Session::get('cart')) > 0) {
             return redirect()->route('checkout');
         }
-
-        // Caso contrário, vai para a conta do utilizador
-        return redirect()->route('my-account'); // Certifique-se que esta rota existe
+        return redirect()->route('my-account');
     }
 
     public function render()
     {
+        $titles = [
+            'login' => 'Entrar | E-Zandu',
+            'register' => 'Criar Conta | E-Zandu',
+            'forgot' => 'Recuperar Senha | E-Zandu',
+            'reset' => 'Redefinir Senha | E-Zandu'
+        ];
+
         return view('livewire.site.defaults.auth.login')->layout('components.layouts.defaults.app', [
-            'title' => $this->isRegister ? 'Criar Conta | E-Zandu' : 'Entrar | E-Zandu'
+            'title' => $titles[$this->viewState] ?? 'Login'
         ]);
     }
 }

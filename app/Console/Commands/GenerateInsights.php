@@ -8,6 +8,8 @@ use App\Mail\AutomatedInsightMail;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Carbon;
+use App\Models\Setting; // Importar Model Setting
+use Barryvdh\DomPDF\Facade\Pdf; // Importar PDF
 
 class GenerateInsights extends Command
 {
@@ -19,7 +21,7 @@ class GenerateInsights extends Command
         $this->info("Iniciando a geração de insights de performance...");
 
         try {
-            // 1. Gerar o Insight de Performance (Reutiliza a lógica existente)
+            // 1. Gerar o Insight de Performance
             $analysis = $ai->generateBusinessInsights();
 
             // 2. Determinar o período para o assunto
@@ -27,20 +29,42 @@ class GenerateInsights extends Command
             $startDate = Carbon::now()->subWeek();
             $subject = "Resumo Semanal de Performance: {$startDate->format('d/m')} a {$endDate->format('d/m')}";
 
-            // 3. Obter destinatários
+            // 3. Obter configurações para o PDF (Logo e Nome)
+            $setting = Setting::find('00000000-0000-0000-0000-000000000001') ?? Setting::first();
+
+            // 4. Gerar o PDF
+            $pdfData = [
+                'setting' => $setting,
+                'analysisText' => $analysis,
+                'dateRange' => "{$startDate->format('d/m')} a {$endDate->format('d/m')}"
+            ];
+
+            // Configuração para permitir imagens remotas (necessário se logo for URL)
+            $pdf = Pdf::loadView('pdfs.insight', $pdfData)
+                      ->setOptions(['isRemoteEnabled' => true, 'defaultFont' => 'sans-serif']);
+            
+            // Salvar PDF temporariamente
+            $tempPath = storage_path('app/temp_insight_' . time() . '.pdf');
+            $pdf->save($tempPath);
+
+            // 5. Obter destinatários
             $recipients = $ai->getAdminRecipients();
 
             if (empty($recipients)) {
-                $this->warn("Nenhum e-mail de destinatário válido encontrado. O insight será apenas logado.");
+                $this->warn("Nenhum e-mail de destinatário válido encontrado.");
                 Log::info("Insight Gerado (Não Enviado): " . $analysis);
+                @unlink($tempPath); // Apaga o temp se não enviar
                 return 0;
             }
 
-            // 4. Enviar e-mail
+            // 6. Enviar e-mail com anexo
             Mail::to($recipients)
-                ->send(new AutomatedInsightMail($subject, $analysis));
+                ->send(new AutomatedInsightMail($subject, $analysis, $tempPath));
 
-            $this->info("Insights gerados e enviados para: " . implode(', ', $recipients));
+            $this->info("Insights enviados para: " . implode(', ', $recipients));
+
+            // 7. Limpeza: Apagar o arquivo temporário
+            @unlink($tempPath);
 
         } catch (\Exception $e) {
             $this->error("Falha na geração/envio de insights: " . $e->getMessage());

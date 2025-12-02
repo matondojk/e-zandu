@@ -10,6 +10,9 @@ use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use MixCode\FilamentMulti2fa\Traits\UsingTwoFA;
 use MixCode\FilamentMulti2fa\Enums\TwoFactorAuthType;
+use Illuminate\Support\Facades\Storage;
+use Filament\Models\Contracts\HasAvatar;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 
 class User extends Authenticatable
 {
@@ -57,15 +60,6 @@ class User extends Authenticatable
         return false;
     }
 
-    public function getFilamentAvatarUrl(): ?string
-    {
-        if ($this->avatar) {
-            return Storage::disk('public')->url($this->avatar);
-        }
-
-        return 'https://ui-avatars.com/api/?name=' . urlencode($this->name) . '&color=FFFFFF&background=f97316';
-    }
-
     /**
      * The attributes that should be hidden for serialization.
      *
@@ -75,6 +69,20 @@ class User extends Authenticatable
         'password',
         'remember_token',
     ];
+
+    protected function avatarUrl(): Attribute
+    {
+        return Attribute::make(
+            get: fn() => $this->avatar
+                ? Storage::disk('public')->url($this->avatar)
+                : null,
+        );
+    }
+
+    public function getFilamentAvatarUrl(): ?string
+    {
+        return $this->avatar_url;
+    }
 
 
     public function reviews()

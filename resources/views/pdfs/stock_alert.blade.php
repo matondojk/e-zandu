@@ -1,129 +1,110 @@
 <!DOCTYPE html>
-<html lang="pt">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
-    <title>{{ $title ?? 'Relatório de Stock Baixo' }}</title>
+    <meta charset="utf-8">
+    <title>Relatório de Stock Baixo</title>
     <style>
-        /* Estilos básicos para o PDF */
-        body {
-            font-family: DejaVu Sans, sans-serif; /* Suporta caracteres especiais */
-            font-size: 12px;
-            line-height: 1.4;
-            color: #333;
-            margin: 0;
-            padding: 0;
-        }
-        .container {
-            width: 95%;
-            margin: 0 auto;
-        }
-        .header {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        .header h1 {
-            margin: 0;
-            color: #b00000; /* Vermelho para alerta */
-            font-size: 24px;
-        }
-        .details {
-            margin-bottom: 25px;
-            padding-bottom: 10px;
-        }
-        .details p {
-            margin: 5px 0;
-        }
-        .clear {
-            clear: both;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 20px;
-        }
-        table thead tr {
-            background-color: #f2f2f2;
-            border-bottom: 2px solid #ddd;
-        }
-        table th, table td {
-            padding: 10px;
-            text-align: left;
-            border-bottom: 1px solid #eee;
-        }
-        table th {
-            font-weight: bold;
-            color: #555;
-        }
-        /* Coluna de Stock Atual com destaque */
-        table td.stock-level {
-            font-weight: bold;
+        body { font-family: sans-serif; color: #333; font-size: 13px; }
+        .header { text-align: center; border-bottom: 2px solid #f3f4f6; padding-bottom: 20px; margin-bottom: 30px; }
+        .logo { max-height: 50px; margin-bottom: 10px; }
+        .store-name { font-size: 18px; font-weight: bold; color: #111827; }
+        .date { font-size: 11px; color: #6b7280; margin-top: 5px; }
+
+        .alert-box { 
+            background-color: #fef2f2; 
+            border: 1px solid #fee2e2; 
+            color: #991b1b; 
+            padding: 15px; 
+            border-radius: 8px; 
+            margin-bottom: 20px; 
             text-align: center;
         }
-        /* Destaque para stock muito baixo (ex: 0 ou negativo) */
-        table td.stock-critical {
-            color: #b00000; 
-            font-weight: bold;
-            text-align: center;
-        }
-        .footer {
-            text-align: center;
-            font-size: 10px;
-            color: #888;
-            margin-top: 30px;
-            border-top: 1px solid #eee;
-            padding-top: 10px;
-        }
+
+        h1 { color: #dc2626; font-size: 18px; margin: 0; }
+        
+        .info-grid { width: 100%; margin-bottom: 20px; }
+        .info-item { width: 33%; float: left; text-align: center; }
+        .info-label { font-size: 10px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; }
+        .info-value { font-size: 16px; font-weight: bold; color: #111827; margin-top: 5px; }
+
+        /* Tabela */
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th { background-color: #f9fafb; color: #374151; font-weight: bold; text-transform: uppercase; font-size: 11px; padding: 10px; border-bottom: 2px solid #e5e7eb; text-align: left; }
+        td { padding: 10px; border-bottom: 1px solid #e5e7eb; color: #4b5563; }
+        
+        /* Destaques de Stock */
+        .stock-val { font-weight: bold; text-align: center; }
+        .critical { color: #dc2626; background-color: #fef2f2; padding: 2px 6px; border-radius: 4px; display: inline-block; }
+        .warning { color: #d97706; }
+
+        .footer { position: fixed; bottom: 0; width: 100%; text-align: center; font-size: 9px; color: #9ca3af; padding: 10px; border-top: 1px solid #f3f4f6; }
+        .clear { clear: both; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>⚠️ Alerta de Stock Baixo</h1>
-        </div>
+    <div class="header">
+        @if(!empty($setting->logo_dark_path))
+            <img src="{{ $setting->logo_dark_path }}" class="logo" alt="Logo">
+        @endif
+        <div class="store-name">{{ $setting->store_name ?? config('app.name') }}</div>
+        <div class="date">Relatório gerado em: {{ \Carbon\Carbon::now()->format('d/m/Y H:i') }}</div>
+    </div>
 
-        <div class="details">
-            <p><strong>Data do Relatório:</strong> {{ now()->format('d/m/Y H:i') }}</p>
-            <p><strong>Nível Mínimo Configurado:</strong> {{ $minimumStock }} unidades</p>
-            <p>O sistema detetou <strong>{{ $products->count() }}</strong> produtos abaixo do nível mínimo de stock.</p>
-        </div>
+    <div class="alert-box">
+        <h1>⚠️ Atenção: Níveis de Stock Críticos Detetados</h1>
+    </div>
 
+    <div class="info-grid">
+        <div class="info-item">
+            <div class="info-label">Total de Produtos Afetados</div>
+            <div class="info-value" style="color: #dc2626;">{{ $products->count() }}</div>
+        </div>
+        <div class="info-item">
+            <div class="info-label">Stock Mínimo Configurado</div>
+            <div class="info-value">{{ $minimumStock }} un.</div>
+        </div>
+        <div class="info-item">
+            <div class="info-label">Data da Verificação</div>
+            <div class="info-value">{{ date('d/m/Y') }}</div>
+        </div>
         <div class="clear"></div>
+    </div>
 
-        <table>
-            <thead>
+    <table>
+        <thead>
+            <tr>
+                <th width="50%">Produto</th>
+                <th width="25%">SKU</th>
+                <th width="25%" style="text-align: center;">Stock Atual</th>
+            </tr>
+        </thead>
+        <tbody>
+            @forelse($products as $product)
                 <tr>
-                    <th>Produto</th>
-                    <th>SKU</th>
-                    <th style="text-align: center;">Stock Atual</th>
+                    <td>{{ $product->name }}</td>
+                    <td style="font-family: monospace; font-size: 11px;">{{ $product->sku ?? '-' }}</td>
+                    
+                    <td class="stock-val">
+                        @if($product->stock_atual <= 0)
+                            <span class="critical">{{ (int)$product->stock_atual }}</span>
+                        @else
+                            <span class="warning">{{ (int)$product->stock_atual }}</span>
+                        @endif
+                    </td>
                 </tr>
-            </thead>
-            <tbody>
-                @forelse($products as $product)
-                    <tr>
-                        <td>{{ $product->name }}</td>
-                        <td>{{ $product->sku ?? 'N/A' }}</td>
-                        
-                        {{-- Define a classe CSS com base no stock --}}
-                        @php
-                            $stockClass = ($product->stock_atual <= 0) ? 'stock-critical' : 'stock-level';
-                        @endphp
-                        
-                        <td class="{{ $stockClass }}">
-                            {{ (int)$product->stock_atual }}
-                        </td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="3" style="text-align: center;">Nenhum produto encontrado abaixo do stock mínimo.</td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
+            @empty
+                <tr>
+                    <td colspan="3" style="text-align: center; padding: 20px;">
+                        Tudo certo! Nenhum produto encontrado abaixo do limite.
+                    </td>
+                </tr>
+            @endforelse
+        </tbody>
+    </table>
 
-        <div class="footer">
-            <p>Este é um relatório automático gerado por {{ config('app.name') }}.</p>
-        </div>
+    <div class="footer">
+        Gerado automaticamente pelo sistema de gestão da {{ $setting->store_name ?? 'Loja' }}.<br>
+        Por favor, reabasteça estes itens o mais breve possível para evitar perda de vendas.
     </div>
 </body>
 </html>

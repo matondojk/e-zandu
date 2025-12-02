@@ -11,7 +11,6 @@ use Filament\Forms\Components\Section;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\FileUpload;
-use Filament\Forms\Components\Toggle;
 
 class SettingResource extends Resource
 {
@@ -31,10 +30,10 @@ class SettingResource extends Resource
             ->schema([
 
                 // ----------------------------------------------------
-                // SEÇÃO 1 — GERAL
+                // SEÇÃO 1 — GERAL E BRANDING
                 // ----------------------------------------------------
-                Section::make('Geral')
-                    ->description('Configurações principais da loja e contatos.')
+                Section::make('Geral e Branding')
+                    ->description('Identidade da loja e informações fiscais.')
                     ->icon('heroicon-o-building-storefront')
                     ->collapsible()
                     ->schema([
@@ -44,7 +43,7 @@ class SettingResource extends Resource
                             ->required(),
 
                         TextInput::make('nif')
-                            ->label('NIF/Identificação Fiscal')
+                            ->label('NIF')
                             ->placeholder('Ex: 5000000000')
                             ->maxLength(50)
                             ->required(),
@@ -74,20 +73,52 @@ class SettingResource extends Resource
                             ->maxSize(512)
                             ->columnSpanFull(),
 
-                        // ---- NOVOS CAMPOS DE CONTACTO ----
+                    ])->columns(2),
+
+                // ----------------------------------------------------
+                // SEÇÃO 2 — INVENTÁRIO
+                // ----------------------------------------------------
+                Section::make('Inventário e Alertas')
+                    ->icon('heroicon-o-archive-box')
+                    ->collapsible()
+                    ->schema([
+                        TextInput::make('minimum_stock')
+                            ->label('Stock Mínimo')
+                            ->numeric()
+                            ->default(5)
+                            ->helperText('Quantidade mínima para considerar baixo stock.'),
+
+                        TextInput::make('stock_alert_emails')
+                            ->label('Emails para Alerta de Stock')
+                            ->placeholder('email1@loja.com; email2@loja.com')
+                            ->helperText('Pode inserir vários emails separados por ponto e vírgula (;).')
+                            ->columnSpanFull(),
+                    ])->columns(2),
+
+                // ----------------------------------------------------
+                // SEÇÃO 3 — CONTACTOS
+                // ----------------------------------------------------
+                Section::make('Contactos e Localização')
+                    ->icon('heroicon-o-map-pin')
+                    ->collapsible()
+                    ->schema([
 
                         TextInput::make('support_phone')
                             ->label('Telefone de Suporte')
                             ->placeholder('Ex: 923 000 000'),
 
                         TextInput::make('company_email')
-                            ->label('Email Geral da Empresa'),
+                            ->label('Email Geral')
+                            ->email() // Valida que é um email válido
+                            ->helperText('Este é o email principal da empresa. Insira apenas um endereço.'),
 
                         TextInput::make('support_email')
-                            ->label('Email de Suporte'),
+                            ->label('Email de Suporte')
+                            ->placeholder('suporte@loja.com; admin@loja.com')
+                            ->helperText('Pode inserir vários emails separados por ponto e vírgula (;).'),
 
                         TextInput::make('company_address')
-                            ->label('Endereço da Empresa'),
+                            ->label('Endereço'),
 
                         TextInput::make('company_city')
                             ->label('Cidade'),
@@ -97,83 +128,56 @@ class SettingResource extends Resource
 
                         TextInput::make('working_hours')
                             ->label('Horário de Funcionamento')
-                            ->placeholder('Ex: Seg–Sab 08h às 18h'),
-
+                            ->placeholder('Ex: Seg–Sab: 08h00–18h00')
+                            ->columnSpanFull(),
                     ])->columns(2),
 
                 // ----------------------------------------------------
-                // SEÇÃO 2 — REDES SOCIAIS
+                // SEÇÃO 4 — REDES SOCIAIS
                 // ----------------------------------------------------
                 Section::make('Redes Sociais')
                     ->icon('heroicon-o-share')
                     ->collapsible()
                     ->schema([
-                        TextInput::make('facebook_url')->label('Facebook'),
-                        TextInput::make('instagram_url')->label('Instagram'),
-                        TextInput::make('whatsapp_url')->label('WhatsApp Link (wa.me)')
+
+                        TextInput::make('facebook_url')
+                            ->label('Facebook (Usuário)')
+                            ->prefix('facebook.com/')
+                            ->placeholder('ex: ezandu')
+                            ->formatStateUsing(fn (?string $state) => str_replace('https://facebook.com/', '', $state))
+                            ->dehydrateStateUsing(fn (?string $state) => $state ? 'https://facebook.com/' . $state : null),
+
+                        TextInput::make('instagram_url')
+                            ->label('Instagram (Usuário)')
+                            ->prefix('instagram.com/')
+                            ->placeholder('ex: ezandu')
+                            ->formatStateUsing(fn (?string $state) => str_replace('https://instagram.com/', '', $state))
+                            ->dehydrateStateUsing(fn (?string $state) => $state ? 'https://instagram.com/' . $state : null),
+
+                        TextInput::make('whatsapp_url')
+                            ->label('WhatsApp (Número)')
+                            ->prefix('wa.me/')
+                            ->placeholder('244923111222')
+                            ->helperText('Formato: Código do país (244) + Número.')
+                            ->formatStateUsing(fn (?string $state) => str_replace('https://wa.me/', '', $state))
+                            ->dehydrateStateUsing(fn (?string $state) => $state ? 'https://wa.me/' . preg_replace('/[^0-9]/', '', $state) : null),
+
                     ])->columns(3),
 
                 // ----------------------------------------------------
-                // SEÇÃO 3 — PAGAMENTOS
+                // SEÇÃO 5 — IA / FAQs
                 // ----------------------------------------------------
-                Section::make('Métodos de Pagamento')
-                    ->icon('heroicon-o-credit-card')
-                    ->collapsible()
-                    ->schema([
-
-                        Toggle::make('enable_bank_transfer')
-                            ->label('Ativar Transferência Bancária'),
-
-                        TextInput::make('bank_account_holder')
-                            ->label('Titular da Conta'),
-
-                        TextInput::make('bank_account_number')
-                            ->label('Número da Conta'),
-
-                        TextInput::make('bank_iban')
-                            ->label('IBAN'),
-
-                        Toggle::make('enable_express_payment')
-                            ->label('Ativar Pagamento Expresso (ex: Multicaixa Express)'),
-
-                        TextInput::make('express_payment_phone')
-                            ->label('Telefone para Pagamento Expresso'),
-
-                        Toggle::make('enable_cash_on_delivery')
-                            ->label('Ativar Pagamento na Entrega'),
-                    ])->columns(2),
-
-                // ----------------------------------------------------
-                // SEÇÃO 4 — IA / FAQs
-                // ----------------------------------------------------
-                Section::make('IA / Respostas do Bot (FAQs)')
+                Section::make('IA / FAQ')
+                    ->description('Configuração de respostas automáticas do bot.')
                     ->icon('heroicon-o-cpu-chip')
                     ->collapsible()
                     ->schema([
 
-                        Textarea::make('company_description')
-                            ->label('Descrição da Empresa')
-                            ->rows(4)
-                            ->required()
-                            ->columnSpanFull(),
-
                         Textarea::make('faq_who_answer')
                             ->label('Resposta: Quem é você?')
+                            ->helperText('Texto usado quando perguntam "Quem é você?" ao bot.')
                             ->rows(3)
-                            ->required(),
-
-                        Textarea::make('faq_locations_answer')
-                            ->label('Resposta: Onde entregam?')
-                            ->rows(3),
-
-                        Textarea::make('faq_time_answer')
-                            ->label('Resposta: Tempo de entrega')
-                            ->rows(3),
-
-                        Textarea::make('faq_payment_answer')
-                            ->label('Resposta: Métodos de pagamento')
-                            ->rows(3),
-
+                            ->columnSpanFull(),
                     ]),
             ]);
     }
@@ -190,7 +194,7 @@ class SettingResource extends Resource
 
     public static function getRecord(): \Illuminate\Database\Eloquent\Model
     {
-        return static::getModel()::first([]);
+        return static::getModel()::firstOrNew([]);
     }
 
     public static function getPages(): array

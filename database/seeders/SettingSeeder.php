@@ -29,15 +29,12 @@ class SettingSeeder extends Seeder
                 'whatsapp_url'      => 'https://wa.me/244923111222',
 
                 'faq_who_answer'    => 'Eu sou um assistente virtual de IA da E-Zandu, desenvolvido por Matondo João.',
-                'faq_time_answer'   => 'Para Luanda, a entrega leva em média 24 horas úteis após a confirmação do pagamento.',
 
                 'nif'               => '5000123456',
 
                 'logo_light_path'   => 'https://e-zandu.com/default/logo-light.png',
                 'logo_dark_path'    => 'https://e-zandu.com/default/logo-dark.png',
                 'icon_path'         => 'https://e-zandu.com/default/apple-touch-icon.png',
-
-                'shipping_rate'     => 0,
             ]
         );
     }

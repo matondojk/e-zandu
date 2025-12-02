@@ -14,6 +14,9 @@ use App\Models\WhatsAppSetting;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Auth\Notifications\ResetPassword;
+use Illuminate\Notifications\Messages\MailMessage;
+use App\Models\Setting;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -31,6 +34,25 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot()
     {
+        ResetPassword::toMailUsing(function (object $notifiable, string $token) {
+
+            $setting = Setting::find('00000000-0000-0000-0000-000000000001') ?? Setting::first();
+
+            $storeName = $setting->store_name ?? config('app.name');
+
+            return (new MailMessage)
+                ->subject('Redefinição de Senha | ' . $storeName)
+                ->greeting('Olá!')
+                ->line('Você está recebendo este e-mail porque recebemos um pedido de redefinição de senha para sua conta.')
+                ->action('Redefinir Minha Senha', url(route('password.reset', [
+                    'token' => $token,
+                    'email' => $notifiable->getEmailForPasswordReset(),
+                ], false)))
+                ->line('Este link de redefinição de senha expira em 60 minutos.')
+                ->line('Se você não solicitou uma redefinição de senha, nenhuma ação adicional é necessária.')
+                ->salutation('Atenciosamente, Equipe ' . $storeName);
+        });
+
         if (config('app.demo_mode')) {
             DB::beginTransaction();
 
@@ -42,39 +64,6 @@ class AppServiceProvider extends ServiceProvider
         if ($this->app->runningInConsole()) {
             return;
         }
-
-        // try {
-        //     if (Schema::hasTable('whatsapp_settings')) {
-        //         $settings = WhatsAppSetting::first();
-
-        //         if ($settings) {
-
-        //             // --- 2. A CORREÇÃO ---
-        //             // Remova as aspas extra daqui
-        //             config([
-        //                 'services.whatsapp.token'       => $settings->token, // <-- CORRIGIDO
-        //                 'services.whatsapp.phone_id'    => $settings->phone_id,
-        //                 'services.whatsapp.verify_token' => $settings->verify_token,
-        //                 'services.whatsapp.admin_phone' => $settings->admin_phone,
-        //             ]);
-
-        //             // --- 3. O LOG ---
-        //             // Log para confirmar que foi carregado.
-        //             // Não logue o token inteiro por segurança.
-        //             Log::info('Configurações do WhatsApp carregadas da BD com sucesso.');
-        //             Log::debug('Phone ID do WhatsApp: ' . $settings->phone_id);
-        //             // Logar apenas os primeiros e últimos caracteres do token é uma boa prática
-        //             if ($settings->token) {
-        //                 Log::debug('Token do WhatsApp (parcial): ' . $settings->token . substr($settings->token, -5));
-        //             }
-        //         } else {
-        //             // Adiciona um log caso a tabela esteja vazia
-        //             Log::warning('Tabela whatsapp_settings está vazia. Usando valores do .env (se existirem).');
-        //         }
-        //     }
-        // } catch (\Exception $e) {
-        //     Log::error('Falha ao carregar configurações do WhatsApp da BD: ' . $e->getMessage());
-        // }
 
         Cart::observe(CartObserver::class);
         Stock::observe(StockObserver::class);

@@ -15,31 +15,12 @@
                     <span class="w-2 h-2 bg-zandu-red rounded-full animate-pulse"></span>
                     <span class="text-gray-200 font-bold tracking-wider text-xs uppercase">Zandu Store</span>
                 </div>
-
                 <h2 class="text-4xl lg:text-5xl font-extrabold tracking-tight leading-tight">
                     A tecnologia que <br> move você.
                 </h2>
-                
                 <p class="text-gray-400 text-lg leading-relaxed max-w-sm mx-auto font-light">
                     Acesse sua conta para acompanhar pedidos, gerir endereços e aproveitar ofertas exclusivas.
                 </p>
-                
-                <div class="pt-8 flex justify-center gap-8 border-t border-white/10 max-w-xs mx-auto">
-                    <div>
-                        <span class="block text-2xl font-bold text-white">+50k</span>
-                        <span class="text-[10px] text-gray-400 uppercase tracking-wider font-bold">Produtos</span>
-                    </div>
-                    <div class="w-px bg-white/10"></div>
-                    <div>
-                        <span class="block text-2xl font-bold text-white">24h</span>
-                        <span class="text-[10px] text-gray-400 uppercase tracking-wider font-bold">Entrega</span>
-                    </div>
-                    <div class="w-px bg-white/10"></div>
-                    <div>
-                        <span class="block text-2xl font-bold text-white">4.9</span>
-                        <span class="text-[10px] text-gray-400 uppercase tracking-wider font-bold">Avaliação</span>
-                    </div>
-                </div>
             </div>
         </div>
 
@@ -53,14 +34,22 @@
                 
                 <div class="text-center mb-10">
                     <h2 class="text-3xl font-bold text-gray-900 mb-2">
-                        {{ $isRegister ? 'Criar Conta' : 'Bem-vindo(a)' }}
+                        @if($viewState === 'register') Criar Conta
+                        @elseif($viewState === 'forgot') Recuperar Senha
+                        @elseif($viewState === 'reset') Redefinir Senha
+                        @else Bem-vindo(a)
+                        @endif
                     </h2>
                     <p class="text-gray-500 text-sm">
-                        {{ $isRegister ? 'Preencha os dados abaixo para começar.' : 'Insira seus dados para aceder.' }}
+                        @if($viewState === 'register') Preencha os dados abaixo para começar.
+                        @elseif($viewState === 'forgot') Enviaremos um link para o seu email.
+                        @elseif($viewState === 'reset') Crie uma nova senha segura.
+                        @else Insira seus dados para aceder.
+                        @endif
                     </p>
                 </div>
 
-                @if(!$isRegister)
+                @if($viewState === 'login')
                     <div x-data x-animate:enter="fade-in" class="space-y-6">
                         <form wire:submit.prevent="login" class="space-y-5">
                             <div>
@@ -75,7 +64,9 @@
                             <div>
                                 <label class="flex justify-between items-center mb-1.5">
                                     <span class="text-xs font-bold text-gray-700 uppercase tracking-wider">Senha</span>
-                                    <a href="#" class="text-xs text-zandu-red font-bold hover:underline">Esqueceu a senha?</a>
+                                    <a href="{{ route('password.request') }}" class="text-xs text-zandu-red font-bold hover:underline">
+                                        Esqueceu a senha?
+                                    </a>
                                 </label>
                                 <div class="relative group">
                                     <i class="ph-bold ph-lock-key absolute left-4 top-3.5 text-gray-400 group-focus-within:text-zandu-red transition text-lg"></i>
@@ -94,14 +85,14 @@
                         <div class="text-center pt-2">
                             <p class="text-sm text-gray-500">
                                 Não tem uma conta? 
-                                <button type="button" wire:click="$set('isRegister', true)" class="font-bold text-zandu-red hover:underline ml-1">
+                                <a href="{{ route('register') }}" class="font-bold text-zandu-red hover:underline ml-1">
                                     Crie agora
-                                </button>
+                                </a>
                             </p>
                         </div>
                     </div>
                 
-                @else
+                @elseif($viewState === 'register')
                     <div x-data x-animate:enter="fade-in" class="space-y-6">
                         <form wire:submit.prevent="register" class="space-y-4">
                             <div>
@@ -148,20 +139,90 @@
                                 <span wire:loading><i class="ph ph-spinner animate-spin"></i> Criando...</span>
                                 <i class="ph-bold ph-rocket-launch" wire:loading.remove></i>
                             </button>
-                            
-                            <p class="text-[10px] text-gray-400 text-center mt-4">
-                                Ao criar conta, você concorda com nossos Termos e Política de Privacidade.
-                            </p>
                         </form>
 
                         <div class="text-center pt-1 border-t border-gray-100 mt-4">
                             <p class="text-sm text-gray-500 mt-4">
                                 Já tem uma conta? 
-                                <button type="button" wire:click="$set('isRegister', false)" class="font-bold text-zandu-red hover:underline ml-1">
+                                <a href="{{ route('login') }}" class="font-bold text-zandu-red hover:underline ml-1">
                                     Entrar
-                                </button>
+                                </a>
                             </p>
                         </div>
+                    </div>
+
+                @elseif($viewState === 'forgot')
+                    <div x-data x-animate:enter="fade-in" class="space-y-6">
+                        
+                        @if($forgotStatus)
+                            <div class="p-4 rounded-xl bg-green-50 border border-green-200 text-green-700 text-sm flex items-start gap-3">
+                                <i class="ph-bold ph-check-circle text-xl mt-0.5"></i>
+                                <span>{{ $forgotStatus }}</span>
+                            </div>
+                        @endif
+
+                        <form wire:submit.prevent="sendResetLink" class="space-y-5">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">Email de Cadastro</label>
+                                <div class="relative group">
+                                    <i class="ph-bold ph-envelope absolute left-4 top-3.5 text-gray-400 group-focus-within:text-zandu-red transition text-lg"></i>
+                                    <input type="email" wire:model="forgotEmail" class="w-full bg-gray-50 border border-gray-200 rounded-xl pl-11 pr-4 py-3 text-sm focus:bg-white focus:border-zandu-red focus:ring-1 focus:ring-zandu-red outline-none transition placeholder-gray-400" placeholder="seu@email.com">
+                                </div>
+                                @error('forgotEmail') <span class="text-red-500 text-xs mt-1 font-medium block">{{ $message }}</span> @enderror
+                            </div>
+
+                            <button type="submit" wire:loading.attr="disabled" class="w-full bg-gray-900 text-white font-bold py-4 rounded-xl hover:bg-zandu-red transition shadow-lg hover:shadow-xl transform active:scale-95 disabled:opacity-70 flex items-center justify-center gap-2 mt-2">
+                                <span wire:loading.remove>Enviar Link de Recuperação</span>
+                                <span wire:loading><i class="ph ph-spinner animate-spin"></i> Enviando...</span>
+                                <i class="ph-bold ph-paper-plane-right" wire:loading.remove></i>
+                            </button>
+                        </form>
+
+                        <div class="text-center pt-2">
+                            <a href="{{ route('login') }}" class="flex items-center justify-center gap-2 text-sm text-gray-500 font-medium hover:text-gray-900 transition mx-auto">
+                                <i class="ph-bold ph-arrow-left"></i>
+                                Voltar para o Login
+                            </a>
+                        </div>
+                    </div>
+
+                @elseif($viewState === 'reset')
+                    <div x-data x-animate:enter="fade-in" class="space-y-6">
+                        
+                        <form wire:submit.prevent="resetNewPassword" class="space-y-5">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">Confirme seu Email</label>
+                                <div class="relative group">
+                                    <i class="ph-bold ph-envelope absolute left-4 top-3.5 text-gray-400 group-focus-within:text-zandu-red transition text-lg"></i>
+                                    <input type="email" wire:model="resetEmail" class="w-full bg-gray-50 border border-gray-200 rounded-xl pl-11 pr-4 py-3 text-sm focus:bg-white focus:border-zandu-red focus:ring-1 focus:ring-zandu-red outline-none transition placeholder-gray-400" placeholder="seu@email.com">
+                                </div>
+                                @error('resetEmail') <span class="text-red-500 text-xs mt-1 font-medium block">{{ $message }}</span> @enderror
+                            </div>
+
+                            <div class="grid grid-cols-1 gap-4">
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">Nova Senha</label>
+                                    <div class="relative group">
+                                        <i class="ph-bold ph-lock absolute left-4 top-3.5 text-gray-400 group-focus-within:text-zandu-red transition text-lg"></i>
+                                        <input type="password" wire:model="resetPassword" class="w-full bg-gray-50 border border-gray-200 rounded-xl pl-11 pr-4 py-3 text-sm focus:bg-white focus:border-zandu-red focus:ring-1 focus:ring-zandu-red outline-none transition placeholder-gray-400" placeholder="******">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">Confirmar Nova Senha</label>
+                                    <div class="relative group">
+                                        <i class="ph-bold ph-lock-key absolute left-4 top-3.5 text-gray-400 group-focus-within:text-zandu-red transition text-lg"></i>
+                                        <input type="password" wire:model="resetPassword_confirmation" class="w-full bg-gray-50 border border-gray-200 rounded-xl pl-11 pr-4 py-3 text-sm focus:bg-white focus:border-zandu-red focus:ring-1 focus:ring-zandu-red outline-none transition placeholder-gray-400" placeholder="******">
+                                    </div>
+                                </div>
+                            </div>
+                            @error('resetPassword') <span class="text-red-500 text-xs mt-1 font-medium block">{{ $message }}</span> @enderror
+
+                            <button type="submit" wire:loading.attr="disabled" class="w-full bg-zandu-red text-white font-bold py-4 rounded-xl hover:bg-red-700 transition shadow-lg hover:shadow-xl transform active:scale-95 disabled:opacity-70 flex items-center justify-center gap-2 mt-2">
+                                <span wire:loading.remove>Alterar Senha</span>
+                                <span wire:loading><i class="ph ph-spinner animate-spin"></i> Alterando...</span>
+                                <i class="ph-bold ph-check" wire:loading.remove></i>
+                            </button>
+                        </form>
                     </div>
                 @endif
 

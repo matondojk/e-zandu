@@ -29,9 +29,13 @@ Route::get('/carrinho', Cart::class)->name('cart');
 Route::get('/sobre', About::class)->name('about');
 Route::get('/contato', Contact::class)->name('contact');
 Route::get('/pagamento/{uuid}', WhatsappCheckout::class)->name('payment.show');
-Route::get('/whatsapp/sucesso/{uuid}', SiteOrderSuccess::class)->name('whatsapp.success'); 
+Route::get('/whatsapp/sucesso/{uuid}', SiteOrderSuccess::class)->name('whatsapp.success');
+
 Route::middleware('guest')->group(function () {
     Route::get('/login', Login::class)->name('login');
+    Route::get('/registrar', Login::class)->name('register');
+    Route::get('/recuperar-senha', Login::class)->name('password.request');
+    Route::get('/redefinir-senha/{token}', Login::class)->name('password.reset');
 });
 
 /*
