@@ -72,7 +72,7 @@
                 Email: {{ $cart->user->email ?? 'N/A' }}
             </div>
             <div class="details-right">
-                <strong>Pedido Nº:</strong> {{ $cart->id }}<br>
+                <strong>Pedido Nº:</strong> {{ $cart->cart_number }}<br>
                 <strong>Data de Emissão:</strong> {{ $issueDate }}<br>
                 
                 <strong>Status Pagamento:</strong> 

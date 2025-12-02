@@ -421,7 +421,7 @@ class WhatsAppWebhookController extends Controller
         }
 
         $paymentUrl = route('payment.show', ['uuid' => $cart->uuid]);
-        $loginUrl = url('/customer/login');
+        $loginUrl = url('/login');
 
         $message = "Excelente escolha, *{$customer->name}*! Seu pedido #{$cart->id} está pronto para pagamento.\n\n";
         $message .= "Total: *" . $this->orderService->formatPrice($cart->total_price) . "*\n\n";

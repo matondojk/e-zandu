@@ -14,4 +14,6 @@ use Illuminate\Support\Facades\Route;
 */
 
 // Carrega as rotas principais da aplicação
+
 require __DIR__.'/core.php';
+require __DIR__.'/default.php';

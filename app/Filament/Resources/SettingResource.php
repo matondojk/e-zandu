@@ -10,16 +10,13 @@ use Filament\Tables\Table;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
-use Filament\Forms\Components\TagsInput;
 use Filament\Forms\Components\FileUpload;
-use Filament\Tables\Columns;
-// Não precisamos do 'use Illuminate\Http\UploadedFile;'
+use Filament\Forms\Components\Toggle;
 
 class SettingResource extends Resource
 {
     protected static ?string $model = Setting::class;
 
-    // ... (configuração do menu) ...
     protected static ?string $navigationIcon = 'heroicon-o-cog-6-tooth';
     protected static ?string $navigationGroup = 'Configurações';
     protected static ?string $navigationLabel = 'Personalização';
@@ -28,29 +25,29 @@ class SettingResource extends Resource
     protected static ?int $navigationSort = 100;
     protected static ?string $slug = 'personalizacao';
 
-
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
 
-                // --- Secção 1: Geral ---
+                // ----------------------------------------------------
+                // SEÇÃO 1 — GERAL
+                // ----------------------------------------------------
                 Section::make('Geral')
                     ->description('Configurações principais da loja e contatos.')
                     ->icon('heroicon-o-building-storefront')
                     ->collapsible()
                     ->schema([
+
                         TextInput::make('store_name')
                             ->label('Nome da Loja')
                             ->required(),
+
                         TextInput::make('nif')
                             ->label('NIF/Identificação Fiscal')
                             ->placeholder('Ex: 5000000000')
                             ->maxLength(50)
                             ->required(),
-
-                        // --- INÍCIO DA CORREÇÃO ---
-                        // O método ->getUploadedFileNameForStorageUsing(...) foi removido
 
                         FileUpload::make('logo_light_path')
                             ->label('Logo Claro (Modo Dia)')
@@ -58,8 +55,7 @@ class SettingResource extends Resource
                             ->directory('branding')
                             ->visibility('public')
                             ->image()
-                            ->maxSize(1024)
-                            ->columnSpan(1),
+                            ->maxSize(1024),
 
                         FileUpload::make('logo_dark_path')
                             ->label('Logo Escuro (Modo Noite)')
@@ -67,8 +63,7 @@ class SettingResource extends Resource
                             ->directory('branding')
                             ->visibility('public')
                             ->image()
-                            ->maxSize(1024)
-                            ->columnSpan(1),
+                            ->maxSize(1024),
 
                         FileUpload::make('icon_path')
                             ->label('Favicon (.png)')
@@ -77,65 +72,115 @@ class SettingResource extends Resource
                             ->visibility('public')
                             ->image()
                             ->maxSize(512)
-                            ->columnSpan(2),
+                            ->columnSpanFull(),
 
-                        // --- FIM DA CORREÇÃO ---
+                        // ---- NOVOS CAMPOS DE CONTACTO ----
 
-                        TextInput::make('admin_phone')
-                            ->label('Nº WhatsApp Admin (Notificações)')
-                            ->helperText('Ex: 244932932532. Usado para enviar alertas de novos pedidos.')
-                            ->required(),
+                        TextInput::make('support_phone')
+                            ->label('Telefone de Suporte')
+                            ->placeholder('Ex: 923 000 000'),
+
+                        TextInput::make('company_email')
+                            ->label('Email Geral da Empresa'),
+
                         TextInput::make('support_email')
-                            ->label('Email de Suporte (Notificações)')
-                            ->helperText('Emails de relatórios automáticos. Separar por ponto e vírgula (;) se houver mais de um.')
-                            ->required(),
+                            ->label('Email de Suporte'),
+
+                        TextInput::make('company_address')
+                            ->label('Endereço da Empresa'),
+
+                        TextInput::make('company_city')
+                            ->label('Cidade'),
+
+                        TextInput::make('company_country')
+                            ->label('País'),
+
+                        TextInput::make('working_hours')
+                            ->label('Horário de Funcionamento')
+                            ->placeholder('Ex: Seg–Sab 08h às 18h'),
+
                     ])->columns(2),
 
-                // --- Secção 2: Gestão de Stock e Alertas ---
-                Section::make('Gestão de Stock e Alertas')
-                    ->description('Definições para alertas automáticos de stock.')
-                    ->icon('heroicon-o-archive-box')
+                // ----------------------------------------------------
+                // SEÇÃO 2 — REDES SOCIAIS
+                // ----------------------------------------------------
+                Section::make('Redes Sociais')
+                    ->icon('heroicon-o-share')
                     ->collapsible()
                     ->schema([
-                        TextInput::make('minimum_stock')
-                            ->label('Nível Mínimo de Stock para Alerta')
-                            ->numeric()
-                            ->default(10)
-                            ->helperText('A IA enviará um alerta quando o stock de um produto for inferior a este número.')
-                            ->required(),
-                        TextInput::make('stock_alert_emails')
-                            ->label('Emails para Alertas de Stock')
-                            ->helperText('Separar múltiplos emails com ponto e vírgula ( ; ).')
-                            ->columnSpan(2),
+                        TextInput::make('facebook_url')->label('Facebook'),
+                        TextInput::make('instagram_url')->label('Instagram'),
+                        TextInput::make('whatsapp_url')->label('WhatsApp Link (wa.me)')
                     ])->columns(3),
 
-                // --- Secção 3: IA / Respostas do Bot (FAQs) ---
+                // ----------------------------------------------------
+                // SEÇÃO 3 — PAGAMENTOS
+                // ----------------------------------------------------
+                Section::make('Métodos de Pagamento')
+                    ->icon('heroicon-o-credit-card')
+                    ->collapsible()
+                    ->schema([
+
+                        Toggle::make('enable_bank_transfer')
+                            ->label('Ativar Transferência Bancária'),
+
+                        TextInput::make('bank_account_holder')
+                            ->label('Titular da Conta'),
+
+                        TextInput::make('bank_account_number')
+                            ->label('Número da Conta'),
+
+                        TextInput::make('bank_iban')
+                            ->label('IBAN'),
+
+                        Toggle::make('enable_express_payment')
+                            ->label('Ativar Pagamento Expresso (ex: Multicaixa Express)'),
+
+                        TextInput::make('express_payment_phone')
+                            ->label('Telefone para Pagamento Expresso'),
+
+                        Toggle::make('enable_cash_on_delivery')
+                            ->label('Ativar Pagamento na Entrega'),
+                    ])->columns(2),
+
+                // ----------------------------------------------------
+                // SEÇÃO 4 — IA / FAQs
+                // ----------------------------------------------------
                 Section::make('IA / Respostas do Bot (FAQs)')
-                    ->description('Contexto e respostas que o bot de IA usará para perguntas comuns.')
                     ->icon('heroicon-o-cpu-chip')
                     ->collapsible()
                     ->schema([
+
                         Textarea::make('company_description')
-                            ->label('Descrição da Empresa (para IA)')
+                            ->label('Descrição da Empresa')
                             ->rows(4)
-                            ->helperText('O que é a empresa? Qual a vossa missão? A IA usará isto para "O que vocês fazem?".')
                             ->required()
                             ->columnSpanFull(),
 
                         Textarea::make('faq_who_answer')
                             ->label('Resposta: Quem é você?')
-                            ->rows(3)->required(),
+                            ->rows(3)
+                            ->required(),
+
+                        Textarea::make('faq_locations_answer')
+                            ->label('Resposta: Onde entregam?')
+                            ->rows(3),
+
+                        Textarea::make('faq_time_answer')
+                            ->label('Resposta: Tempo de entrega')
+                            ->rows(3),
+
+                        Textarea::make('faq_payment_answer')
+                            ->label('Resposta: Métodos de pagamento')
+                            ->rows(3),
+
                     ]),
             ]);
     }
 
-    // ... (resto do ficheiro: table(), getRelations(), getRecord(), getPages() - sem alterações) ...
     public static function table(Table $table): Table
     {
-        return $table
-            ->columns([])
-            ->actions([])
-            ->bulkActions([]);
+        return $table->columns([])->actions([])->bulkActions([]);
     }
 
     public static function getRelations(): array

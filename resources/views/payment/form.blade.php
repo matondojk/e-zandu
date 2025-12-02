@@ -4,369 +4,211 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Checkout Pedido #{{ $cart->id }}</title>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'zandu-red': '#DC2626', // Ajuste para a cor exata da sua marca
+                    }
+                }
+            }
+        }
+    </script>
     <style>
-        :root {
-            --primary-color: #128C7E;
-            --secondary-color: #25D366;
-            --background-color: #f4f7f6;
-            --card-background: #ffffff;
-            --text-color: #333;
-            --text-light: #555;
-            --border-color: #e0e0e0;
-            --error-color: #D9534F;
-            --success-color: #5CB85C;
+        /* Esconder scrollbar mas manter funcionalidade */
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
         }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--background-color);
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
-            color: var(--text-color);
-        }
-        .container {
-            width: 100%;
-            max-width: 1000px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 30px;
-        }
-        .form-container, .summary-container {
-            background: var(--card-background);
-            border-radius: 12px;
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.05);
-            padding: 30px;
-            border: 1px solid var(--border-color);
-        }
-        .form-container {
-            flex: 2;
-            min-width: 300px;
-        }
-        .summary-container {
-            flex: 1;
-            min-width: 280px;
-            position: sticky;
-            top: 20px;
-        }
-        h1, h2, h3 {
-            color: var(--primary-color);
-            margin-top: 0;
-        }
-        h1 {
-            text-align: center;
-            margin-bottom: 25px;
-        }
-        h2 {
-            border-bottom: 2px solid var(--border-color);
-            padding-bottom: 10px;
-            font-size: 1.5em;
-        }
-        h3 {
-            font-size: 1.2em;
-        }
-        .form-group {
-            margin-bottom: 20px;
-        }
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-            font-size: 0.95em;
-        }
-        .form-group input[type="text"],
-        .form-group input[type="file"],
-        .form-group textarea,
-        .form-group select { /* <-- Corrigi um typo aqui de .form-sgroup */
-            width: 100%;
-            padding: 12px;
-            box-sizing: border-box;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            font-size: 1em;
-            transition: border-color 0.2s, box-shadow 0.2s;
-        }
-        .form-group input:focus,
-        .form-group textarea:focus,
-        .form-group select:focus {
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 3px rgba(18, 140, 126, 0.1);
-            outline: none;
-        }
-        .form-group textarea {
-            resize: vertical;
-            min-height: 80px;
-        }
-        .btn {
-            background-color: var(--secondary-color);
-            color: white;
-            padding: 14px 20px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 1.1em;
-            font-weight: 600;
-            width: 100%;
-            margin-top: 10px;
-            transition: background-color 0.3s, transform 0.1s;
-        }
-        .btn:hover {
-            background-color: #20b355;
-        }
-        .btn:active {
-            transform: scale(0.99);
-        }
-        .error {
-            color: var(--error-color);
-            font-size: 0.9em;
-            margin-top: 5px;
-        }
-        
-        /* Resumo do Pedido */
-        .summary-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-        .summary-table td {
-            padding: 12px 0;
-        }
-        .summary-table .label {
-            text-align: left;
-            color: var(--text-light);
-        }
-        .summary-table .value {
-            text-align: right;
-            font-weight: 600;
-        }
-        .summary-table .separator {
-            border-top: 1px dashed var(--border-color);
-        }
-        .summary-table .grand-total td {
-            font-size: 1.3em;
-            font-weight: bold;
-            color: var(--primary-color);
-            padding-top: 15px;
-            border-top: 2px solid var(--primary-color);
-        }
-        #discount-row .value {
-            color: var(--success-color);
-        }
-
-        /* Cupão */
-        .coupon-group {
-            display: flex;
-            gap: 10px;
-            margin-top: 20px;
-        }
-        .coupon-group input {
-            flex: 1;
-        }
-        .coupon-group button {
-            flex: 0 0 auto;
-            padding: 0 20px;
-            background-color: var(--primary-color);
-            border-radius: 8px;
-            color: white;
-            border: none;
-            cursor: pointer;
-            font-weight: 600;
-            transition: background-color 0.3s;
-        }
-        .coupon-group button:hover {
-            background-color: #0e665c;
-        }
-        .coupon-group button:disabled {
-            background-color: #aaa;
-            cursor: not-allowed;
-        }
-        #coupon-message {
-            font-size: 0.9em;
-            margin-top: 10px;
-            display: block;
-        }
-        #coupon-message.success { color: var(--success-color); }
-        #coupon-message.error { color: var(--error-color); }
-
-        /* Instruções de Pagamento */
-        .instrucoes {
-            margin-top: 20px;
-            padding: 15px;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            background-color: #fdfdfd;
-        }
-        .instrucoes ul {
-            list-style-type: none;
-            padding-left: 0;
-            margin: 10px 0;
-        }
-        .instrucoes li {
-            margin-bottom: 8px;
-            font-size: 0.95em;
-            color: var(--text-light);
-        }
-        .instrucoes li strong {
-            color: var(--text-color);
-        }
-        .instrucoes .total-label {
-            font-size: 1.1em;
-            font-weight: 600;
-            color: var(--text-color);
-            border-top: 1px dashed var(--border-color);
-            padding-top: 15px;
-            margin-top: 15px;
-        }
-        .instrucoes .total-label span {
-            color: var(--primary-color);
-            font-weight: 700;
-        }
-
-        /* Responsividade */
-        @media (max-width: 800px) {
-            .container {
-                flex-direction: column-reverse;
-            }
-            .summary-container {
-                position: static;
-                width: 100%;
-                box-sizing: border-box;
-            }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
         }
     </style>
 </head>
 
-<body>
-    
-    <div class="container">
+<body class="bg-gray-50 min-h-screen font-sans text-gray-900">
 
-        <main class="form-container">
-            <h1>Finalizar Pedido</h1>
-            <p style="text-align: center; margin-top: -20px; margin-bottom: 25px; color: var(--text-light);">Pedido #{{ $cart->id }}</p>
+    <div class="container mx-auto px-4 py-12">
+        
+        <h1 class="text-3xl font-bold text-gray-900 mb-8 flex items-center gap-3">
+            <i class="ph-fill ph-lock-key text-zandu-red"></i> Checkout Seguro
+        </h1>
 
-            <form action="{{ route('payment.store', $cart->uuid) }}" method="POST" enctype="multipart/form-data" id="payment-form">
-                @csrf
-
-                <h2>1. Detalhes de Entrega</h2>
+        <form action="{{ route('payment.store', $cart->uuid) }}" method="POST" enctype="multipart/form-data" id="payment-form">
+            @csrf
+            
+            <div class="flex flex-col lg:flex-row gap-8">
                 
-                <div class="form-group">
-                    <label for="shipping-select">Província de Entrega (Obrigatório):</label>
-                    <select id="shipping-select" name="shipping_rate_id" required>
-                        <option value="" data-rate="0">Selecione a província...</option>
-                        @foreach ($shippingRates as $rate)
-                            <option value="{{ $rate->id }}" data-rate="{{ $rate->rate }}">
-                                {{ $rate->province_name }} ({{ $orderService->formatPrice($rate->rate) }})
-                            </option>
-                        @endforeach
-                    </select>
-                    @error('shipping_rate_id') <p class="error">{{ $message }}</p> @enderror
-                </div>
+                <div class="w-full lg:w-2/3 space-y-6">
 
-                <div class="form-group">
-                    <label for="delivery_address">Referência de Entrega Completa (Obrigatório):</label>
-                    <textarea id="delivery_address" name="delivery_address" rows="3" placeholder="Ex: Pedonal Azul, Villa de Cacuaco, Prédio 123, Apt 10" required>{{ old('delivery_address', $userAddress) }}</textarea>
-                    @error('delivery_address') <p class="error">{{ $message }}</p> @enderror
-                </div>
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
+                        <h2 class="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                            <span class="w-8 h-8 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center text-sm font-bold">1</span>
+                            Entrega
+                        </h2>
 
-                <div class="form-group">
-                    <label for="order_notes">Notas (Ex: Tamanho, Cor, etc.)</label>
-                    <textarea id="order_notes" name="order_notes" rows="2" placeholder="Alguma preferência de tamanho, cor ou outra observação?">{{ old('order_notes') }}</textarea>
-                </div>
+                        <div class="mb-6">
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Província</label>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                @foreach($shippingRates as $rate)
+                                    <label class="shipping-option relative border-2 border-gray-100 hover:border-gray-300 rounded-xl p-4 cursor-pointer transition flex justify-between items-center group">
+                                        <div class="flex items-center gap-3">
+                                            <div class="radio-indicator w-5 h-5 rounded-full border-2 border-gray-300 flex items-center justify-center">
+                                                <div class="w-2.5 h-2.5 bg-zandu-red rounded-full opacity-0 transition-opacity"></div>
+                                            </div>
+                                            
+                                            <input type="radio" name="shipping_rate_id" value="{{ $rate->id }}" data-rate="{{ $rate->rate }}" class="hidden peer" required>
+                                            
+                                            <div>
+                                                <span class="block font-bold text-gray-900 group-hover:text-zandu-red transition">{{ $rate->province_name }}</span>
+                                                <span class="text-xs text-gray-500">Estimativa: {{ $rate->estimated_delivery_time ?? '2-5 dias' }}</span>
+                                            </div>
+                                        </div>
+                                        <span class="font-bold text-sm text-gray-700">{{ $orderService->formatPrice($rate->rate) }}</span>
+                                    </label>
+                                @endforeach
+                            </div>
+                            @error('shipping_rate_id') <span class="text-red-500 text-xs font-bold mt-1 block">{{ $message }}</span> @enderror
+                        </div>
 
+                        <div class="mb-6">
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Morada Completa</label>
+                            <textarea name="delivery_address" rows="2" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:border-zandu-red focus:ring-1 focus:ring-zandu-red outline-none transition" placeholder="Ex: Mutamba, Rua dos Mercadores, Prédio Amarelo nº 10." required>{{ old('delivery_address', $userAddress) }}</textarea>
+                            @error('delivery_address') <span class="text-red-500 text-xs font-bold mt-1 block">{{ $message }}</span> @enderror
+                        </div>
 
-                <h2>2. Pagamento</h2>
-
-                <div class="form-group">
-                    <label for="payment-select">Método de Pagamento (Obrigatório):</label>
-                    <select id="payment-select" name="payment_method_id" required>
-                        <option value="">Selecione como deseja pagar...</option>
-                        @foreach ($paymentMethods as $method)
-                            <option value="{{ $method->id }}" data-details="{{ $method->toJson() }}">
-                                {{ $method->name }}
-                            </option>
-                        @endforeach
-                    </select>
-                    @error('payment_method_id') <p class="error">{{ $message }}</p> @enderror
-                </div>
-
-                <div id="payment-instructions" class="instrucoes" style="display: none;">
+                         <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Notas (Opcional)</label>
+                            <input type="text" name="order_notes" value="{{ old('order_notes') }}" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:border-zandu-red outline-none transition" placeholder="Ex: Cor Azul, Tamanho M, etc...">
+                        </div>
                     </div>
 
-                <div class="form-group" id="comprovativo-group" style="display: none; margin-top: 20px;">
-                    <label for="comprovativo">Anexar Comprovativo (Obrigatório):</label>
-                    <input type="file" id="comprovativo" name="comprovativo" accept="image/*,.pdf">
-                    @error('comprovativo') <p class="error">{{ $message }}</p> @enderror
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
+                        <h2 class="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                            <span class="w-8 h-8 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center text-sm font-bold">2</span>
+                            Pagamento
+                        </h2>
+
+                        <div class="space-y-3 mb-6">
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Método de Pagamento</label>
+                            @foreach($paymentMethods as $method)
+                                <label class="payment-option relative border-2 border-gray-100 hover:border-gray-300 rounded-xl p-4 cursor-pointer transition flex items-start gap-4 group">
+                                    <input type="radio" name="payment_method_id" value="{{ $method->id }}" data-details="{{ $method->toJson() }}" class="hidden peer" required>
+                                    
+                                    <div class="radio-indicator w-5 h-5 mt-1 rounded-full border-2 border-gray-300 flex-shrink-0 flex items-center justify-center">
+                                        <div class="w-2.5 h-2.5 bg-zandu-red rounded-full opacity-0 transition-opacity"></div>
+                                    </div>
+                                    
+                                    <div class="flex-1">
+                                        <span class="block font-bold text-gray-900 group-hover:text-zandu-red transition">{{ $method->name }}</span>
+                                        @if($method->type == 'cash_on_delivery')
+                                            <p class="text-xs text-gray-500 mt-1">Pagamento no ato da entrega.</p>
+                                        @elseif($method->type == 'express')
+                                            <p class="text-xs text-gray-500 mt-1">Pagamento via Multicaixa Express.</p>
+                                        @else
+                                            <p class="text-xs text-gray-500 mt-1">Transferência ou Depósito.</p>
+                                        @endif
+                                    </div>
+                                </label>
+                            @endforeach
+                             @error('payment_method_id') <span class="text-red-500 text-xs font-bold mt-1 block">{{ $message }}</span> @enderror
+                        </div>
+
+                        <div id="payment-instructions" class="hidden bg-blue-50 border border-blue-100 rounded-xl p-5 mb-6">
+                            </div>
+
+                        <div id="comprovativo-group" class="hidden">
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Anexar Comprovativo</label>
+                            <div class="flex items-center justify-center w-full">
+                                <label for="comprovativo" class="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-xl cursor-pointer bg-gray-50 hover:bg-gray-100 transition">
+                                    <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                                        <i class="ph ph-upload-simple text-2xl text-gray-400 mb-2"></i>
+                                        <p class="text-sm text-gray-500"><span class="font-semibold">Clique para enviar</span> ou arraste</p>
+                                        <p class="text-xs text-gray-500">PNG, JPG ou PDF</p>
+                                    </div>
+                                    <input id="comprovativo" name="comprovativo" type="file" class="hidden" accept="image/*,.pdf" />
+                                </label>
+                            </div>
+                            @error('comprovativo') <span class="text-red-500 text-xs font-bold mt-1 block">{{ $message }}</span> @enderror
+                        </div>
+                    </div>
+
                 </div>
 
-                <div class="form-group" style="margin-top: 30px;">
-                    <button type="submit" class="btn" id="submit-btn">Confirmar Pedido</button>
+                <div class="w-full lg:w-1/3">
+                    <div class="bg-white rounded-2xl shadow-lg p-6 sticky top-8 border border-gray-100">
+                        <h2 class="text-lg font-bold text-gray-900 mb-6 pb-4 border-b border-gray-100">Resumo do Pedido</h2>
+                        <p class="text-sm text-gray-500 mb-4">Cliente: <span class="font-semibold text-gray-900">{{ $userName }}</span></p>
+
+                        {{-- 
+                        <div class="space-y-4 mb-6 max-h-60 overflow-y-auto hide-scrollbar pr-1">
+                            @foreach($cart->items as $item) ... @endforeach
+                        </div> 
+                        --}}
+
+                        <div class="mb-6 border-t border-gray-100 pt-4">
+                            <div class="flex gap-2">
+                                <input type="text" id="coupon_code_input" placeholder="Código de Cupão" class="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:border-zandu-red focus:ring-1 focus:ring-zandu-red outline-none uppercase transition">
+                                <button type="button" id="apply-coupon-btn" class="bg-gray-900 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-gray-800 transition disabled:opacity-50">
+                                    Aplicar
+                                </button>
+                            </div>
+                            <input type="hidden" name="coupon_code" id="coupon_code_hidden">
+                            <span id="coupon-message" class="text-xs mt-2 block font-medium"></span>
+                            @error('coupon_code') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                        </div>
+
+                        <div class="space-y-2 border-t border-gray-100 pt-4 text-sm">
+                            <div class="flex justify-between text-gray-600">
+                                <span>Subtotal</span>
+                                <span>{{ $subTotalFormatted }}</span>
+                            </div>
+                            <div class="flex justify-between text-gray-600">
+                                <span>Frete</span>
+                                <span id="shipping-value" class="text-gray-900 font-medium">--</span>
+                            </div>
+                            <div id="discount-row" class="flex justify-between text-green-600 font-bold hidden">
+                                <span>Desconto</span>
+                                <span id="discount-value">- 0,00 Kz</span>
+                            </div>
+                        </div>
+
+                        <div class="border-t border-gray-100 pt-4 mt-4 mb-6">
+                            <div class="flex justify-between items-end">
+                                <span class="font-bold text-gray-900 text-lg">Total</span>
+                                <span id="total-value" class="font-extrabold text-zandu-red text-2xl">{{ $subTotalFormatted }}</span>
+                            </div>
+                        </div>
+
+                        <button type="submit" id="submit-btn" class="w-full bg-zandu-red text-white font-bold py-4 rounded-xl hover:bg-red-700 transition shadow-lg flex justify-center items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed">
+                            Confirmar Pedido
+                        </button>
+                    </div>
                 </div>
-            </form>
-        </main>
-
-        <aside class="summary-container">
-            <h2>Resumo do Pedido</h2>
-            <p><strong>Cliente:</strong> {{ $userName }}</p>
-
-            <table class="summary-table">
-                <tr>
-                    <td class="label">Subtotal dos Produtos:</td>
-                    <td class="value">{{ $subTotalFormatted }}</td>
-                </tr>
-                <tr>
-                    <td class="label">Taxa de Frete:</td>
-                    <td class="value" id="shipping-value">{{ $orderService->formatPrice(0) }}</td>
-                </tr>
-                <tr id="discount-row" style="display: none;">
-                    <td class="label">Desconto (Cupão):</td>
-                    <td class="value" id="discount-value">- {{ $orderService->formatPrice(0) }}</td>
-                </tr>
-                <tr class="grand-total separator">
-                    <td class="label">TOTAL GERAL:</td>
-                    <td class="value" id="total-value">{{ $subTotalFormatted }}</td>
-                </tr>
-            </table>
-
-            <div class="form-group">
-                <label for="coupon_code_input" style="margin-top: 20px;">Cupão de Desconto</label>
-                <div class="coupon-group">
-                    <input type="text" id="coupon_code_input" placeholder="Insira o seu código">
-                    <button type="button" id="apply-coupon-btn">Aplicar</button>
-                </div>
-                <input type="hidden" name="coupon_code" id="coupon_code_hidden">
-                <span id="coupon-message"></span>
-                @error('coupon_code')
-                    <p class="error">{{ $message }}</p>
-                @enderror
             </div>
-        </aside>
-
+        </form>
     </div>
-
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             
-            // --- Variáveis Globais e Constantes ---
+            // --- Variáveis Globais ---
             const subTotal = {{ $subTotalRaw }};
             const cartUuid = '{{ $cart->uuid }}';
-
-            // =================================================================
-            // A CORREÇÃO ESTÁ AQUI
-            // =================================================================
-            // O Laravel usa `_token`, não `_csrf`. Este era o erro.
             const csrfToken = document.querySelector('input[name="_token"]').value;
-            // =================================================================
             
             let currentShippingRate = 0;
             let currentDiscount = 0;
 
-            // --- Seletores de Elementos ---
-            const shippingSelect = document.getElementById('shipping-select');
-            const paymentSelect = document.getElementById('payment-select');
-            const couponInput = document.getElementById('coupon_code_input'); // Input visível
-            const couponHiddenInput = document.getElementById('coupon_code_hidden'); // Input para o form
+            // --- Elementos ---
+            const shippingRadios = document.querySelectorAll('input[name="shipping_rate_id"]');
+            const paymentRadios = document.querySelectorAll('input[name="payment_method_id"]');
+            
+            const couponInput = document.getElementById('coupon_code_input');
+            const couponHiddenInput = document.getElementById('coupon_code_hidden');
             const couponBtn = document.getElementById('apply-coupon-btn');
             const couponMsg = document.getElementById('coupon-message');
             
@@ -380,11 +222,31 @@
             const comprovativoInput = document.getElementById('comprovativo');
             const submitBtn = document.getElementById('submit-btn');
 
-            // --- Funções Principais ---
+            // --- Funções Auxiliares de UI ---
+            
+            // Função para estilizar o Radio Button Selecionado
+            function updateRadioStyles(radios, groupClass) {
+                radios.forEach(radio => {
+                    const label = radio.closest('label');
+                    const indicator = label.querySelector('.radio-indicator div'); // A bolinha interna
+                    const indicatorBorder = label.querySelector('.radio-indicator');
 
-            /**
-             * Formata um número para a moeda Kz.
-             */
+                    if (radio.checked) {
+                        label.classList.add('border-zandu-red', 'bg-red-50');
+                        label.classList.remove('border-gray-100', 'hover:border-gray-300');
+                        indicator.classList.remove('opacity-0');
+                        indicatorBorder.classList.add('border-zandu-red');
+                        indicatorBorder.classList.remove('border-gray-300');
+                    } else {
+                        label.classList.remove('border-zandu-red', 'bg-red-50');
+                        label.classList.add('border-gray-100', 'hover:border-gray-300');
+                        indicator.classList.add('opacity-0');
+                        indicatorBorder.classList.remove('border-zandu-red');
+                        indicatorBorder.classList.add('border-gray-300');
+                    }
+                });
+            }
+
             function formatPrice(value) {
                 return new Intl.NumberFormat('pt-AO', {
                     style: 'currency',
@@ -393,117 +255,104 @@
                 }).format(value).replace('AOA', 'Kz');
             }
 
-            /**
-             * Atualiza o Resumo do Pedido (Frete, Desconto, Total).
-             */
             function updateTotals() {
-                const grandTotal = Math.max(0, subTotal + currentShippingRate - currentDiscount); // Garante que não é negativo
+                const grandTotal = Math.max(0, subTotal + currentShippingRate - currentDiscount);
 
-                // Atualiza tabela de resumo
-                shippingValueEl.textContent = formatPrice(currentShippingRate);
+                shippingValueEl.textContent = currentShippingRate > 0 ? formatPrice(currentShippingRate) : '--';
                 
                 if (currentDiscount > 0) {
                     discountValueEl.textContent = `- ${formatPrice(currentDiscount)}`;
-                    discountRow.style.display = 'table-row';
+                    discountRow.classList.remove('hidden');
                 } else {
-                    discountRow.style.display = 'none';
+                    discountRow.classList.add('hidden');
                 }
                 
                 totalValueEl.textContent = formatPrice(grandTotal);
 
-                // Atualiza as instruções de pagamento, se visíveis
-                if (paymentSelect.value) {
-                    updatePaymentInstructions();
+                // Atualiza o valor total nas instruções de pagamento se necessário
+                const checkedPayment = document.querySelector('input[name="payment_method_id"]:checked');
+                if (checkedPayment) {
+                    updatePaymentInstructions(null, checkedPayment);
                 }
             }
 
-            /**
-             * Controla a exibição dos campos com base no Método de Pagamento.
-             */
-            function handlePaymentMethodChange() {
-                const selectedOption = paymentSelect.options[paymentSelect.selectedIndex];
-                if (!selectedOption.value) {
-                    instructionsEl.style.display = 'none';
-                    comprovativoGroup.style.display = 'none';
-                    return;
-                }
+            // --- Lógica de Pagamento ---
 
-                const details = JSON.parse(selectedOption.getAttribute('data-details'));
+            function handlePaymentChange() {
+                updateRadioStyles(paymentRadios); // Atualiza visual
+                
+                const selectedRadio = document.querySelector('input[name="payment_method_id"]:checked');
+                if (!selectedRadio) return;
+
+                const details = JSON.parse(selectedRadio.getAttribute('data-details'));
                 const isCashOnDelivery = details.type === 'cash_on_delivery';
 
                 if (isCashOnDelivery) {
-                    // Esconde comprovativo, torna não-obrigatório
-                    comprovativoGroup.style.display = 'none';
+                    comprovativoGroup.classList.add('hidden');
                     comprovativoInput.required = false;
                     comprovativoInput.disabled = true;
-                    submitBtn.textContent = 'Confirmar Pedido (Pagar na Entrega)';
+                    submitBtn.innerHTML = 'Confirmar Pedido <i class="ph-bold ph-check ml-2"></i>';
                 } else {
-                    // Mostra comprovativo, torna obrigatório
-                    comprovativoGroup.style.display = 'block';
+                    comprovativoGroup.classList.remove('hidden');
                     comprovativoInput.required = true;
                     comprovativoInput.disabled = false;
-                    submitBtn.textContent = 'Confirmar Pagamento e Envio';
+                    submitBtn.innerHTML = 'Enviar Comprovativo e Finalizar <i class="ph-bold ph-paper-plane-right ml-2"></i>';
                 }
 
                 updatePaymentInstructions(details);
             }
 
-            /**
-             * Constrói e exibe o bloco de instruções de pagamento.
-             */
-            function updatePaymentInstructions(details = null) {
-                if (!details) {
-                    const selectedOption = paymentSelect.options[paymentSelect.selectedIndex];
-                    if (!selectedOption.value) return;
-                    details = JSON.parse(selectedOption.getAttribute('data-details'));
+            function updatePaymentInstructions(details = null, radioElement = null) {
+                if (!details && radioElement) {
+                    details = JSON.parse(radioElement.getAttribute('data-details'));
                 }
+                if (!details) return;
 
                 const isCashOnDelivery = details.type === 'cash_on_delivery';
                 
-                let html = `<h3>Instruções para ${details.name}</h3>`;
+                let html = `<h3 class="font-bold text-blue-900 mb-2 flex items-center gap-2"><i class="ph-fill ph-info"></i> Instruções: ${details.name}</h3>`;
                 
                 if (details.instructions) {
-                    html += `<p>${details.instructions.replace(/\n/g, '<br>')}</p>`;
+                    html += `<p class="text-sm text-blue-800 mb-3 leading-relaxed">${details.instructions.replace(/\n/g, '<br>')}</p>`;
                 }
 
                 if (!isCashOnDelivery) {
-                    html += '<ul>';
+                    html += '<ul class="text-sm text-blue-800 bg-white/50 rounded-lg p-3 space-y-1 border border-blue-100">';
                     if (details.type === 'bank_transfer') {
-                        if (details.bank_account_holder) html += `<li><strong>Titular:</strong> ${details.bank_account_holder}</li>`;
-                        if (details.bank_account_number) html += `<li><strong>Nº Conta:</strong> ${details.bank_account_number}</li>`;
-                        if (details.bank_iban) html += `<li><strong>IBAN:</strong> ${details.bank_iban}</li>`;
+                        if (details.bank_account_holder) html += `<li><span class="font-bold">Titular:</span> ${details.bank_account_holder}</li>`;
+                        if (details.bank_account_number) html += `<li><span class="font-bold">Conta:</span> ${details.bank_account_number}</li>`;
+                        if (details.bank_iban) html += `<li><span class="font-bold">IBAN:</span> ${details.bank_iban}</li>`;
                     } else if (details.type === 'express') {
-                        if (details.phone_number) html += `<li><strong>Nº Express:</strong> ${details.phone_number}</li>`;
+                        if (details.phone_number) html += `<li><span class="font-bold">Nº Telemóvel:</span> ${details.phone_number}</li>`;
                     }
                     html += '</ul>';
                 }
                 
-                // Label e Valor Total Dinâmicos
-                const totalLabel = isCashOnDelivery ? 'Valor Exato a Pagar na Entrega:' : 'Valor Exato a Transferir:';
                 const currentTotalFormatted = totalValueEl.textContent;
+                const labelText = isCashOnDelivery ? 'Total a pagar na entrega:' : 'Total a transferir:';
 
-                html += `<p class="total-label">${totalLabel} <span>${currentTotalFormatted}</span></p>`;
-
-                if (!isCashOnDelivery) {
-                     html += `<p style="font-size: 0.9em; color: var(--text-light); margin-top: 10px;"><i>* Por favor, anexe o comprovativo após a transferência.</i></p>`;
-                }
+                html += `
+                    <div class="mt-4 pt-3 border-t border-blue-200 flex justify-between items-center">
+                        <span class="text-sm font-bold text-blue-900">${labelText}</span>
+                        <span class="text-lg font-extrabold text-zandu-red">${currentTotalFormatted}</span>
+                    </div>
+                `;
 
                 instructionsEl.innerHTML = html;
-                instructionsEl.style.display = 'block';
+                instructionsEl.classList.remove('hidden');
             }
 
-            /**
-             * Lida com a aplicação do cupão via AJAX.
-             */
+            // --- Lógica de Cupão ---
+
             async function handleCouponApply() {
                 const code = couponInput.value.trim().toUpperCase();
                 if (!code) return;
 
                 couponBtn.disabled = true;
-                couponBtn.textContent = '...';
+                couponBtn.innerHTML = '<i class="ph ph-spinner animate-spin"></i>';
                 couponMsg.textContent = '';
-                couponMsg.className = '';
-                couponHiddenInput.value = ''; // Limpa o cupão anterior
+                couponMsg.className = 'text-xs mt-2 block font-medium'; // Reset classes
+                couponHiddenInput.value = '';
 
                 try {
                     const response = await fetch(`/payment/${cartUuid}/apply-coupon`, {
@@ -518,52 +367,62 @@
 
                     const data = await response.json();
 
-                    if (!response.ok) {
-                        throw new Error(data.message || 'Erro ao aplicar cupão.');
-                    }
+                    if (!response.ok) throw new Error(data.message || 'Erro ao aplicar cupão.');
 
-                    // Sucesso
                     currentDiscount = data.discountAmount;
                     couponMsg.textContent = data.message;
-                    couponMsg.className = 'success';
-                    couponInput.value = code; // Mantém o código
-                    couponHiddenInput.value = code; // Adiciona ao campo hidden para o form
+                    couponMsg.classList.add('text-green-600');
+                    couponHiddenInput.value = code;
                     
                 } catch (error) {
-                    // Erro
                     currentDiscount = 0;
                     couponMsg.textContent = error.message;
-                    couponMsg.className = 'error';
+                    couponMsg.classList.add('text-red-500');
                 } finally {
-                    // Re-calcula totais e reativa o botão
                     updateTotals();
                     couponBtn.disabled = false;
                     couponBtn.textContent = 'Aplicar';
                 }
             }
 
+            // --- Event Listeners ---
 
-            // --- Event Listeners Iniciais ---
-
-            // 1. Mudar Frete
-            shippingSelect.addEventListener('change', function() {
-                const selectedOption = shippingSelect.options[shippingSelect.selectedIndex];
-                currentShippingRate = parseFloat(selectedOption.getAttribute('data-rate') || 0);
-                updateTotals();
+            // 1. Mudança de Frete (Radio Buttons)
+            shippingRadios.forEach(radio => {
+                radio.addEventListener('change', function() {
+                    updateRadioStyles(shippingRadios); // Atualiza visual
+                    currentShippingRate = parseFloat(this.getAttribute('data-rate') || 0);
+                    updateTotals();
+                });
             });
 
-            // 2. Mudar Método de Pagamento
-            paymentSelect.addEventListener('change', handlePaymentMethodChange);
+            // 2. Mudança de Pagamento (Radio Buttons)
+            paymentRadios.forEach(radio => {
+                radio.addEventListener('change', handlePaymentChange);
+            });
 
-            // 3. Aplicar Cupão
+            // 3. Cupão
             couponBtn.addEventListener('click', handleCouponApply);
-            couponInput.addEventListener('keydown', function(e) {
+            couponInput.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') {
-                    e.preventDefault(); // Impede o submit do formulário
+                    e.preventDefault();
                     handleCouponApply();
                 }
             });
 
+            // Inicialização (caso haja old input ou refresh)
+            const checkedShipping = document.querySelector('input[name="shipping_rate_id"]:checked');
+            if (checkedShipping) {
+                updateRadioStyles(shippingRadios);
+                currentShippingRate = parseFloat(checkedShipping.getAttribute('data-rate') || 0);
+            }
+
+            const checkedPayment = document.querySelector('input[name="payment_method_id"]:checked');
+            if (checkedPayment) {
+                handlePaymentChange();
+            }
+            
+            updateTotals();
         });
     </script>
 </body>

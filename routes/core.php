@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ReportViewController;
 use Illuminate\Support\Facades\Route;
 
@@ -16,16 +15,6 @@ use Illuminate\Support\Facades\Route;
 
 // --- 1. Rotas Públicas (Frontend) ---
 // (Rota do produto removida)
-
-
-// --- 2. Rotas de Pagamento (Gateway) ---
-// Rotas relacionadas com o processo de checkout e pagamento.
-Route::name('payment.')->group(function () {
-    Route::get('pagamento/{uuid}', [PaymentController::class, 'show'])->name('show');
-    Route::post('pagamento/{uuid}', [PaymentController::class, 'store'])->name('store');
-    Route::post('payment/{uuid}/apply-coupon', [PaymentController::class, 'applyCoupon'])->name('applyCoupon');
-});
-
 
 // --- 3. Rotas de Admin (Protegidas) ---
 // Rotas acedidas dentro do painel de admin, protegidas por autenticação.
