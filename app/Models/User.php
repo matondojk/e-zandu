@@ -13,6 +13,8 @@ use MixCode\FilamentMulti2fa\Enums\TwoFactorAuthType;
 use Illuminate\Support\Facades\Storage;
 use Filament\Models\Contracts\HasAvatar;
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use App\Models\Role;
+use Illuminate\Support\Collection;
 
 class User extends Authenticatable
 {
@@ -51,9 +53,60 @@ class User extends Authenticatable
         'tags' => 'array',
     ];
 
+
+    public function roles()
+    {
+        return $this->belongsToMany(Role::class, 'user_has_roles');
+    }
+
+    // App/Models/User.php (Apenas o método hasPermissionTo e hasRole)
+
+    // Método helper para verificar permissão
+    public function hasPermissionTo(string $permissionSlug): bool
+    {
+        // 1. O 'role' do ENUM é usado para acesso ao painel, não para permissões granulares.
+        // Se o usuário não é admin, já foi barrado no canAccessPanel, mas garantimos aqui.
+        if ($this->role !== 'admin') {
+            return false;
+        }
+
+        // 2. Verifica explicitamente se o usuário tem o Perfil de Super Admin ou Gerente (Acesso Total)
+        if ($this->hasRole('super-admin') || $this->hasRole('gerente')) {
+            return true;
+        }
+
+        // Se for o slug 'full-access', mas ele não for Super Admin/Gerente, nega.
+        if ($permissionSlug === 'full-access') {
+            return false;
+        }
+
+        // 3. Verifica se a permissão está associada a algum dos perfis do usuário
+        // ✅ Corrigido: Usamos consulta explícita para evitar problemas de caching ou lazy loading
+        $rolesWithPermission = $this->roles()
+            ->whereHas('permissions', function ($query) use ($permissionSlug) {
+                $query->where('slug', $permissionSlug);
+            })
+            ->exists();
+
+        return $rolesWithPermission;
+    }
+
+    // Método helper para verificar se pertence a um Perfil (Melhorado para consulta explícita)
+    public function hasRole(string $roleSlug): bool
+    {
+        // 1. Não usamos o ENUM 'admin' aqui.
+
+        // 2. Verifica se o slug do perfil está associado
+        return $this->roles()->where('slug', $roleSlug)->exists();
+    }
+
+    // Método helper para verificar permissão (Corrigido para uso do hasPermissionTo)
     public function canAccessPanel(\Filament\Panel $panel): bool
     {
         if ($panel->getId() === 'admin') {
+            // Se ele tiver o role 'admin' no ENUM E se ele tiver o perfil 'super-admin' ou 'gerente'
+            // O acesso ao painel deve ser menos restrito: se for admin no ENUM, pode aceder.
+            // A restrição granular fica para o Middleware.
             return $this->role === 'admin';
         }
 

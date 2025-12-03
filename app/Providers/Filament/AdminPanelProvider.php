@@ -46,7 +46,7 @@ class AdminPanelProvider extends PanelProvider
             : 'https://e-zandu.com/default/icon-default.png';
 
         $primaryColorHex = $settings?->primary_color_hex ?? '#fe9a00';
-        
+
         return $panel
             ->default()
             ->id('admin')
@@ -92,6 +92,7 @@ class AdminPanelProvider extends PanelProvider
                 DispatchServingFilamentEvent::class,
                 \App\Http\Middleware\CheckTenantSubscription::class,
                 \App\Http\Middleware\ReadOnlyDemo::class,
+                \App\Http\Middleware\CheckAdminPermission::class,
             ])
             ->authMiddleware([
                 Authenticate::class,

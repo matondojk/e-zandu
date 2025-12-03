@@ -4,47 +4,57 @@ namespace App\Exceptions;
 
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
 use Throwable;
+use Symfony\Component\HttpKernel\Exception\HttpException;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Illuminate\Support\Facades\Redirect;
+use Filament\Notifications\Notification;
+use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Session; // ⬅️ Adicionado
 
 class Handler extends ExceptionHandler
 {
-    /**
-     * A list of exception types with their corresponding custom log levels.
-     *
-     * @var array<class-string<\Throwable>, \Psr\Log\LogLevel::*>
-     */
-    protected $levels = [
-        //
-    ];
+    // ... (restante do código)
 
     /**
-     * A list of the exception types that are not reported.
-     *
-     * @var array<int, class-string<\Throwable>>
+     * Render an exception into an HTTP response.
      */
-    protected $dontReport = [
-        //
-    ];
-
-    /**
-     * A list of the inputs that are never flashed to the session on validation exceptions.
-     *
-     * @var array<int, string>
-     */
-    protected $dontFlash = [
-        'current_password',
-        'password',
-        'password_confirmation',
-    ];
-
-    /**
-     * Register the exception handling callbacks for the application.
-     *
-     * @return void
-     */
-    public function register()
+    public function render($request, Throwable $e)
     {
-        $this->reportable(function (Throwable $e) {
-            //
-        });
+        // 🎯 1. Verifica se é uma exceção de Acesso Negado (403)
+        if ($e instanceof AccessDeniedHttpException || ($e instanceof HttpException && $e->getStatusCode() === 403)) {
+            
+            // Verifica se a requisição está vindo do painel admin e o usuário está autenticado
+            if (Route::has('filament.admin.pages.dashboard') && $request->routeIs('filament.*') && auth()->check()) {
+                
+                $dashboardRoute = route('filament.admin.pages.dashboard');
+                $errorMessage = $e->getMessage();
+                
+                // --- NOVA ESTRATÉGIA: Redirecionamento Imediato com Notificação Manual ---
+                
+                // 1. Cria a notificação (mas não a envia diretamente, apenas a estrutura)
+                $notification = Notification::make()
+                    ->title('Acesso Negado!')
+                    ->body($errorMessage . " Redirecionando para o painel principal.")
+                    ->danger();
+
+                // 2. Transforma a notificação em um array persistente na sessão.
+                // Isso garante que o Filament a renderize no próximo request.
+                $notificationArray = $notification->toDatabase(); // Usa o método interno do Filament
+                
+                // Obtém as notificações existentes ou inicializa se não houver
+                $notifications = Session::get('filament.notifications') ?? [];
+                
+                // Adiciona a nova notificação
+                $notifications[] = $notificationArray;
+                
+                // Salva o array de volta na sessão
+                Session::put('filament.notifications', $notifications);
+                
+                // 3. Retorna o redirecionamento HTTP 302
+                return Redirect::to($dashboardRoute);
+            }
+        }
+
+        return parent::render($request, $e);
     }
 }

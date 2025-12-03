@@ -41,6 +41,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             // 1. Configurações e Utilizadores de Sistema
             SettingSeeder::class,
+            CustomPermissionsSeeder::class,
             // UserSeeder::class,
             CouponSeeder::class,
 
