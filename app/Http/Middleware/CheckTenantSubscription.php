@@ -19,7 +19,7 @@ class CheckTenantSubscription
     protected $featureMap = [
         // --- Features PRO ---
         'admin/whatsapp' => 'whatsapp',
-        'admin/campaigns' => 'campaigns',
+        'admin/campanhas' => 'campaigns',
 
         // --- Features ESSENCIAL (IA/BI) ---
         'admin/assistente-de-insights' => 'assistente-de-insights',

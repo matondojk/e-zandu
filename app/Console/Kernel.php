@@ -25,7 +25,12 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
+        $schedule->command('queue:work --queue=campaigns,default --stop-when-empty')
+            ->everyMinute()
+            ->withoutOverlapping();
+
         $schedule->command('queue:retry all')->everyMinute();
+
         // Instancia o gestor de assinaturas
         try {
             $manager = app(SubscriptionManager::class);
@@ -107,10 +112,6 @@ class Kernel extends ConsoleKernel
                 $schedule->command('stock:process-alerts')->everyTenMinutes();
             }
         }
-
-        // --- Comentados ---
-        // $schedule->command('ai:generate-insights')
-        //     ->everyMinute();
     }
 
     /**

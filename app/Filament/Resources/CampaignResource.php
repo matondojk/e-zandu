@@ -19,6 +19,7 @@ use Filament\Forms\Get;
 use Filament\Forms\Set;
 use Illuminate\Database\Eloquent\Builder;
 use Filament\Notifications\Notification;
+use App\Services\SubscriptionManager;
 
 class CampaignResource extends Resource
 {
@@ -28,6 +29,20 @@ class CampaignResource extends Resource
     protected static ?string $navigationGroup = 'Marketing';
     protected static ?int $navigationSort = 1;
     protected static ?string $slug = 'campanhas';
+
+
+    public static function getNavigationBadge(): ?string
+    {
+        $manager = app(SubscriptionManager::class);
+
+        // A feature key é 'analise-inteligente', como definido no Middleware/Manager
+        if (!$manager->canUse('campanhas')) {
+            return 'PRO'; // Retorna o badge para o plano "Trial"
+        }
+
+        // Se pode usar (É Essencial ou PRO), não mostra nada
+        return null;
+    }
 
     public static function form(Form $form): Form
     {
