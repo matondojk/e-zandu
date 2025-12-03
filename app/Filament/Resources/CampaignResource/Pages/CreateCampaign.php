@@ -3,10 +3,10 @@
 namespace App\Filament\Resources\CampaignResource\Pages;
 
 use App\Filament\Resources\CampaignResource;
-use Filament\Resources\Pages\CreateRecord; // Importação correta
-use Illuminate\Database\Eloquent\Model;
+use Filament\Resources\Pages\CreateRecord;
 use App\Models\User;
 use App\Models\Campaign;
+use App\Models\Newsletter;
 use App\Jobs\SendCampaignJob;
 use App\Services\IntelligenceService;
 use Illuminate\Support\Collection;
@@ -16,85 +16,113 @@ use Filament\Notifications\Notification;
 
 class CreateCampaign extends CreateRecord
 {
-    // 👇 ISTO É OBRIGATÓRIO PARA CORRIGIR A TELA BRANCA 👇
-    use CreateRecord\Concerns\HasWizard;
-
     protected static string $resource = CampaignResource::class;
 
-    /**
-     * Esta função é o "coração" da sua lógica.
-     * Ela corre DEPOIS que a Campanha é criada.
-     */
     protected function afterCreate(): void
     {
         $campaign = $this->getRecord();
-        $data = $this->getData(); // Pega TODOS os dados do formulário
+        $data = $this->data;
+
+        // 1. Sincroniza Produtos (Pivot)
+        if ($campaign->content_type === 'product_promo' && !empty($data['productsInPromotion'])) {
+            $syncData = collect($data['productsInPromotion'])->mapWithKeys(function ($item) {
+                return [
+                    $item['product_id'] => ['promotional_price' => $item['promotional_price']]
+                ];
+            })->toArray();
+            
+            $campaign->productsInPromotion()->sync($syncData);
+        }
 
         try {
-            // Tenta buscar a audiência
+            // 2. Busca a Audiência
             $customers = $this->getAudience($data);
 
             if ($customers->isEmpty()) {
-                 $campaign->audience()->sync([]); // Garante que fica 0
-                 Notification::make()->title('Campanha Criada (Sem Audiência)')
-                    ->body("A campanha foi salva, mas nenhum cliente correspondeu aos filtros (verifique 'role=customer' na DB).")
+                 // Se não achou ninguém, volta para rascunho para evitar travamento
+                 $campaign->update(['status' => 'draft']);
+                 $campaign->audience()->sync([]); 
+                 Notification::make()->title('Aviso: Audiência Vazia')
+                    ->body("A campanha foi salva como rascunho porque nenhum destinatário foi encontrado.")
                     ->warning()->send();
-                return; // Pára a execução aqui
+                return;
             }
 
-            // Se encontrou clientes, salva-os na tabela 'campaign_audience'
-            $customerIds = $customers->pluck('id');
-            $campaign->audience()->sync($customerIds);
+            // 3. Salva quem tem ID na tabela pivot (Usuários)
+            // Assinantes de Newsletter (sem ID) são ignorados nesta etapa de sync
+            $usersWithId = $customers->filter(fn($c) => !empty($c->id));
             
-            // Verifica se é para agendar ou despachar agora
-            $isScheduled = $campaign->scheduled_at && Carbon::parse($campaign->scheduled_at)->isFuture();
+            if ($usersWithId->isNotEmpty()) {
+                $campaign->audience()->sync($usersWithId->pluck('id'));
+            }
 
-            if ($isScheduled) {
-                // APENAS SALVA COMO "AGENDADA"
-                $campaign->update(['status' => 'scheduled']);
-                
-                Notification::make()->title('Campanha Agendada!')
-                    ->body("A campanha foi agendada para {$campaign->scheduled_at->format('d/m/Y H:i')} com {$customers->count()} clientes.")
+            // 4. Lógica de Envio baseada no Status escolhido
+            
+            // STATUS: RASCUNHO
+            if ($campaign->status == 'draft') {
+                Notification::make()->title('Rascunho Salvo')
+                    ->body("A campanha foi salva e pode ser editada posteriormente.")
                     ->success()->send();
-            } else {
-                // É PARA ENVIAR AGORA
-                $campaign->update(['status' => 'processing']);
-                
+                return;
+            }
+
+            // STATUS: AGENDADO
+            if ($campaign->status == 'scheduled') {
+                Notification::make()->title('Agendamento Realizado')
+                    ->body("A campanha será enviada automaticamente em {$campaign->scheduled_at->format('d/m/Y H:i')}.")
+                    ->success()->send();
+                return; // O Job de CRON cuidará disso
+            }
+
+            // STATUS: ENVIAR AGORA (Processing)
+            if ($campaign->status == 'processing') {
+                // Dispara Jobs imediatamente
                 foreach ($customers as $customer) {
                     SendCampaignJob::dispatch($campaign, $customer)
                         ->onQueue('campaigns');
                 }
                 
-                Notification::make()->title('Campanha Criada e em Processamento!')
-                    ->body("A campanha foi enviada para a fila para processar {$customers->count()} clientes.")
+                $campaign->update(['status' => 'sent']);
+                
+                Notification::make()->title('Envio Iniciado!')
+                    ->body("A campanha está sendo processada para {$customers->count()} destinatários.")
                     ->success()->send();
             }
 
         } catch (\Exception $e) {
             $campaign->update(['status' => 'failed']);
-            Notification::make()->title('Erro ao Processar Audiência')
+            Notification::make()->title('Erro ao Processar')
                 ->body($e->getMessage())
                 ->danger()->send();
         }
     }
 
-    /**
-     * Esta função busca os clientes com base no formulário.
-     */
     protected function getAudience(array $data): Collection
     {
         $audienceType = $data['audience_type'] ?? 'all';
         $aiService = app(IntelligenceService::class);
 
-        // --- Opção 2: Manual ---
+        // Opção Newsletter
+        if ($audienceType === 'newsletter') {
+            return Newsletter::where('is_subscribed', true)->get()->map(function ($subscriber) {
+                return (object) [
+                    'id' => null,
+                    'email' => $subscriber->email,
+                    'name' => 'Assinante',
+                    'phone' => null,
+                ];
+            });
+        }
+        
+        // Opção Manual
         if ($audienceType === 'manual') {
             if (empty($data['manual_customers'])) {
-                return collect(); // Retorna uma coleção vazia
+                return collect();
             }
             return User::whereIn('id', $data['manual_customers'])->where('role', 'customer')->get();
         }
 
-        // --- Opção 3: Filtro por IA ---
+        // Opção IA
         if ($audienceType === 'ai_prompt' && !empty($data['audience_prompt'])) {
             $prompt = $data['audience_prompt'];
             $sqlPrompt = "Com base no schema, gere uma query SQL para: '{$prompt}'. A query deve selecionar APENAS o 'id' da tabela 'users' (onde role='customer').";
@@ -102,7 +130,6 @@ class CreateCampaign extends CreateRecord
             $sqlResult = $aiService->runChatQuery($sqlPrompt);
             
             if (empty($sqlResult['data'])) {
-                Notification::make()->title('IA não encontrou clientes')->body("O prompt da IA não retornou clientes.")->warning()->send();
                 return collect();
             }
             
@@ -110,7 +137,7 @@ class CreateCampaign extends CreateRecord
             return User::whereIn('id', $userIds)->get(); 
         }
 
-        // --- Opção 1: Todos (Default) ---
+        // Opção Todos (Default)
         if ($audienceType === 'all') {
             return User::where('role', 'customer')->get();
         }
@@ -118,9 +145,6 @@ class CreateCampaign extends CreateRecord
         return collect();
     }
 
-    /**
-     * Redireciona de volta para a lista após criar.
-     */
     protected function getRedirectUrl(): string
     {
         return $this->getResource()::getUrl('index');

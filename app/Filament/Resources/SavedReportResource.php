@@ -9,7 +9,7 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Support\Facades\Auth; // Importar Auth
+use Illuminate\Support\Facades\Auth;
 use App\Services\SubscriptionManager;
 
 class SavedReportResource extends Resource
@@ -22,40 +22,32 @@ class SavedReportResource extends Resource
     protected static ?string $pluralModelLabel = 'Relatórios Guardados';
     protected static ?string $navigationGroup = 'Recursos de IA';
     protected static ?int $navigationSort = 4;
-    protected static ?string $slug = 'relatorios-guardados'; // URL em português
+    protected static ?string $slug = 'relatorios-guardados';
 
     // --- 2. ADICIONAR OS MÉTODOS DE BADGE ---
 
-    /**
-     * Mostra um badge "ESSENCIAL" se o utilizador atual (Trial) não tiver acesso.
-     */
     public static function getNavigationBadge(): ?string
     {
         $manager = app(SubscriptionManager::class);
 
-        // A feature key é 'analise-inteligente', como definido no Middleware/Manager
         if (!$manager->canUse('analise-inteligente')) {
-            return 'ESSENCIAL'; // Retorna o badge para o plano "Trial"
+            return 'ESSENCIAL';
         }
 
-        // Se pode usar (É Essencial ou PRO), não mostra nada
         return null;
     }
 
-    /**
-     * Define a cor do badge (usamos 'warning' - laranja - para destaque).
-     */
     public static function getNavigationBadgeColor(): ?string
     {
         if (!app(SubscriptionManager::class)->canUse('analise-inteligente')) {
             return 'warning';
         }
-        
+
         return null;
     }
 
     // --- FIM DA ADIÇÃO ---
-    
+
     public static function form(Form $form): Form
     {
         return $form
@@ -95,7 +87,6 @@ class SavedReportResource extends Resource
                             ->helperText('O relatório em PDF será enviado para este e-mail.'),
                     ])->columnSpanFull(),
 
-                // Campo oculto para associar ao utilizador logado
                 Forms\Components\Hidden::make('user_id')
                     ->default(Auth::id()),
             ]);
@@ -114,8 +105,10 @@ class SavedReportResource extends Resource
                 Tables\Columns\TextColumn::make('recipient_email')->label('Destinatário'),
             ])
             ->actions([
-                // Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+
+                Tables\Actions\DeleteAction::make()
+                    ->iconButton() 
+                    ->icon('heroicon-o-trash'),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -130,16 +123,9 @@ class SavedReportResource extends Resource
         return parent::getEloquentQuery()->where('user_id', Auth::id());
     }
 
-    /**
-     * ######################################################
-     * ✅ CORREÇÃO AQUI
-     * Descomente e aponte para a página 'ManageSavedReports'
-     * ######################################################
-     */
     public static function getPages(): array
     {
         return [
-            // Aponte para a página que o comando '--simple' criou
             'index' => Pages\ManageSavedReports::route('/'),
         ];
     }

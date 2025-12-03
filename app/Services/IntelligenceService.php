@@ -345,6 +345,7 @@ PROMPT;
         return Cache::remember('ai_db_schema', now()->addHours(24), function () {
             $allowedTables = [
                 'products',
+                'newsletters',
                 'categories',
                 'category_product',
                 'brands',
@@ -547,15 +548,23 @@ PROMPT;
         $context .= "- Prompt do Admin: '{$prompt}'\n";
 
         if ($contentType === 'coupon' && $couponCode) {
-            $context .= "- Tipo: Cupão de Desconto ('{cupao}')\n";
+            $context .= "- Tipo: Cupão de Desconto\n";
             $context .= "- Código do Cupão: {$couponCode}\n";
+            // ✅ NOVO: Adiciona o link da loja para o cupão
+            $context .= "- Link de Destino: " . route('shop') . "\n";
         }
 
         if ($contentType === 'product_promo' && !empty($products)) {
             $context .= "- Tipo: Promoção de Produtos\n";
             $context .= "- Produtos em Promoção:\n";
             foreach ($products as $prod) {
-                $context .= "  - {$prod['name']} por {$prod['price']} Kz\n";
+                // ✅ NOVO: Inclui preço, preço promocional E link do produto
+                $productDetailsLink = route('product.details', ['slug' => $prod['slug']]);
+
+                $context .= "  - Produto: {$prod['name']}\n";
+                $context .= "    - Preço Original: {$prod['price_original']} Kz\n";
+                $context .= "    - Preço Promocional: {$prod['promotional_price']} Kz\n";
+                $context .= "    - Link: {$productDetailsLink}\n";
             }
         }
 
@@ -567,8 +576,10 @@ PROMPT;
         1.  Use os placeholders {nomeCliente} e {cupao} exatamente como escritos.
         2.  A moeda é Kwanza (Kz).
         3.  O tom deve ser profissional, mas amigável e direto (Angolano).
-        4.  A sua resposta DEVE SER UM ÚNICO OBJETO JSON VÁLIDO.
-        5.  O JSON deve ter EXATAMENTE a seguinte estrutura:
+        4.  Se for uma PROMOÇÃO DE PRODUTOS, DEVE MENCIONAR O PREÇO ORIGINAL E O PREÇO PROMOCIONAL e INCLUIR O LINK para o produto.
+        5.  Se for um CUPÃO, deve incluir o código e o LINK GERAL da loja.
+        6.  A sua resposta DEVE SER UM ÚNICO OBJETO JSON VÁLIDO.
+        7.  O JSON deve ter EXATAMENTE a seguinte estrutura:
             {
               \"whatsapp_template\": \"...texto para whatsapp (curto e direto)...\",
               \"email_subject\": \"...assunto do email...\",

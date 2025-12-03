@@ -103,8 +103,8 @@ class SubscriptionManager
 
         // 3. Recursos PRO (Marketing)
         $proFeatures = [
-            'whatsapp',
-            'campaigns'
+            // 'whatsapp',
+            'campanhas'
         ];
 
         // 4. Lógica de Herança

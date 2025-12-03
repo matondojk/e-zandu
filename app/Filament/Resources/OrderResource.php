@@ -27,7 +27,7 @@ class OrderResource extends Resource
     protected static ?string $modelLabel = 'Venda';
     protected static ?string $pluralModelLabel = 'Vendas';
     protected static ?int $navigationSort = 2;
-    protected static ?string $recordTitleAttribute = 'cart_number'; // ✅ Alterado para o número do pedido
+    protected static ?string $recordTitleAttribute = 'cart_number';
     protected static ?string $navigationGroup = 'Loja & Vendas';
     protected static ?string $slug = 'vendas';
 
@@ -46,9 +46,7 @@ class OrderResource extends Resource
     {
         return $table
             ->defaultSort('created_at', 'desc')
-            // ✅ NOVO: Botão de Relatório no Topo
             ->headerActions([
-                // ✅ AÇÃO 1: Exportar Excel (CUSTOMIZADO)
                 Tables\Actions\Action::make('export_excel_custom')
                     ->label('Exportar Excel')
                     ->icon('heroicon-o-table-cells')
@@ -58,12 +56,11 @@ class OrderResource extends Resource
                         $query = $livewire->getFilteredTableQuery();
 
                         return Excel::download(
-                            new OrderExport($query), // Chama o exportador com a query filtrada
+                            new OrderExport($query),
                             'relatorio-vendas-' . date('Y-m-d') . '.xlsx'
                         );
                     }),
 
-                // ✅ AÇÃO 2: Download do Relatório PDF (Mantida)
                 Tables\Actions\Action::make('export_pdf_list')
                     ->label('Baixar Relatório (PDF)')
                     ->icon('heroicon-o-document-arrow-down')
@@ -85,7 +82,6 @@ class OrderResource extends Resource
                     }),
             ])
             ->columns([
-                // ✅ NOVO: Número do Pedido
                 Tables\Columns\TextColumn::make('cart_number')
                     ->label('Nº Pedido')
                     ->searchable()
@@ -134,6 +130,44 @@ class OrderResource extends Resource
                     ->dateTime('d/m/Y H:i')
                     ->sortable()
                     ->toggleable(),
+                
+                // NOVO: Colunas de Auditoria (Usuários)
+                Tables\Columns\TextColumn::make('paymentConfirmedBy.name')
+                    ->label('Pago Por')
+                    ->placeholder('-')
+                    ->toggleable(isToggledHiddenByDefault: true)
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('deliveryConfirmedBy.name')
+                    ->label('Entregue Por')
+                    ->placeholder('-')
+                    ->toggleable(isToggledHiddenByDefault: true)
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('rejectedBy.name')
+                    ->label('Rejeitado Por')
+                    ->placeholder('-')
+                    ->toggleable(isToggledHiddenByDefault: true)
+                    ->sortable(),
+                
+                // NOVO: Colunas de Auditoria (Timestamps)
+                Tables\Columns\TextColumn::make('payment_confirmed_at')
+                    ->label('Data Pagamento')
+                    ->dateTime('d/m/Y H:i')
+                    ->toggleable(isToggledHiddenByDefault: true)
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('delivery_confirmed_at')
+                    ->label('Data Entrega')
+                    ->dateTime('d/m/Y H:i')
+                    ->toggleable(isToggledHiddenByDefault: true)
+                    ->sortable(),
+                
+                Tables\Columns\TextColumn::make('rejected_at')
+                    ->label('Data Rejeição')
+                    ->dateTime('d/m/Y H:i')
+                    ->toggleable(isToggledHiddenByDefault: true)
+                    ->sortable(),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('status')
@@ -161,7 +195,6 @@ class OrderResource extends Resource
                     }),
             ])
             ->actions([
-                // ✅ AÇÃO PDF INDIVIDUAL
                 Tables\Actions\Action::make('download_pdf')
                     ->label('PDF')
                     ->icon('heroicon-o-document-arrow-down')
@@ -171,7 +204,6 @@ class OrderResource extends Resource
                         $record->load(['items.product', 'user', 'shippingRate', 'paymentMethod']);
                         $settings = Setting::first();
 
-                        // Certifique-se de criar a view: resources/views/pdfs/order-details.blade.php
                         $pdf = Pdf::loadView('pdfs.order-details', [
                             'record' => $record,
                             'settings' => $settings
@@ -222,6 +254,9 @@ class OrderResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()->with(['items.product', 'user', 'coupon', 'shippingRate', 'paymentMethod']);
+        return parent::getEloquentQuery()->with([
+            'items.product', 'user', 'coupon', 'shippingRate', 'paymentMethod',
+            'paymentConfirmedBy', 'deliveryConfirmedBy', 'rejectedBy' 
+        ]);
     }
 }

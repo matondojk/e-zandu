@@ -11,6 +11,7 @@ use Filament\Forms\Components\Section;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\ColorPicker; // <-- ADICIONADO: Importar ColorPicker
 
 class SettingResource extends Resource
 {
@@ -33,7 +34,7 @@ class SettingResource extends Resource
                 // SEÇÃO 1 — GERAL E BRANDING
                 // ----------------------------------------------------
                 Section::make('Geral e Branding')
-                    ->description('Identidade da loja e informações fiscais.')
+                    ->description('Identidade da loja, cores e informações fiscais.')
                     ->icon('heroicon-o-building-storefront')
                     ->collapsible()
                     ->schema([
@@ -41,6 +42,13 @@ class SettingResource extends Resource
                         TextInput::make('store_name')
                             ->label('Nome da Loja')
                             ->required(),
+
+                        // NOVO: Campo para a Cor Principal
+                        ColorPicker::make('primary_color_hex')
+                            ->label('Cor Principal do Painel (Primary)')
+                            ->helperText('Código hexadecimal da cor principal do Admin Panel.')
+                            ->required()
+                            ->default('#0284c7'), // Sky 600 como padrão
 
                         TextInput::make('nif')
                             ->label('NIF')
@@ -184,6 +192,7 @@ class SettingResource extends Resource
 
     public static function table(Table $table): Table
     {
+        // Esta tabela fica vazia ou é suprimida porque você só gerencia uma única linha de configurações.
         return $table->columns([])->actions([])->bulkActions([]);
     }
 
@@ -192,6 +201,9 @@ class SettingResource extends Resource
         return [];
     }
 
+    /**
+     * Garante que estamos sempre editando a mesma e única linha de configuração (singleton).
+     */
     public static function getRecord(): \Illuminate\Database\Eloquent\Model
     {
         return static::getModel()::firstOrNew([]);
@@ -201,7 +213,10 @@ class SettingResource extends Resource
     {
         return [
             'index' => Pages\ListSettings::route('/'),
-            'edit' => Pages\EditSetting::route('/{record}/edit'),
+            // Como este recurso é um singleton, 'edit' geralmente é substituído por ListSettings
+            // para redirecionar diretamente para a edição.
+            // Para manter a estrutura original com /edit:
+            'edit' => Pages\EditSetting::route('/{record}/edit'), 
         ];
     }
 }

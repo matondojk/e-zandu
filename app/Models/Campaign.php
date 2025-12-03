@@ -22,6 +22,10 @@ class Campaign extends Model
         'scheduled_at' => 'datetime',
     ];
 
+    // protected $attributes = [
+    //     'status' => 'scheduled',
+    // ];
+
     public function coupon(): BelongsTo
     {
         return $this->belongsTo(Coupon::class);

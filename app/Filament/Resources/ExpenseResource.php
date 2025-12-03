@@ -10,14 +10,11 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
-use Filament\Tables\Filters\Filter; // Para o filtro de data
-use App\Models\Setting; // Adicionado para detalhes da empresa no PDF
-use Barryvdh\DomPDF\Facade\Pdf; // Adicionado para geração de PDF
-use Filament\Tables\Actions\ExportAction; // Adicionado para exportação de Excel
-use App\Filament\Exports\ExpenseExporter; // Certifique-se de criar esta classe
-use App\Exports\ExpenseExport; // 👈 NOVA CLASSE DE EXPORTAÇÃO (Você deve criá-la) 
-use Maatwebsite\Excel\Facades\Excel; // 👈 Adicionado para exportar no Action
+use Filament\Tables\Filters\Filter; 
+use App\Models\Setting; 
+use Barryvdh\DomPDF\Facade\Pdf; 
+use Maatwebsite\Excel\Facades\Excel; 
+use App\Exports\ExpenseExport; // Sua classe de exportação
 
 class ExpenseResource extends Resource
 {
@@ -28,9 +25,9 @@ class ExpenseResource extends Resource
     protected static ?string $navigationLabel = 'Despesas Operacionais';
     protected static ?string $modelLabel = 'Despesa';
     protected static ?string $pluralModelLabel = 'Despesas';
-    protected static ?string $navigationGroup = 'Financeiro'; // Novo grupo
+    protected static ?string $navigationGroup = 'Financeiro'; 
     protected static ?int $navigationSort = 6;
-    protected static ?string $slug = 'despesas-operacionais'; // URL em português
+    protected static ?string $slug = 'despesas-operacionais'; 
 
     public static function form(Form $form): Form
     {
@@ -67,6 +64,7 @@ class ExpenseResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->defaultSort('expense_date', 'desc')
             ->columns([
                 Tables\Columns\TextColumn::make('description')
                     ->label('Descrição')
@@ -74,9 +72,13 @@ class ExpenseResource extends Resource
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('amount')
-                    ->label('Valor')
+                    ->label('Valor (Kz)')
                     ->sortable()
-                    ->alignEnd(),
+                    // ✅ NOVO: Formato financeiro
+                    ->formatStateUsing(fn($state): string => number_format($state, 2, ',', '.') . ' Kz')
+                    ->alignEnd()
+                    ->color('danger')
+                    ->weight('semibold'),
 
                 Tables\Columns\TextColumn::make('expense_date')
                     ->label('Data da Despesa')
@@ -90,32 +92,28 @@ class ExpenseResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->headerActions([
-                // ✅ AÇÃO 1: Exportar Excel (Apenas ícone, cor do PDF)
+                // ✅ AÇÃO 1: Exportar Excel (Icon Button)
                 Tables\Actions\Action::make('export_excel_custom')
                 ->label('Exportar Excel')
                 ->icon('heroicon-o-table-cells')
                 ->color('gray')
                 ->iconButton()
                 ->action(function ($livewire) {
-                    // Obtém a query filtrada da tabela
                     $query = $livewire->getFilteredTableQuery(); 
                     
-                    // Retorna a exportação usando o Laravel Excel/Maatwebsite
-                    // Chama a classe de exportação customizada com a query
                     return Excel::download(
-                        new ExpenseExport($query), // Sua classe de exportação customizada
+                        new ExpenseExport($query),
                         'lista-despesas-' . date('Y-m-d') . '.xlsx'
                     );
                 }),
 
-                // ✅ AÇÃO 2: Download da Lista em PDF (Apenas ícone, cor do PDF)
+                // ✅ AÇÃO 2: Download da Lista em PDF (Icon Button)
                 Tables\Actions\Action::make('export_pdf_list')
                     ->label('Baixar Lista (PDF)')
-                    ->icon('heroicon-o-document-arrow-down') // Ícone de documento
+                    ->icon('heroicon-o-document-arrow-down') 
                     ->color('gray')
-                    ->iconButton() // Transforma em botão de ícone
+                    ->iconButton()
                     ->action(function ($livewire) {
-                        // ... (sua lógica de geração de PDF)
                         $query = $livewire->getFilteredTableQuery();
                         $records = $query->get();
                         $settings = Setting::first();
@@ -133,7 +131,6 @@ class ExpenseResource extends Resource
                     }),
             ])
             ->filters([
-                // Filtro para o Dashboard (embora o dashboard tenha o seu próprio filtro global)
                 Filter::make('expense_date')
                     ->form([
                         Forms\Components\DatePicker::make('date_from')->label('De'),
@@ -152,6 +149,7 @@ class ExpenseResource extends Resource
                     }),
             ])
             ->actions([
+                // ✅ AÇÃO 1: Download de Detalhes PDF (Icon Button)
                 Tables\Actions\Action::make('download_pdf_details')
                     ->label('PDF')
                     ->icon('heroicon-o-document-arrow-down')
@@ -160,7 +158,6 @@ class ExpenseResource extends Resource
                     ->action(function (Expense $record) {
                         $settings = Setting::first();
 
-                        // ROTA: resources/views/pdfs/expense-details.blade.php
                         $pdf = Pdf::loadView('pdfs.expense-details', [
                             'record' => $record,
                             'settings' => $settings
@@ -170,15 +167,22 @@ class ExpenseResource extends Resource
                             echo $pdf->output();
                         }, 'despesa-' . $record->id . '.pdf');
                     }),
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+                
+                // ✅ AÇÃO 2: Editar (Icon Button)
+                Tables\Actions\EditAction::make()
+                    ->iconButton()
+                    ->icon('heroicon-o-pencil'),
+                    
+                // ✅ AÇÃO 3: Deletar (Icon Button)
+                Tables\Actions\DeleteAction::make()
+                    ->iconButton()
+                    ->icon('heroicon-o-trash'),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
-            ])
-            ->defaultSort('expense_date', 'desc');
+            ]);
     }
 
     public static function getPages(): array

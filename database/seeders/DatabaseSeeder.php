@@ -41,7 +41,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             // 1. Configurações e Utilizadores de Sistema
             SettingSeeder::class,
-            UserSeeder::class,
+            // UserSeeder::class,
             CouponSeeder::class,
 
             // 2. Base do ERP (Fornecedores e Armazéns)

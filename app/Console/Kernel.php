@@ -25,6 +25,7 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
+        $schedule->command('queue:retry all')->everyMinute();
         // Instancia o gestor de assinaturas
         try {
             $manager = app(SubscriptionManager::class);

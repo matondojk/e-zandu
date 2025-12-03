@@ -15,6 +15,7 @@ class Setting extends Model
         // Configurações Gerais
         // ================================
         'store_name',
+        'primary_color_hex',
 
         // ================================
         // Contatos (sem admin_phone e sem admin_whatsapp)

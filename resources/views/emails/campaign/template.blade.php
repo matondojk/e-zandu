@@ -1,7 +1,7 @@
 <x-mail::message>
-# {{ $subject }}
+{{-- Removido: # {{ $subject }} - O assunto já é definido na Envelope do Mailable --}}
 
-{!! nl2br(e($body)) !!}
+{!! $body !!} {{-- CORRIGIDO: Permite HTML não escapado --}}
 
 Obrigado,
 Equipa E-Zandu
