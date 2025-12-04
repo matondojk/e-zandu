@@ -46,16 +46,10 @@ class Kernel extends ConsoleKernel
         $schedule->command('stock:send-alerts')
             ->dailyAt('08:00');
 
-        $schedule->command('backup:run')
-            ->daily()
-            ->at('01:00');
+        $schedule->command('backup:run')->dailyAt('01:30');
 
-        $schedule->command('backup:clean')
-            ->daily()
-            ->at('02:00');
+        $schedule->command('backup:clean')->dailyAt('01:00');
 
-
-        // --- TAREFAS CONDICIONAIS (Dependem do Plano) ---
         if ($manager) {
 
             // --- PLANO ESSENCIAL (ou superior) ---

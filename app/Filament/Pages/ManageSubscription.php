@@ -14,6 +14,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Grid;
+use Filament\Forms\Components\Hidden; // Importar o componente Hidden
 use Filament\Forms\Get;
 use Filament\Forms\Set;
 use Filament\Notifications\Notification;
@@ -161,7 +162,10 @@ class ManageSubscription extends Page implements HasTable
                                 ->live()
                                 ->afterStateUpdated(
                                     fn(Set $set, $state) =>
-                                    $set('price_display', number_format($plansPrices[$state] ?? 0, 2) . ' Kz')
+                                    // 1. ATUALIZA O VALOR DE EXIBIÇÃO
+                                    $set('price_display', number_format($plansPrices[$state] ?? 0, 2) . ' Kz') 
+                                    // 2. ATUALIZA O VALOR OCULTO A SER ENVIADO
+                                    && $set('amount', $plansPrices[$state] ?? null) 
                                 ),
 
                             // Exibe o preço do plano selecionado
@@ -172,6 +176,11 @@ class ManageSubscription extends Page implements HasTable
                                     number_format($plansPrices[$get('new_plan_id')] ?? ($plansPrices[$currentPlanId] ?? 0), 2) . ' Kz'
                                 )
                                 ->extraAttributes(['class' => 'font-bold text-xl text-primary-600']),
+                            
+                            // NOVO CAMPO OCULTO: Armazena o valor numérico para envio à API
+                            Hidden::make('amount') 
+                                ->default($plansPrices[$currentPlanId] ?? null) // Define o valor inicial
+                                ->required(), // Requerido para garantir que sempre enviamos o valor
                         ]),
 
                         // Feedback visual se é renovação ou alteração
@@ -241,6 +250,7 @@ class ManageSubscription extends Page implements HasTable
                                 'subscription_id' => $this->subscription->central_subscription_id,
                                 'payment_method_id' => $data['payment_method_id'],
                                 'new_plan_id' => $data['new_plan_id'],
+                                'amount' => $data['amount'], // NOVO CAMPO: Envia o valor do pagamento
                             ]);
 
                         if ($response->successful()) {

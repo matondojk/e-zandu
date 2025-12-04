@@ -53,7 +53,6 @@ class AdminPanelProvider extends PanelProvider
             ->login()
             ->passwordReset()
             ->emailVerification()
-
             ->brandLogo($logoDark)
             ->darkModeBrandLogo($logoLight)
             ->favicon($favicon)
