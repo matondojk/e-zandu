@@ -16,13 +16,16 @@ class AnalyticsDashboard extends Page implements HasForms
     use InteractsWithForms;
 
     protected static string $view = 'filament.pages.analytics-dashboard';
-    
+
     // UI Configuration
-    protected static ?string $navigationIcon = 'heroicon-o-chart-bar';
-    protected static ?string $navigationLabel = 'Dashboard';
-    protected static ?string $title = 'Análise Geral da Loja';
+    // UI Configuration
+    protected static ?string $navigationIcon = 'heroicon-o-home';
+    protected static ?string $navigationLabel = 'Painel de Controle';
+    protected static ?string $title = 'Painel de Controle';
     protected static bool $shouldRegisterNavigation = true;
-    protected static ?string $slug = 'analytics-dashboard';
+    protected static ?string $slug = 'painel-de-controle';
+
+    // protected static ?string $slug = 'analytics-dashboard';
 
     // Global State for Date Filtering (Propriedade usada na view Blade)
     public ?array $data = [
@@ -39,12 +42,12 @@ class AnalyticsDashboard extends Page implements HasForms
         if (empty($this->data['end_date'])) {
             $this->data['end_date'] = Carbon::now()->toDateString();
         }
-        
+
         // 2. Preenche o formulário
         $this->form->fill($this->data);
-        
+
         // ⭐️ CORREÇÃO ESSENCIAL: Dispara o evento Livewire para enviar as datas padrão aos widgets
-        $this->updatedData(); 
+        $this->updatedData();
     }
 
     public function form(Form $form): Form
@@ -58,14 +61,14 @@ class AnalyticsDashboard extends Page implements HasForms
                             ->label('Data Inicial')
                             ->default(Carbon::now()->subDays(30)->toDateString())
                             // ⭐️ CORREÇÃO: REMOVER live(onBlur: true) e usar SÓ o afterStateUpdated
-                            ->afterStateUpdated(fn () => $this->updatedData()),
+                            ->afterStateUpdated(fn() => $this->updatedData()),
 
                         DatePicker::make('end_date')
                             ->label('Data Final')
                             ->default(Carbon::now()->toDateString())
                             // ⭐️ CORREÇÃO: REMOVER live(onBlur: true) e usar SÓ o afterStateUpdated
-                            ->afterStateUpdated(fn () => $this->updatedData())
-                            ->minDate(fn (Forms\Get $get) => $get('start_date') ?: null),
+                            ->afterStateUpdated(fn() => $this->updatedData())
+                            ->minDate(fn(Forms\Get $get) => $get('start_date') ?: null),
 
                     ])
                     ->columns(2)
@@ -82,11 +85,11 @@ class AnalyticsDashboard extends Page implements HasForms
             'startDate' => $this->data['start_date'],
             'endDate' => $this->data['end_date'],
         ]);
-        
+
         // 2. Garante que o estado interno do formulário é mantido
         $this->form->fill($this->data);
     }
-    
+
     protected function getContentView(): string
     {
         return 'filament.pages.analytics-dashboard';

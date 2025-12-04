@@ -39,7 +39,7 @@ class CheckAdminPermission
             // Verifica se é a página raiz do painel (/admin)
             $request->segment(2) === null || 
             // Verifica se é a página Analytics Dashboard (o destino do redirect)
-            $resourceSlug === 'analytics-dashboard' 
+            $resourceSlug === 'painel-de-controle' 
         ) {
             return $next($request);
         }
@@ -75,6 +75,6 @@ class CheckAdminPermission
             ->send(); 
 
         // Redireciona para o Analytics Dashboard (que agora está excluído do bloqueio)
-        return Redirect::route('filament.admin.pages.analytics-dashboard'); 
+        return Redirect::route('filament.admin.pages.painel-de-controle'); 
     }
 }

@@ -31,7 +31,7 @@ class CustomPermissionsSeeder extends Seeder
             // Rotas de IA e Análise
             'Análise IA' => [
                 'admin/analise-inteligente' => ['view', 'manage'],
-                'admin/analytics-dashboard' => ['view'],
+                'admin/painel-de-controle' => ['view'],
                 'admin/assistente-de-insights' => ['use'],
                 'admin/chat-de-analise' => ['use'],
                 'admin/analise-de-comportamento' => ['view'],
