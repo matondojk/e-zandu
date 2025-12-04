@@ -35,11 +35,11 @@ class AdminPanelProvider extends PanelProvider
 
         $logoLight = $settings?->logo_light_path
             ? Storage::disk('public')->url($settings->logo_light_path)
-            : 'https://e-zandu.com/default/logo-light.png';
+            : '';
 
         $logoDark  = $settings?->logo_dark_path
             ? Storage::disk('public')->url($settings->logo_dark_path)
-            : 'https://e-zandu.com/default/logo-dark.png';
+            : '';
 
         $favicon   = $settings?->icon_path
             ?? Storage::disk('public')->url($settings->icon_path);
