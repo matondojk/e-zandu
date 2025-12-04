@@ -42,9 +42,7 @@ class AdminPanelProvider extends PanelProvider
             : 'https://e-zandu.com/default/logo-dark.png';
 
         $favicon   = $settings?->icon_path
-            ? Storage::disk('public')->url($settings->icon_path)
-            : 'https://e-zandu.com/default/icon-default.png';
-
+            ?? Storage::disk('public')->url($settings->icon_path);
         $primaryColorHex = $settings?->primary_color_hex ?? '#fe9a00';
 
         return $panel
@@ -97,9 +95,8 @@ class AdminPanelProvider extends PanelProvider
             ->authMiddleware([
                 Authenticate::class,
             ])->plugins([
-                \CharrafiMed\GlobalSearchModal\GlobalSearchModalPlugin::make(),
-                 \MixCode\FilamentMulti2fa\FilamentMulti2faPlugin::make()
-                 ->forceSetup2fa(),
+                \MixCode\FilamentMulti2fa\FilamentMulti2faPlugin::make()
+                    ->forceSetup2fa(),
             ]);
     }
 

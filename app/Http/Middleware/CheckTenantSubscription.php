@@ -7,14 +7,12 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Services\SubscriptionManager;
 use Illuminate\Support\Facades\Auth;
-use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Filament\Notifications\Notification; // Importante: Importar a notificação
 
 class CheckTenantSubscription
 {
     /**
-     * Mapeia o início da rota (path) para a "feature key" que definimos no Manager.
-     * * NÃO PRECISAMOS de listar as features CORE aqui,
-     * pois o "Portão 2" (isActive) já as protege.
+     * Mapeia o início da rota (path) para a "feature key".
      */
     protected $featureMap = [
         // --- Features PRO ---
@@ -35,29 +33,37 @@ class CheckTenantSubscription
 
     public function handle(Request $request, Closure $next): Response
     {
-        // 1. Se não estiver logado, deixa passar (o middleware 'auth' trata disso)
+        // 1. Se não estiver logado, deixa passar (auth middleware trata)
         if (!Auth::check()) {
             return $next($request);
         }
 
+        // --- PREVENÇÃO DE LOOP DE REDIRECIONAMENTO ---
+        // Se o utilizador já está a tentar aceder à página de assinaturas, deixamos passar.
+        // Verificamos pelo nome da rota (mais seguro) ou pelo URL.
+        if ($request->routeIs('filament.admin.pages.assinaturas') || $request->is('admin/assinaturas*')) {
+            return $next($request);
+        }
+
         // --- 2. O "PORTÃO" PRINCIPAL (Assinatura Ativa) ---
-        // Se a assinatura não estiver ativa (ex: 'canceled', 'paused', ou 'trial' expirado)
         if (!$this->subscription->isActive()) {
             
-            // Exceção: Permite a passagem para a rota de gestão de assinatura
-            if ($request->is('admin/assinatura*')) { // Slug em PT
-                return $next($request); 
-            }
-            
-            // Lança 403 para todas as outras rotas
-            throw new AccessDeniedHttpException('A sua assinatura está inativa ou expirou. Por favor, aceda à página de Assinaturas para regularizar a situação.');
+            Notification::make()
+                ->title('Acesso Bloqueado')
+                ->body('A sua assinatura está inativa ou expirou. Por favor, renove para continuar a usar o sistema.')
+                ->danger() // Vermelho para indicar urgência
+                ->persistent() // O utilizador tem de fechar manualmente
+                ->send();
+
+            // Redireciona para a página criada no passo anterior
+            return redirect()->route('filament.admin.pages.assinaturas');
         }
 
         // --- 3. O "PORTÃO" DE FUNCIONALIDADES (Essencial e PRO) ---
         
         $requiredFeature = null;
 
-        // Verifica se a rota atual está no nosso mapa de features
+        // Verifica se a rota atual está no mapa
         foreach ($this->featureMap as $path => $featureKey) {
             if ($request->is($path) || $request->is($path . '/*')) {
                 $requiredFeature = $featureKey;
@@ -65,30 +71,31 @@ class CheckTenantSubscription
             }
         }
 
-        // Se a rota requer uma funcionalidade (ex: 'whatsapp' ou 'chat-de-analise')
         if ($requiredFeature) {
-            
-            // Verifica se o plano do cliente (Trial, Essencial, Pro) pode usar
+            // Verifica se o plano permite
             if (!$this->subscription->canUse($requiredFeature)) { 
                 
-                // Se não pode, dá uma mensagem de erro específica
-                $plan = $this->subscription->getPlanIdentifier(); // Pega o plano atual
-                $message = 'Este é um recurso que requer um plano superior.';
+                $plan = $this->subscription->getPlanIdentifier();
+                $message = 'Este recurso requer um upgrade de plano.';
 
                 if ($plan === 'trial') {
-                    $message = 'Este é um recurso do Plano Essencial ou PRO. O seu período de Teste (Trial) não inclui esta funcionalidade. Faça upgrade!';
+                    $message = 'Funcionalidade não disponível no período de Teste. Faça o upgrade para Essencial ou PRO.';
                 }
-                if ($plan === 'essencial') {
-                    $message = 'Este é um recurso exclusivo do Plano PRO. Por favor, faça upgrade da sua conta.';
+                elseif ($plan === 'essencial') {
+                    $message = 'Esta funcionalidade é exclusiva do Plano PRO. Faça o upgrade para aceder.';
                 }
 
-                throw new AccessDeniedHttpException($message);
+                Notification::make()
+                    ->title('Upgrade Necessário')
+                    ->body($message)
+                    ->warning() // Amarelo/Laranja para indicar restrição
+                    ->persistent()
+                    ->send();
+
+                return redirect()->route('filament.admin.pages.assinaturas');
             }
         }
 
-        // Se passou em todos os portões:
-        // 1. Assinatura está ativa (Portão 2)
-        // 2. E a rota é CORE (não está no $featureMap) OU o plano tem permissão (Portão 3)
         return $next($request);
     }
 }

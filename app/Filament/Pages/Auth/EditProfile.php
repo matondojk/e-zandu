@@ -42,13 +42,6 @@ class EditProfile extends BaseEditProfile
                             ->disabled() // Não permite editar
                             ->dehydrated(false), // Não envia para o update no banco
 
-                        // 4. Telefone
-                        TextInput::make('phone')
-                            ->label('Telefone (WhatsApp)')
-                            ->tel()
-                            ->unique(table: 'users', ignoreRecord: true)
-                            ->nullable()
-                            ->maxLength(255),
                     ]),
 
                 // --- Secção 2: Atualizar Palavra-passe ---
@@ -78,17 +71,6 @@ class EditProfile extends BaseEditProfile
                             // Obrigatório apenas se a 'password' for preenchida
                             ->required(fn (Get $get): bool => filled($get('password')))
                             ->dehydrated(false),
-
-                        // 3. Palavra-passe Atual (Obrigatória SÓ se mudar a senha)
-                        TextInput::make('current_password')
-                            ->label('Palavra-passe Atual')
-                            ->password()
-                            ->autocomplete('current-password')
-                            // A Mágica: Só é required se o campo 'password' (nova senha) estiver preenchido
-                            ->required(fn (Get $get): bool => filled($get('password')))
-                            ->currentPassword()
-                            // Ocultar se o campo nova senha estiver vazio (opcional, mas fica mais limpo visualmente deixar visivel ou usar a logica abaixo)
-                            ->visible(true), 
                     ]),
             ])
             ->model($this->getUser());
