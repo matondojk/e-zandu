@@ -35,7 +35,7 @@ Route::middleware('guest')->group(function () {
     Route::get('/login', Login::class)->name('login');
     Route::get('/registrar', Login::class)->name('register');
     Route::get('/recuperar-senha', Login::class)->name('password.request');
-    Route::get('/redefinir-senha/{token}', Login::class)->name('password.reset');
+    Route::get('/redefinir-senha/{token}', Login::class)->name('store.password.reset');
 });
 
 /*

@@ -4,6 +4,8 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use App\Models\User;
+use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
@@ -12,6 +14,13 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        // User::create([
+        //     'name' => 'Matondo',
+        //     'email' => 'matondojoaokitemoco2001@gmail.com',
+        //     'password' => Hash::make('Matondo#85'), 
+        //     'role' => 'admin',
+        // ]);
+
         // 1. DESATIVA A VERIFICAÇÃO DE CHAVES ESTRANGEIRAS
         DB::statement('SET FOREIGN_KEY_CHECKS=0;');
         
@@ -62,7 +71,7 @@ class DatabaseSeeder extends Seeder
             ExpenseSeeder::class,            
             // 5. Vendas/Pedidos (Cria carrinhos ativos e finalizados)
             CartSeeder::class, 
-            ChangelogSeeder::class,
+            // ChangelogSeeder::class,
         ]);
         
         // 4. REATIVA A VERIFICAÇÃO DE CHAVES ESTRANGEIRAS

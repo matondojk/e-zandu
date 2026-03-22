@@ -19,8 +19,7 @@ class CouponResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-ticket';
     protected static ?string $modelLabel = 'Cupão';
     protected static ?string $pluralModelLabel = 'Cupões de Desconto';
-    protected static ?string $navigationGroup = 'Loja & Vendas';
-    protected static ?int $navigationSort = 4; // Colocar antes dos Clientes
+    protected static ?string $navigationGroup = 'Vendas';
 
     public static function form(Form $form): Form
     {

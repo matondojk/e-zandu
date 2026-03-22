@@ -19,7 +19,6 @@ class PaymentMethodResource extends Resource
     protected static ?string $modelLabel = 'Método de Pagamento';
     protected static ?string $pluralModelLabel = 'Métodos de Pagamento';
     protected static ?string $navigationGroup = 'Configurações';
-    protected static ?int $navigationSort = 2;
     protected static ?string $slug = 'metodos-de-pagamento'; // URL em português
 
     public static function form(Form $form): Form

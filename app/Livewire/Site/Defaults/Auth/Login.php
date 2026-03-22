@@ -51,7 +51,7 @@ class Login extends Component
             $this->viewState = 'register';
         } elseif ($route === 'password.request') {
             $this->viewState = 'forgot';
-        } elseif ($route === 'password.reset') {
+        } elseif ($route === 'store.password.reset') {
             $this->viewState = 'reset';
             $this->token = $token; // Captura o token da URL
             $this->resetEmail = request()->query('email'); // Captura o email da URL se houver

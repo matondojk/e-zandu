@@ -1,16 +1,24 @@
 @php
-    $setting = \App\Models\Setting::find('00000000-0000-0000-0000-000000000001') ?? \App\Models\Setting::first();
-    $storeName = $setting->store_name ?? config('app.name');
+    // Sempre tenta buscar o UUID fixo; se retornar null usa o first()
+    $setting = \App\Models\Setting::find('00000000-0000-0000-0000-000000000001')
+        ?: \App\Models\Setting::first();
 
-    // Recupera o caminho relativo do banco
-    $logoRelativePath = $setting->logo_dark_path ?? $setting->logo_light_path;
+    // Nome da loja
+    $storeName = $setting?->store_name ?? config('app.name');
 
-    // Gera a URL pública absoluta
+    // Caminho do logo: dark > light > null
+    $logoRelativePath =
+        $setting?->logo_dark_path
+        ?? $setting?->logo_light_path
+        ?? null;
+
+    // Gera URL absoluta ou null
     $logoUrl = $logoRelativePath ? asset($logoRelativePath) : null;
 
-    // Recupera a cor primária ou define o padrão #fe9a00
-    $primaryColor = $setting->primary_color_hex ?? '#fe9a00';
+    // Cor primária com fallback seguro
+    $primaryColor = $setting?->primary_color_hex ?? '#fe9a00';
 @endphp
+
 
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">

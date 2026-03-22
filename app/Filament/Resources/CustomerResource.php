@@ -20,7 +20,7 @@ class CustomerResource extends Resource
     protected static ?string $navigationLabel = 'Clientes';
     protected static ?string $pluralModelLabel = 'Clientes';
     protected static ?string $slug = 'clientes'; // URL em português
-    protected static ?string $navigationGroup = 'Loja & Vendas';
+    protected static ?string $navigationGroup = 'Clientes';
 
     /**
      * ✅ Adiciona os campos de CRM (Tags e Notas) ao formulário de Edição

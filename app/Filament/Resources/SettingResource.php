@@ -22,7 +22,6 @@ class SettingResource extends Resource
     protected static ?string $navigationLabel = 'Personalização';
     protected static ?string $modelLabel = 'Configuração';
     protected static ?string $pluralModelLabel = 'Configurações';
-    protected static ?int $navigationSort = 100;
     protected static ?string $slug = 'personalizacao';
 
     public static function form(Form $form): Form

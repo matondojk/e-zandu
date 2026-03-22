@@ -26,7 +26,6 @@ class UserResource extends Resource
     protected static ?string $navigationLabel = 'Administradores';
     protected static ?string $modelLabel = 'Administrador';
     protected static ?string $pluralModelLabel = 'Administradores';
-    protected static ?int $navigationSort = 90;
     protected static ?string $slug = 'administradores'; // SLUG: admin/administradores
 
     // 🎯 REGRAS DE PERMISSÃO BÁSICA (Acesso ao Resource/Menu)

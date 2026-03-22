@@ -20,7 +20,6 @@ class PerfilResource extends Resource
     protected static ?string $modelLabel = 'Perfil';
     protected static ?string $pluralModelLabel = 'Perfis';
     protected static ?string $navigationGroup = 'Administração';
-    protected static ?int $navigationSort = 1;
     protected static ?string $slug = 'perfis';
 
     public static function form(Form $form): Form

@@ -15,6 +15,8 @@ use Filament\Models\Contracts\HasAvatar;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use App\Models\Role;
 use Illuminate\Support\Collection;
+use Illuminate\Notifications\Messages\MailMessage;
+use Illuminate\Support\Facades\Lang;
 
 class User extends Authenticatable
 {

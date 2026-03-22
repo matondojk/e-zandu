@@ -18,7 +18,6 @@ class PermissaoResource extends Resource
     protected static ?string $modelLabel = 'Permissão';
     protected static ?string $pluralModelLabel = 'Permissões';
     protected static ?string $navigationGroup = 'Administração'; // ⬅️ Grupo
-    protected static ?int $navigationSort = 2;
     protected static ?string $slug = 'permissoes'; // ⬅️ Slug em PT
 
     public static function form(Form $form): Form

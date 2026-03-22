@@ -33,8 +33,7 @@ class PurchaseResource extends Resource
     protected static ?string $navigationLabel = 'Compras (Entrada de Stock)';
     protected static ?string $modelLabel = 'Compra';
     protected static ?string $pluralModelLabel = 'Compras';
-    protected static ?string $navigationGroup = 'Catálogo & Inventário';
-    protected static ?int $navigationSort = 6;
+    protected static ?string $navigationGroup = 'Logística';
     protected static ?string $slug = 'compras';
 
     public static function form(Form $form): Form

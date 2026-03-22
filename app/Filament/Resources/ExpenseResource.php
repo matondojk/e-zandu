@@ -26,7 +26,6 @@ class ExpenseResource extends Resource
     protected static ?string $modelLabel = 'Despesa';
     protected static ?string $pluralModelLabel = 'Despesas';
     protected static ?string $navigationGroup = 'Financeiro'; 
-    protected static ?int $navigationSort = 6;
     protected static ?string $slug = 'despesas-operacionais'; 
 
     public static function form(Form $form): Form

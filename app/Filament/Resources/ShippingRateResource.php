@@ -19,8 +19,7 @@ class ShippingRateResource extends Resource
     protected static ?string $navigationLabel = 'Taxas de Frete';
     protected static ?string $modelLabel = 'Taxa de Frete';
     protected static ?string $pluralModelLabel = 'Taxas de Frete';
-    protected static ?string $navigationGroup = 'Loja & Vendas';
-    protected static ?int $navigationSort = 7; // Depois de Clientes
+    protected static ?string $navigationGroup = 'Logística';
     protected static ?string $slug = 'taxas-de-frete'; // URL em português
 
     public static function form(Form $form): Form

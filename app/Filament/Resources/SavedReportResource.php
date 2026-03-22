@@ -21,7 +21,6 @@ class SavedReportResource extends Resource
     protected static ?string $modelLabel = 'Relatório Guardado';
     protected static ?string $pluralModelLabel = 'Relatórios Guardados';
     protected static ?string $navigationGroup = 'Recursos de IA';
-    protected static ?int $navigationSort = 4;
     protected static ?string $slug = 'relatorios-guardados';
 
     // --- 2. ADICIONAR OS MÉTODOS DE BADGE ---

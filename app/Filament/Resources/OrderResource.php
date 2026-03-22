@@ -26,9 +26,9 @@ class OrderResource extends Resource
     protected static ?string $navigationLabel = 'Vendas';
     protected static ?string $modelLabel = 'Venda';
     protected static ?string $pluralModelLabel = 'Vendas';
-    protected static ?int $navigationSort = 2;
     protected static ?string $recordTitleAttribute = 'cart_number';
-    protected static ?string $navigationGroup = 'Loja & Vendas';
+    protected static ?string $navigationGroup = 'Vendas';
+    protected static ?int $navigationSort = 2;
     protected static ?string $slug = 'vendas';
 
     public static function getNavigationBadge(): ?string
@@ -130,7 +130,7 @@ class OrderResource extends Resource
                     ->dateTime('d/m/Y H:i')
                     ->sortable()
                     ->toggleable(),
-                
+
                 // NOVO: Colunas de Auditoria (Usuários)
                 Tables\Columns\TextColumn::make('paymentConfirmedBy.name')
                     ->label('Pago Por')
@@ -149,7 +149,7 @@ class OrderResource extends Resource
                     ->placeholder('-')
                     ->toggleable(isToggledHiddenByDefault: true)
                     ->sortable(),
-                
+
                 // NOVO: Colunas de Auditoria (Timestamps)
                 Tables\Columns\TextColumn::make('payment_confirmed_at')
                     ->label('Data Pagamento')
@@ -162,7 +162,7 @@ class OrderResource extends Resource
                     ->dateTime('d/m/Y H:i')
                     ->toggleable(isToggledHiddenByDefault: true)
                     ->sortable(),
-                
+
                 Tables\Columns\TextColumn::make('rejected_at')
                     ->label('Data Rejeição')
                     ->dateTime('d/m/Y H:i')
@@ -255,8 +255,14 @@ class OrderResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()->with([
-            'items.product', 'user', 'coupon', 'shippingRate', 'paymentMethod',
-            'paymentConfirmedBy', 'deliveryConfirmedBy', 'rejectedBy' 
+            'items.product',
+            'user',
+            'coupon',
+            'shippingRate',
+            'paymentMethod',
+            'paymentConfirmedBy',
+            'deliveryConfirmedBy',
+            'rejectedBy'
         ]);
     }
 }

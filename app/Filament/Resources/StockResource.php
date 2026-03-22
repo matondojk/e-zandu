@@ -24,8 +24,7 @@ class StockResource extends Resource
     protected static ?string $navigationLabel = 'Armazéns / Estoques';
     protected static ?string $modelLabel = 'Armazém';
     protected static ?string $pluralModelLabel = 'Armazéns';
-    protected static ?string $navigationGroup = 'Catálogo & Inventário';
-    protected static ?int $navigationSort = 5;
+    protected static ?string $navigationGroup = 'Logística';
     protected static ?string $slug = 'armazens'; // URL em português
 
 

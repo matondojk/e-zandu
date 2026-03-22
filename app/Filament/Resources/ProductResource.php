@@ -3,39 +3,28 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\ProductResource\Pages;
-use App\Filament\Resources\ProductResource\RelationManagers;
 use App\Models\Product;
+use App\Models\Setting; // Certifique-se de que este Model existe ou remova se não usar
 use Filament\Forms;
+use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Group;
+use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Section;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TagsInput;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Str;
-use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\URL;
-use Illuminate\Support\HtmlString;
-use Filament\Forms\Components\Section;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Group;
-use Filament\Forms\Components\TagsInput;
-use Filament\Forms\Components\FileUpload;
-use Illuminate\Database\Eloquent\Model;
-use App\Models\Category;
-use App\Models\ProductImage;
-use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Filters\Filter;
-use Filament\Tables\Filters\Indicator;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Session;
-use Filament\Forms\Components\Repeater;
-use Filament\Forms\Components\TextInput;
-use App\Models\Setting;
-use Barryvdh\DomPDF\Facade\Pdf;
+use Filament\Tables\Columns\ImageColumn;
+use Filament\Tables\Filters\SelectFilter;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
+use Barryvdh\DomPDF\Facade\Pdf; // Certifique-se de ter o dompdf instalado
 
 class ProductResource extends Resource
 {
@@ -45,7 +34,8 @@ class ProductResource extends Resource
     protected static ?string $navigationLabel = 'Produtos';
     protected static ?string $modelLabel = 'Produto';
     protected static ?string $pluralModelLabel = 'Produtos';
-    protected static ?string $navigationGroup = 'Catálogo & Inventário';
+    protected static ?string $navigationGroup = 'Catálogo';
+    protected static ?int $navigationSort = 1;
     protected static ?string $slug = 'produtos';
 
     protected static ?string $recordTitleAttribute = 'name';
@@ -56,22 +46,22 @@ class ProductResource extends Resource
             ->columns(3)
             ->schema([
 
-                // === COLUNA DA ESQUERDA (Mais Larga) ===
+                // === COLUNA DA ESQUERDA (2/3 da largura) ===
                 Group::make()
                     ->columnSpan(2)
                     ->schema([
 
-                        // SECÇÃO 1: INFORMAÇÕES ESSENCIAIS
+                        // 1. INFORMAÇÕES BÁSICAS
                         Section::make('Informações Essenciais')
                             ->columns(2)
                             ->schema([
-                                Forms\Components\TextInput::make('name')
+                                TextInput::make('name')
                                     ->label('Nome do Produto')
                                     ->required()
                                     ->maxLength(255)
                                     ->columnSpanFull(),
 
-                                Forms\Components\Textarea::make('short_description')
+                                Textarea::make('short_description')
                                     ->label('Descrição Curta (WhatsApp)')
                                     ->rows(2)
                                     ->helperText('Máximo de 150 caracteres.')
@@ -79,13 +69,13 @@ class ProductResource extends Resource
                                     ->required()
                                     ->columnSpanFull(),
 
-                                Forms\Components\Textarea::make('description')
+                                Textarea::make('description')
                                     ->label('Descrição Detalhada')
                                     ->required()
                                     ->rows(4)
                                     ->columnSpanFull(),
 
-                                Forms\Components\Select::make('categories')
+                                Select::make('categories')
                                     ->label('Categorias')
                                     ->relationship('categories', 'name')
                                     ->multiple()
@@ -94,178 +84,174 @@ class ProductResource extends Resource
                                     ->required()
                                     ->columnSpanFull(),
 
-                                // ✅ NOVO: Seletor de Marcas
-                                Forms\Components\Select::make('brands')
+                                Select::make('brands')
                                     ->label('Marcas')
                                     ->relationship('brands', 'name')
                                     ->multiple()
                                     ->preload()
                                     ->searchable()
-                                    // ->required() // Pode ser opcional, ao contrário da categoria
                                     ->columnSpanFull(),
                             ]),
 
-                        // SECÇÃO 2: IMAGEM PRINCIPAL (Mantida)
+                        // 2. IMAGEM PRINCIPAL
                         Section::make('Imagem Principal (Destaque)')
                             ->schema([
-                                Forms\Components\Group::make()
-                                    ->columns(2)
-                                    ->schema([
-                                        Forms\Components\FileUpload::make('image_upload_create')
-                                            ->label('Fazer Upload da Imagem Principal')
-                                            ->image()->directory('products/main')->disk('public')
-                                            ->required(fn($livewire) => $livewire instanceof Pages\CreateProduct)
-                                            ->afterStateUpdated(function ($state, callable $set) {
-                                                if ($state instanceof UploadedFile) {
-                                                    $path = $state->store('products/main', 'public');
-                                                    $set('image_url', Storage::disk('public')->url($path));
-                                                }
-                                            })
-                                            ->visible(fn($livewire) => $livewire instanceof Pages\CreateProduct),
-
-                                        Forms\Components\Hidden::make('image_url'),
-
-                                        Forms\Components\Placeholder::make('current_image')
-                                            ->label('Imagem Atual')
-                                            ->content(function ($record): ?HtmlString {
-                                                $url = $record?->image_url;
-                                                return $url && filter_var($url, FILTER_VALIDATE_URL)
-                                                    ? new HtmlString('<img src="' . $url . '" style="max-width: 150px; height: auto; border-radius: 5px;">')
-                                                    : new HtmlString('Nenhuma imagem carregada.');
-                                            })
-                                            ->visible(fn($livewire) => $livewire instanceof Pages\EditProduct),
-
-                                        Forms\Components\FileUpload::make('image_upload_edit')
-                                            ->label('Substituir Imagem Principal')
-                                            ->image()->directory('products/main')->disk('public')
-                                            ->helperText('Faça upload apenas se desejar substituir a imagem atual.')
-                                            ->afterStateUpdated(function ($state, callable $set, $record) {
-                                                if ($state instanceof UploadedFile) {
-                                                    if ($record?->image_url) {
-                                                        $diskPath = Str::after(parse_url($record->image_url, PHP_URL_PATH), '/storage/');
-                                                        if (Storage::disk('public')->exists($diskPath)) {
-                                                            Storage::disk('public')->delete($diskPath);
-                                                        }
-                                                    }
-                                                    $path = $state->store('products/main', 'public');
-                                                    $set('image_url', Storage::disk('public')->url($path));
-                                                }
-                                            })
-                                            ->visible(fn($livewire) => $livewire instanceof Pages\EditProduct),
-                                    ])->columnSpanFull(),
+                                // O Filament salva automaticamente o caminho relativo (ex: products/main/foto.jpg)
+                                FileUpload::make('image_url')
+                                    ->label('Imagem de Capa')
+                                    ->image()
+                                    ->directory('products/main')
+                                    ->disk('public')
+                                    ->required()
+                                    ->columnSpanFull(),
                             ]),
 
+                        // 3. GALERIA DE IMAGENS (Upload em Massa)
+                        // SECÇÃO 3: GALERIA DE IMAGENS
                         // SECÇÃO 3: GALERIA DE IMAGENS
                         Section::make('Galeria de Imagens Secundárias')
-                            ->description('Use o campo "Upload em Massa" para selecionar várias imagens de uma só vez. Use a grelha abaixo para reordenar/apagar.')
+                            ->description('Arraste várias imagens para o campo tracejado. Elas serão copiadas para a lista abaixo.')
                             ->schema([
+                                // 1. CAMPO VIRTUAL (Upload em Massa)
                                 Forms\Components\FileUpload::make('bulk_gallery_upload')
-                                    ->label('Upload em Massa (Selecione Vários Ficheiros)')
-                                    ->multiple()->image()->directory('products/gallery')->disk('public')
-                                    ->helperText('Os ficheiros serão adicionados automaticamente à galeria abaixo.')
-                                    ->dehydrated(false)
-                                    ->afterStateUpdated(function (?array $state, Forms\Get $get, Forms\Set $set) {
+                                    ->label('Upload Rápido (Múltiplos Ficheiros)')
+                                    ->helperText('As imagens aparecerão na lista abaixo.')
+                                    ->multiple()
+                                    ->image()
+                                    ->directory('products/gallery')
+                                    ->disk('public')
+                                    ->dehydrated(false) // Não salva na BD, apenas transporta
+                                    ->live()
+                                    ->afterStateUpdated(function ($state, $get, $set) {
+                                        // Se estiver vazio, para a execução
                                         if (empty($state)) return;
-                                        $currentRepeaterItems = $get('images') ?? [];
-                                        foreach ($state as $path) {
-                                            if (is_string($path) && !Str::contains($path, ['/tmp/'])) {
-                                                $currentRepeaterItems[] = [
-                                                    'url' => $path,
-                                                    'sort_order' => 0,
-                                                ];
+
+                                        // ✅ A SOLUÇÃO DO ERRO ESTÁ AQUI:
+                                        // Forçamos a variável a ser um array. 
+                                        // Se vier uma string (1 arquivo), vira ['arquivo']. Se vier array, mantém.
+                                        $files = is_array($state) ? $state : [$state];
+
+                                        // Pega os itens atuais do repeater
+                                        $currentItems = $get('images') ?? [];
+
+                                        // Agora fazemos o loop na variável $files (que garantimos ser array)
+                                        foreach ($files as $path) {
+
+                                            // Tratamento extra para objetos temporários do Livewire
+                                            if ($path instanceof \Livewire\Features\SupportFileUploads\TemporaryUploadedFile) {
+                                                $path = $path->getFilename();
                                             }
+
+                                            // Se por acaso não for string, ignora para não quebrar
+                                            if (!is_string($path)) continue;
+
+                                            $uuid = (string) Str::uuid();
+
+                                            $currentItems[$uuid] = [
+                                                'url' => $path,
+                                                'sort_order' => count($currentItems),
+                                            ];
                                         }
-                                        $set('images', $currentRepeaterItems);
-                                        $set('bulk_gallery_upload', null);
+
+                                        $set('images', $currentItems);
+
+                                        // NOTA: Removemos o $set('bulk_gallery_upload', []) para evitar conflitos internos
+                                        // do componente enquanto ele ainda está processando o upload.
                                     })
                                     ->columnSpanFull(),
 
+                                // 2. REPEATER (Lista Final)
                                 Repeater::make('images')
-                                    ->label('Itens da Galeria')
+                                    ->label('Fotos Selecionadas')
                                     ->relationship()
                                     ->schema([
                                         Forms\Components\FileUpload::make('url')
-                                            ->label('Visualização da Imagem')
-                                            ->image()->directory('products/gallery')->disk('public')
+                                            ->hiddenLabel()
+                                            ->image()
+                                            ->directory('products/gallery')
+                                            ->disk('public')
                                             ->required()
-                                            ->disableLabel()
-                                            ->columnSpan(1),
+                                            ->columnSpanFull(),
 
-                                        TextInput::make('sort_order')
-                                            ->label('Ordem')
+                                        Forms\Components\TextInput::make('sort_order')
                                             ->numeric()
                                             ->default(0)
                                             ->hidden(),
                                     ])
-                                    ->defaultItems(0)
-                                    ->minItems(0)
+                                    ->grid(3)
                                     ->reorderable('sort_order')
-                                    ->addActionLabel('Adicionar 1 Imagem (Manual)'),
+                                    ->collapsible(false)
+                                    ->addActionLabel('Adicionar Manualmente'),
                             ]),
                     ]),
 
-                // === COLUNA DA DIREITA (Mais Estreita) ===
+                // === COLUNA DA DIREITA (1/3 da largura) ===
                 Group::make()
                     ->columnSpan(1)
                     ->schema([
 
-                        // SECÇÃO 4: PREÇO E IDENTIFICAÇÃO
+                        // 4. PREÇO E DADOS
                         Section::make('Preço e Identificação')
                             ->schema([
-                                Forms\Components\TextInput::make('price')
-                                    ->label('Preço de Venda (Normal)')
-                                    ->required()->numeric()->prefix('Kz')->inputMode('decimal'),
+                                TextInput::make('price')
+                                    ->label('Preço (Kz)')
+                                    ->required()
+                                    ->numeric()
+                                    ->prefix('Kz'),
 
-                                Forms\Components\TextInput::make('promotional_price')
-                                    ->label('Preço Promocional (Opcional)')
-                                    ->numeric()->prefix('Kz')->inputMode('decimal')
-                                    ->nullable()
-                                    ->helperText('Deixe em branco ou 0 se não estiver em promoção.'),
+                                TextInput::make('promotional_price')
+                                    ->label('Preço Promo (Opcional)')
+                                    ->numeric()
+                                    ->prefix('Kz')
+                                    ->nullable(),
 
-                                Forms\Components\TextInput::make('sku')
-                                    ->label('SKU (Código de Produto)')
-                                    ->placeholder('Ex: PROD-001')
+                                TextInput::make('sku')
+                                    ->label('SKU')
+                                    ->placeholder('PROD-001')
                                     ->unique(ignoreRecord: true)
                                     ->maxLength(50),
 
-                                Forms\Components\Select::make('unit')
-                                    ->label('Unidade de Venda')
+                                Select::make('unit')
+                                    ->label('Unidade')
                                     ->options([
                                         'Unidade' => 'Unidade',
                                         'Caixa' => 'Caixa',
                                         'Metro' => 'Metro',
-                                        'Kg' => 'Quilograma (Kg)',
-                                        'Litro' => 'Litro (L)',
+                                        'Kg' => 'Quilograma',
+                                        'Litro' => 'Litro',
                                         'Pacote' => 'Pacote',
                                     ])
-                                    ->default('Unidade')->required()->searchable(),
+                                    ->default('Unidade')
+                                    ->required()
+                                    ->searchable(),
                             ]),
 
-                        // SECÇÃO 5: VARIAÇÕES
+                        // 5. VARIAÇÕES
                         Section::make('Variações')
                             ->schema([
-                                TagsInput::make('colors')->label('Cores Disponíveis')->placeholder('Ex: Vermelho...'),
-                                TagsInput::make('sizes')->label('Tamanhos Disponíveis')->placeholder('Ex: S, M, L...'),
+                                TagsInput::make('colors')->label('Cores')->placeholder('Ex: Azul'),
+                                TagsInput::make('sizes')->label('Tamanhos')->placeholder('Ex: XL'),
                             ]),
 
-                        // SECÇÃO 6: LOGÍSTICA
-                        Section::make('Logística e Atributos Físicos')
+                        // 6. LOGÍSTICA
+                        Section::make('Logística')
                             ->schema([
-                                Forms\Components\TextInput::make('drawing')->label('Desenho/Código de Projeto')->maxLength(100),
-                                Forms\Components\TextInput::make('weight')->label('Peso (kg)')->numeric()->inputMode('decimal'),
-                                Forms\Components\TextInput::make('volume')->label('Volume (m³ ou similar)')->maxLength(50),
-                                Forms\Components\TextInput::make('dimension')->label('Dimensões (LxAxP)')->placeholder('Ex: 10x20x30 cm')->maxLength(100),
+                                TextInput::make('drawing')->label('Desenho/Projeto'),
+                                TextInput::make('weight')->label('Peso (kg)')->numeric(),
+                                TextInput::make('volume')->label('Volume'),
+                                TextInput::make('dimension')->label('Dimensões'),
                             ]),
 
-                        // SECÇÃO 7: RECOMENDAÇÕES
-                        Section::make('Recomendações (Cross-Sell)')
+                        // 7. CROSS-SELL
+                        Section::make('Recomendações')
                             ->collapsible()
                             ->schema([
                                 Select::make('crossSellProducts')
                                     ->label('Produtos Sugeridos')
                                     ->relationship('crossSellProducts', 'name')
                                     ->getOptionLabelFromRecordUsing(fn(Model $record) => "{$record->name} (" . number_format($record->price, 0, ',', '.') . " Kz)")
-                                    ->multiple()->preload()->searchable(),
+                                    ->multiple()
+                                    ->preload(),
                             ]),
                     ]),
             ]);
@@ -275,136 +261,99 @@ class ProductResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\ImageColumn::make('image_url')
+                ImageColumn::make('image_url')
                     ->label('Imagem')
-                    ->width(80)->height('auto')->circular(),
+                    ->width(60)
+                    ->height(60)
+                    ->circular(),
 
-                Tables\Columns\TextColumn::make('name')
+                TextColumn::make('name')
                     ->label('Nome')
-                    ->searchable()->sortable(),
+                    ->searchable()
+                    ->sortable()
+                    ->weight('bold')
+                    ->limit(30),
 
                 TextColumn::make('sku')
                     ->label('SKU')
-                    ->searchable()->sortable()
-                    ->toggleable(isToggledHiddenByDefault: false),
+                    ->searchable()
+                    ->sortable(),
 
                 TextColumn::make('current_stock')
-                    ->label('Estoque Atual')
-                    ->state(fn(Product $record): float => (float) $record->movements()->sum('quantity')) // Usa float
+                    ->label('Estoque')
+                    ->state(fn(Product $record): float => (float) $record->movements()->sum('quantity'))
                     ->formatStateUsing(fn($state, Product $record) => number_format($state, 0, ',', '.') . ' ' . $record->unit)
-                    ->alignEnd()
-                    ->sortable(false),
+                    ->alignEnd(),
 
-                Tables\Columns\TextColumn::make('categories.name')
+                TextColumn::make('categories.name')
                     ->label('Categorias')
-                    ->badge()->wrap(),
+                    ->badge()
+                    ->limitList(2),
 
-                // ✅ NOVO: Coluna de Marcas
-                Tables\Columns\TextColumn::make('brands.name')
-                    ->label('Marcas')
-                    ->badge()->color('success')->wrap()
-                    ->toggleable(isToggledHiddenByDefault: true), // Oculto por padrão para não poluir
+                TextColumn::make('price')
+                    ->label('Preço')
+                    ->formatStateUsing(fn($state) => number_format($state, 2, ',', '.') . ' Kz')
+                    ->alignEnd()
+                    ->sortable(),
 
-                Tables\Columns\TextColumn::make('price')
-                    ->label('Preço Normal')
-                    ->formatStateUsing(fn($state): string => number_format($state, 2, ',', '.') . ' Kz')
-                    ->alignEnd()->sortable(),
+                TextColumn::make('promotional_price')
+                    ->label('Promo')
+                    ->formatStateUsing(fn($state) => $state > 0 ? number_format($state, 2, ',', '.') . ' Kz' : '—')
+                    ->color('success')
+                    ->alignEnd()
+                    ->sortable(),
 
-                Tables\Columns\TextColumn::make('promotional_price')
-                    ->label('Promoção')
-                    ->formatStateUsing(function ($state) {
-                        if ($state > 0) {
-                            return number_format($state, 2, ',', '.') . ' Kz';
-                        }
-                        return '—';
-                    })
-                    ->color('success')->weight('bold')
-                    ->alignEnd()->sortable()
-                    ->toggleable(isToggledHiddenByDefault: false),
-
-                Tables\Columns\TextColumn::make('updated_at')
-                    ->label('Atualizado em')
-                    ->dateTime('d/m/Y H:i')
-                    ->sortable()
+                TextColumn::make('updated_at')
+                    ->label('Atualizado')
+                    ->dateTime('d/m/Y')
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->headerActions([
-                // ✅ AÇÃO 1: Botão para Download do Catálogo (Lista)
+                // AÇÃO: BAIXAR LISTA EM PDF
                 Tables\Actions\Action::make('export_pdf_list')
-                    ->label('Baixar Catálogo (PDF)')
+                    ->label('Catálogo (PDF)')
                     ->icon('heroicon-o-document-arrow-down')
-                    ->color('gray')
-                    ->iconButton()
                     ->action(function ($livewire) {
-                        $query = $livewire->getFilteredTableQuery();
-                        $records = $query->get();
-                        $settings = Setting::first();
+                        $records = $livewire->getFilteredTableQuery()->get();
+                        $settings = Setting::first(); // Ajuste conforme seu Model de settings
 
-                        // ROTA: resources/views/pdfs/products-list.blade.php (Você precisará criar esta view)
                         $pdf = Pdf::loadView('pdfs.products-list', [
                             'records' => $records,
                             'settings' => $settings
                         ])->setPaper('a4', 'landscape');
 
+                        // CORREÇÃO: Usar function() use ($pdf) {} em vez de fn() => echo
                         return response()->streamDownload(function () use ($pdf) {
                             echo $pdf->output();
-                        }, 'catalogo-produtos-' . date('Y-m-d') . '.pdf');
+                        }, 'catalogo-' . date('Y-m-d') . '.pdf');
                     }),
             ])
             ->filters([
-                SelectFilter::make('categories')
-                    ->relationship('categories', 'name')
-                    ->multiple()->preload()
-                    ->label('Filtrar por Categoria'),
-
-                // ✅ NOVO: Filtro de Marcas
-                SelectFilter::make('brands')
-                    ->relationship('brands', 'name')
-                    ->multiple()->preload()
-                    ->label('Filtrar por Marca'),
-
+                SelectFilter::make('categories')->relationship('categories', 'name')->multiple()->preload(),
+                SelectFilter::make('brands')->relationship('brands', 'name')->multiple()->preload(),
                 Tables\Filters\Filter::make('price_range')
                     ->form([
-                        Forms\Components\TextInput::make('min_price')->numeric()->label('Preço Mínimo (Kz)'),
-                        Forms\Components\TextInput::make('max_price')->numeric()->label('Preço Máximo (Kz)'),
+                        TextInput::make('min_price')->numeric()->label('Mín'),
+                        TextInput::make('max_price')->numeric()->label('Máx'),
                     ])
-                    ->query(function (Builder $query, array $data): Builder {
+                    ->query(function (Builder $query, array $data) {
                         return $query
-                            ->when($data['min_price'], fn(Builder $query, $price): Builder => $query->where('price', '>=', $price))
-                            ->when($data['max_price'], fn(Builder $query, $price): Builder => $query->where('price', '<=', $price));
-                    })
-                    ->label('Filtrar por Preço'),
-
-                SelectFilter::make('unit')
-                    ->label('Filtrar por Unidade')
-                    ->options(function () {
-                        return Product::query()
-                            ->select('unit')
-                            ->distinct()
-                            ->get()
-                            ->mapWithKeys(function ($product) {
-                                $unitValue = $product->unit;
-                                $unitLabel = $product->unit ?? 'Sem Unidade';
-                                return [$unitValue => $unitLabel];
-                            });
-                    })
-                    ->multiple(),
-
+                            ->when($data['min_price'], fn($q, $p) => $q->where('price', '>=', $p))
+                            ->when($data['max_price'], fn($q, $p) => $q->where('price', '<=', $p));
+                    }),
                 Tables\Filters\TernaryFilter::make('on_sale')
-                    ->label('Em Promoção')
-                    ->boolean()->trueLabel('Sim')->falseLabel('Não')->native(false)
+                    ->label('Promoção')
                     ->queries(
-                        true: fn(Builder $query) => $query->where('promotional_price', '>', 0),
-                        false: fn(Builder $query) => $query->where(fn($q) => $q->whereNull('promotional_price')->orWhere('promotional_price', 0)),
+                        true: fn($q) => $q->where('promotional_price', '>', 0),
+                        false: fn($q) => $q->where(fn($q2) => $q2->whereNull('promotional_price')->orWhere('promotional_price', 0))
                     ),
             ])
             ->actions([
-
-                Tables\Actions\Action::make('download_pdf_details')
-                    ->label('Detalhes (PDF)')
-                    ->icon('heroicon-o-document-arrow-down')
+                // AÇÃO: BAIXAR DETALHES EM PDF
+                Tables\Actions\Action::make('pdf_details')
+                    ->icon('heroicon-o-document-text')
+                    ->label('Ficha')
                     ->color('gray')
-                    ->iconButton()
                     ->action(function (Product $record) {
                         $record->load(['categories', 'brands', 'movements']);
                         $settings = Setting::first();
@@ -414,13 +363,13 @@ class ProductResource extends Resource
                             'settings' => $settings
                         ]);
 
+                        // CORREÇÃO: Usar function() use ($pdf) {}
                         return response()->streamDownload(function () use ($pdf) {
                             echo $pdf->output();
-                        }, 'detalhe-produto-' . $record->sku . '.pdf');
+                        }, "ficha-{$record->sku}.pdf");
                     }),
-                Tables\Actions\ViewAction::make()->iconButton(),
-                Tables\Actions\EditAction::make()->iconButton(),
-                Tables\Actions\DeleteAction::make()->iconButton(),
+                Tables\Actions\EditAction::make(),
+                Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -431,9 +380,7 @@ class ProductResource extends Resource
 
     public static function getRelations(): array
     {
-        return [
-            //
-        ];
+        return [];
     }
 
     public static function getPages(): array
@@ -442,13 +389,11 @@ class ProductResource extends Resource
             'index' => Pages\ListProducts::route('/'),
             'create' => Pages\CreateProduct::route('/create'),
             'edit' => Pages\EditProduct::route('/{record}/edit'),
-            'view' => Pages\ViewProduct::route('/{record}'),
         ];
     }
 
     public static function getEloquentQuery(): Builder
     {
-        // ✅ ALTERADO: Adicionado 'brands' ao eager loading
         return parent::getEloquentQuery()->with(['categories', 'brands', 'movements', 'images']);
     }
 }

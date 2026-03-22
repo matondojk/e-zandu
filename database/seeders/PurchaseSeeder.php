@@ -18,7 +18,7 @@ class PurchaseSeeder extends Seeder
         $suppliers = Supplier::all();
         $defaultStock = Stock::where('is_default', true)->first();
         // Pegamos um utilizador aleatório (idealmente admin, mas para seed serve qualquer um)
-        $user = User::where('role', 'admin')->first(); 
+        $user = User::first(); 
 
         if ($suppliers->isEmpty()) {
             $this->command->warn('Nenhum fornecedor encontrado. PurchaseSeeder abortado.');

@@ -20,10 +20,9 @@ class ProductReviewResource extends Resource
     // --- Configuração da Navegação ---
     protected static ?string $navigationIcon = 'heroicon-o-chat-bubble-left-right';
     protected static ?string $navigationLabel = 'Avaliações & Moderação';
-    protected static ?string $navigationGroup = 'Loja & Vendas';
+    protected static ?string $navigationGroup = 'Vendas';
     protected static ?string $modelLabel = 'Avaliação';
     protected static ?string $pluralModelLabel = 'Avaliações';
-    protected static ?int $navigationSort = 4;
     protected static ?string $slug = 'avaliacoes'; // URL em português
 
 
