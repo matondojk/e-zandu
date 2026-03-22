@@ -14,6 +14,9 @@ use Illuminate\Support\Facades\Route;
 */
 
 // Carrega as rotas principais da aplicação
+// Route::get('/admin', function(){
+//     return redirect('/admin/painel-de-controle');
+// });
 
 require __DIR__.'/core.php';
 require __DIR__.'/default.php';
