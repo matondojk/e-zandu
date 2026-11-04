@@ -1,6 +1,6 @@
 # 🛍️ e-Zandu — Plataforma Inteligente de E-Commerce, ERP, BI com IA e Vendas por WhatsApp
 
-O **e-Zandu** é uma solução *all-in-one* de **Comércio Eletrónico, Gestão de Estoque e Compras (ERP), CRM, Automação de Marketing e Business Intelligence (BI) assistido por Inteligência Artificial**, desenhada especificamente para a realidade do mercado angolano (moeda em **Kwanzas — Kz**, logística por províncias, pagamentos via Transferência Bancária / IBAN, Multicaixa Express e Pagamento na Entrega).
+O **e-Zandu** é uma solução *all-in-one* de **Comércio Eletrónico, Gestão de Estoque e Compras (ERP), CRM, Automação de Marketing e Business Intelligence (BI) assistido por Inteligência Artificial**, desenhada com suporte completo a logística por províncias e múltiplos métodos de pagamento (Transferência Bancária / IBAN, Multicaixa Express e Pagamento na Entrega).
 
 Além da Loja Virtual Web moderna e do Backoffice Administrativo completo, o **e-Zandu** conta com um **Agente de Vendas Inteligente no WhatsApp** (integrado à API Oficial da Meta e OpenAI), capaz de atender clientes 24/7, pesquisar produtos no banco de dados em linguagem natural, apresentar catálogos interativos com fotos e botões, sugerir *cross-sell*, gerir carrinhos, emitir faturas em PDF e notificar reposições de estoque automaticamente.
 
@@ -79,8 +79,8 @@ flowchart TD
 
 ### 1. Loja Virtual (Frontend Público)
 - **Catálogo Completo (`/`, `/loja`, `/produto/{slug}`):** Listagem com filtros, preços promocionais, variações de tamanhos e cores, galeria de fotos e avaliações de clientes (`ProductReview`).
-- **Carrinho e Checkout Web (`/carrinho`, `/checkout`):** Cálculo automático de subtotal, aplicação de cupões de desconto (percentual ou valor fixo em Kz), escolha da província/taxa de entrega (`ShippingRate`) e método de pagamento (`PaymentMethod`).
-- **Upload de Comprovativo (`/site/pagamento/{cartId}`):** Suporte nativo ao fluxo angolano de pagamento por **Transferência Bancária (IBAN)** ou **Multicaixa Express**, com submissão de comprovativo (PDF/Imagem) para validação, além de **Pagamento na Entrega (Cash on Delivery)**.
+- **Carrinho e Checkout Web (`/carrinho`, `/checkout`):** Cálculo automático de subtotal, aplicação de cupões de desconto (percentual ou valor fixo), escolha da província/taxa de entrega (`ShippingRate`) e método de pagamento (`PaymentMethod`).
+- **Upload de Comprovativo (`/site/pagamento/{cartId}`):** Suporte nativo ao fluxo de pagamento por **Transferência Bancária (IBAN)** ou **Multicaixa Express**, com submissão de comprovativo (PDF/Imagem) para validação, além de **Pagamento na Entrega (Cash on Delivery)**.
 - **Portal do Cliente (`/minha-conta`, `/minha-conta/pedidos`):** Histórico de encomendas, rastreamento de estado do pagamento e da entrega, e gestão de dados pessoais.
 
 ### 2. Gestão Comercial e Vendas (Backoffice Filament)
@@ -108,7 +108,7 @@ Centralizados no serviço [`App\Services\IntelligenceService`](app/Services/Inte
 Permite que o gestor faça perguntas em linguagem natural (ex: *"Quais foram os 10 produtos mais vendidos este mês em Luanda?"* ou *"Qual o total faturado por método de pagamento nos últimos 30 dias?"*).
 - **Introspecção Dinâmica do Schema (`getDynamicSchema`):** A IA lê a estrutura real das tabelas permitidas (`products`, `carts`, `cart_items`, `users`, `stocks`, `purchases`, `expenses`, etc.), mantida em cache por 24h.
 - **Guardrail de Segurança (`isSafeQuery`):** Bloqueia rigorosamente qualquer instrução SQL que não seja `SELECT` ou que contenha palavras-chave destrutivas (`DELETE`, `UPDATE`, `DROP`, `ALTER`, `TRUNCATE`, `INSERT`, etc.).
-- **Execução + Análise Executiva:** Executa a query na base de dados, exibe a tabela de resultados e envia uma amostra de volta ao `gpt-4o` para redigir um **Resumo Executivo** e **Insights Acionáveis** em Português de Angola (`Kz`).
+- **Execução + Análise Executiva:** Executa a query na base de dados, exibe a tabela de resultados e envia uma amostra de volta ao `gpt-4o` para redigir um **Resumo Executivo** e **Insights Acionáveis**.
 - **Relatórios Guardados (`SavedReport`):** Permite guardar consultas geradas pela IA e agendar o seu envio automático por e-mail (`diário`, `semanal` ou `mensal`).
 
 ### 2. Previsão de Vendas com Data Science IA (`IntelligentAnalysis`)
@@ -128,7 +128,7 @@ Permite que o gestor faça perguntas em linguagem natural (ex: *"Quais foram os 
 
 ### 5. Copywriter IA para Campanhas de Marketing (`CampaignResource`)
 - Através do método `generateCampaignTemplates()`, o gestor descreve o objetivo da campanha (promoção de produtos ou cupão de desconto) e a IA redige automaticamente:
-  - **Template curto e persuasivo para WhatsApp** (com links diretos dos produtos/loja, preços originais vs. promocionais em `Kz` e variáveis `{nomeCliente}` e `{cupao}`).
+  - **Template curto e persuasivo para WhatsApp** (com links diretos dos produtos/loja, preços originais vs. promocionais e variáveis `{nomeCliente}` e `{cupao}`).
   - **Assunto e Corpo de E-mail** prontos para disparo em massa via fila (`SendCampaignJob`).
 
 ---
@@ -185,7 +185,7 @@ O bot injeta no prompt da OpenAI (`gpt-4o-mini`) o contexto atualizado da loja (
   - Prioriza busca por nome/descrição (`p.name LIKE '%termo%' OR p.short_description LIKE '%termo%'`) ou por categoria (`JOIN categories`).
   - Executa a consulta SQL (`LIMIT 3`) e dispara um **Card Interativo (`sendProductCardMessage`)** para cada produto, contendo:
     - **Header:** Imagem principal do produto.
-    - **Body:** Nome, descrição curta, preço em `Kz` (destacando preço promocional se existir), tamanhos e cores disponíveis, e status do stock no Armazém Padrão.
+    - **Body:** Nome, descrição curta, preço (destacando preço promocional se existir), tamanhos e cores disponíveis, e status do stock no Armazém Padrão.
     - **Botões Interativos:**
       - Se houver stock: `🛒 Adicionar` (`ADD_ITEM_{id}`), `Mais Detalhes` (`MORE_DETAILS_{id}`) e `Ver Mais Imagens` (`MORE_IMAGES_{id}`).
       - Se estiver sem stock: `Avisar quando chegar` (`ACTIVATE_STOCK_ALERT_{id}`).
@@ -200,7 +200,7 @@ O bot injeta no prompt da OpenAI (`gpt-4o-mini`) o contexto atualizado da loja (
 | `MORE_DETAILS_{id}` | Envia a descrição completa do produto, tamanhos, cores e botões para adicionar ao pedido ou ver o carrinho. |
 | `MORE_IMAGES_{id}` | Envia todas as fotos da galeria do produto (`ProductImage`) ordenadas por `sort_order` e pergunta se o cliente deseja adicioná-lo ao pedido. |
 | `ACTIVATE_STOCK_ALERT_{id}` | Cria um registo em `stock_alerts` para avisar o cliente no WhatsApp assim que o produto voltar ao estoque. |
-| `VER_CARRINHO` | Lista todos os itens do carrinho ativo, quantidades, subtotais e total em `Kz`, com botões `Finalizar Pedido Já` e `Atualizar Carrinho`. |
+| `VER_CARRINHO` | Lista todos os itens do carrinho ativo, quantidades, subtotais e total, com botões `Finalizar Pedido Já` e `Atualizar Carrinho`. |
 | `FINALIZAR_PEDIDO` | Verifica se o cliente tem nome preenchido, gera o `uuid` do carrinho e envia o link exclusivo do **Checkout WhatsApp (`/pagamento/{uuid}`)** + credenciais de acompanhamento no portal web. |
 
 #### 4. Checkout Híbrido do WhatsApp (`WhatsappCheckout` / `PaymentController`)
@@ -346,7 +346,7 @@ e-zandu/
 │   └── Services/
 │       ├── IntelligenceService.php # Serviço central de IA (Text-to-SQL, Previsões, Insights, Copy)
 │       ├── InvoiceService.php      # Geração de faturas em PDF
-│       ├── OrderService.php        # Lógica de carrinho ativo e formatação em Kwanzas (Kz)
+│       ├── OrderService.php        # Lógica de carrinho ativo e formatação de valores
 │       ├── ReportService.php       # Execução de relatórios guardados
 │       ├── SubscriptionManager.php # Gestão de planos SaaS (Trial, Essencial, PRO)
 │       └── WhatsAppService.php     # Cliente HTTP para a Meta WhatsApp Cloud API v19.0
